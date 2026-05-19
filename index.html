@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Water Management Dashboard</title>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a2e; color: white; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
+        .card { background-color: #16213e; padding: 20px; border-radius: 10px; width: 100%; max-width: 400px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h2 { text-align: center; margin-top: 0; color: #0f3460; background: #e94560; padding: 10px; border-radius: 5px;}
+        
+        /* Water Tank CSS */
+        .tank-container { width: 150px; height: 250px; border: 4px solid #fff; border-radius: 10px; position: relative; margin: 20px auto; overflow: hidden; background: #333; }
+        .water-fill { position: absolute; bottom: 0; width: 100%; background: #007bff; transition: height 1s ease-in-out; }
+        .water-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: bold; text-shadow: 1px 1px 2px black; z-index: 10; }
+        
+        /* Grid Details */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .stat-box { background: #0f3460; padding: 10px; border-radius: 5px; text-align: center; font-size: 14px; }
+        .stat-value { font-size: 18px; font-weight: bold; color: #e94560; display: block; margin-top: 5px; }
+        
+        /* Buttons and Logs */
+        button { width: 100%; padding: 15px; font-size: 18px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; color: white; }
+        .btn-off { background-color: #e94560; } .btn-off:hover { background-color: #d13a52; }
+        .btn-on { background-color: #4CAF50; } .btn-on:hover { background-color: #45a049; }
+        .log-box { background: #000; color: #0f0; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 13px; min-height: 50px; }
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; float: right; }
+        .status-online { background: #4CAF50; } .status-offline { background: #e94560; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>System Dashboard <span id="connStatus" class="status-badge status-offline">Connecting...</span></h2>
+        
+        <div class="tank-container">
+            <div id="waterLevelFill" class="water-fill" style="height: 0%;"></div>
+            <div id="waterLevelText" class="water-text">0%</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">Average Gap<span id="txtFinalCm" class="stat-value">-- cm</span></div>
+            <div class="stat-box">Auto Lockout<span id="txtBypass" class="stat-value" style="color:#f39c12">--</span></div>
+            <div class="stat-box">Sensor 1 (Raw)<span id="txtS1" class="stat-value">-- cm</span></div>
+            <div class="stat-box">Sensor 2 (Raw)<span id="txtS2" class="stat-value">-- cm</span></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <button id="pumpToggleBtn" class="btn-off" onclick="togglePump()">Loading Pump State...</button>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">Live System Terminal</h3>
+        <div id="logConsole" class="log-box">Waiting for ESP32 logs...</div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
+            databaseURL: "https://home-water-level-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let currentPumpState = false;
+
+        firebase.auth().signInWithEmailAndPassword("homeiot@gmail.com", "12345678")
+        .then(() => {
+            console.log("Authenticated with Firebase");
+            startListeners();
+        })
+        .catch((error) => {
+            document.getElementById('logConsole').innerText = "Auth Error: " + error.message;
+        });
+
+        function startListeners() {
+            // Listen for Telemetry
+            database.ref('/WaterSystem/telemetry').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) {
+                    document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
+                    document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
+                    document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
+                    
+                    document.getElementById('txtS1').innerText = (data.sensor1Cm > 0) ? parseFloat(data.sensor1Cm).toFixed(1) + ' cm' : 'FAULT';
+                    document.getElementById('txtS2').innerText = (data.sensor2Cm > 0) ? parseFloat(data.sensor2Cm).toFixed(1) + ' cm' : 'FAULT';
+                    
+                    if(data.log) {
+                        document.getElementById('logConsole').innerText = data.log;
+                    }
+                }
+            });
+
+            // Listen for State Variables
+            database.ref('/WaterSystem/state').on('value', (snapshot) => {
+                const state = snapshot.val();
+                if(state) {
+                    // Update Connection Badge
+                    const badge = document.getElementById('connStatus');
+                    if(state.fault) {
+                        badge.className = "status-badge status-offline";
+                        badge.innerText = "LINK FAULT";
+                    } else {
+                        badge.className = "status-badge status-online";
+                        badge.innerText = "ONLINE";
+                    }
+
+                    // Update Automation Bypass flag
+                    document.getElementById('txtBypass').innerText = state.automationBypassed ? "LOCKED" : "ACTIVE";
+
+                    // Update Button UI
+                    currentPumpState = state.pumpActive;
+                    const btn = document.getElementById('pumpToggleBtn');
+                    if(currentPumpState) {
+                        btn.className = "btn-off";
+                        btn.innerText = "SHUT DOWN PUMP";
+                    } else {
+                        btn.className = "btn-on";
+                        btn.innerText = "START PUMP";
+                    }
+                }
+            });
+        }
+
+        function togglePump() {
+            // Write the opposite of the current state directly to the control node. 
+            // The ESP32's Core 0 task will see this change and execute it on the hardware.
+            database.ref('/WaterSystem/control/pumpCommand').set(!currentPumpState);
+            document.getElementById('pumpToggleBtn').innerText = "Transmitting Command...";
+        }
+    </script>
+</body>
+</html>
