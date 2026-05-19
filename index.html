@@ -3,61 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Water Management Dashboard</title>
-    <!-- Firebase App (the core Firebase SDK) -->
+    <title>Smart Water IoT Secure Dashboard</title>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a2e; color: white; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
-        .card { background-color: #16213e; padding: 20px; border-radius: 10px; width: 100%; max-width: 400px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h2 { text-align: center; margin-top: 0; color: #0f3460; background: #e94560; padding: 10px; border-radius: 5px;}
+        /* COLORFUL MODERN BACKGROUND */
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0; 
+            padding: 20px; 
+            min-height: 100vh;
+        }
         
-        /* Water Tank CSS */
-        .tank-container { width: 150px; height: 250px; border: 4px solid #fff; border-radius: 10px; position: relative; margin: 20px auto; overflow: hidden; background: #333; }
-        .water-fill { position: absolute; bottom: 0; width: 100%; background: #007bff; transition: height 1s ease-in-out; }
-        .water-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: bold; text-shadow: 1px 1px 2px black; z-index: 10; }
+        /* GLASSMORPHISM UI CARDS */
+        .card { 
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(10px);
+            padding: 20px; 
+            border-radius: 15px; 
+            width: 100%; 
+            max-width: 420px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
         
-        /* Grid Details */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .stat-box { background: #0f3460; padding: 10px; border-radius: 5px; text-align: center; font-size: 14px; }
-        .stat-value { font-size: 18px; font-weight: bold; color: #e94560; display: block; margin-top: 5px; }
+        h2, h3 { text-align: center; margin-top: 0; color: #00d2ff; }
         
-        /* Buttons and Logs */
-        button { width: 100%; padding: 15px; font-size: 18px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; color: white; }
-        .btn-off { background-color: #e94560; } .btn-off:hover { background-color: #d13a52; }
-        .btn-on { background-color: #4CAF50; } .btn-on:hover { background-color: #45a049; }
-        .log-box { background: #000; color: #0f0; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 13px; min-height: 50px; }
-        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; float: right; }
-        .status-online { background: #4CAF50; } .status-offline { background: #e94560; }
+        /* LOGIN SCREEN STYLES */
+        #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 80vh; }
+        .input-box { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; }
+        .btn-login { background: #00d2ff; color: #000; font-weight: bold; width: 95%; padding: 12px; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; transition: 0.3s; margin-top: 15px;}
+        .btn-login:hover { background: #3a7bd5; color: white;}
+        #loginError { color: #ff4757; font-weight: bold; margin-top: 10px; display: none; }
+
+        /* DASHBOARD (Hidden by Default) */
+        #dashboardScreen { display: none; width: 100%; flex-direction: column; align-items: center; }
+
+        /* OFFLINE WARNING OVERLAY */
+        #offlineOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 9999; flex-direction: column;
+            align-items: center; justify-content: center; color: #ff4757; text-align: center;
+            font-size: 28px; font-weight: bold; padding: 20px; box-sizing: border-box;
+        }
+
+        /* WATER TANK ANIMATION */
+        .tank-container { width: 140px; height: 240px; border: 4px solid #fff; border-radius: 15px; position: relative; margin: 20px auto; overflow: hidden; background: rgba(0,0,0,0.5); box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);}
+        .water-fill { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #005c97, #363795); transition: height 1s ease-in-out; }
+        .water-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; font-weight: bold; text-shadow: 2px 2px 4px black; z-index: 10; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .stat-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center; font-size: 13px; color: #ccc;}
+        .stat-value { font-size: 18px; font-weight: bold; color: #00d2ff; display: block; margin-top: 5px; }
+        
+        /* ROUND PUSH BUTTON DESIGN */
+        .btn-container { display: flex; justify-content: center; padding: 15px 0; }
+        .btn-round { 
+            width: 140px; height: 140px; border-radius: 50%; font-size: 18px; font-weight: bold; 
+            border: 4px solid rgba(255,255,255,0.2); cursor: pointer; color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s; text-shadow: 1px 1px 2px black;
+        }
+        .btn-round:active { transform: scale(0.95); }
+        .btn-off { background: radial-gradient(circle, #ff6b81, #ff4757); } /* Red to Stop */
+        .btn-on { background: radial-gradient(circle, #7bed9f, #2ed573); } /* Green to Start */
+        
+        .log-box { background: #000; color: #00ff00; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; min-height: 60px; box-shadow: inset 0 0 10px rgba(0,255,0,0.2);}
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; float: right; background: #2ed573; color: black;}
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>System Dashboard <span id="connStatus" class="status-badge status-offline">Connecting...</span></h2>
-        
-        <div class="tank-container">
-            <div id="waterLevelFill" class="water-fill" style="height: 0%;"></div>
-            <div id="waterLevelText" class="water-text">0%</div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-box">Average Gap<span id="txtFinalCm" class="stat-value">-- cm</span></div>
-            <div class="stat-box">Auto Lockout<span id="txtBypass" class="stat-value" style="color:#f39c12">--</span></div>
-            <div class="stat-box">Sensor 1 (Raw)<span id="txtS1" class="stat-value">-- cm</span></div>
-            <div class="stat-box">Sensor 2 (Raw)<span id="txtS2" class="stat-value">-- cm</span></div>
-        </div>
+    <!-- DEVICE OFFLINE OVERLAY -->
+    <div id="offlineOverlay">
+        ⚠️<br><br>
+        Home device now connect to any network
     </div>
 
-    <div class="card">
-        <button id="pumpToggleBtn" class="btn-off" onclick="togglePump()">Loading Pump State...</button>
+    <!-- 1. LOGIN SCREEN -->
+    <div id="loginScreen" class="card">
+        <h2>🔒 Security Gateway</h2>
+        <p style="text-align:center; color:#ccc;">Please enter your credentials to access the IoT Water System.</p>
+        <input type="email" id="emailInput" class="input-box" placeholder="Email (e.g. homeiot@gmail.com)" />
+        <input type="password" id="passwordInput" class="input-box" placeholder="Password" />
+        <button class="btn-login" onclick="loginUser()">LOGIN</button>
+        <div id="loginError">Invalid Credentials</div>
     </div>
 
-    <div class="card">
-        <h3 style="margin-top:0;">Live System Terminal</h3>
-        <div id="logConsole" class="log-box">Waiting for ESP32 logs...</div>
+    <!-- 2. SECURE DASHBOARD -->
+    <div id="dashboardScreen">
+        <div class="card">
+            <h2>System Dashboard <span id="connStatus" class="status-badge">ONLINE</span></h2>
+            
+            <div class="tank-container">
+                <div id="waterLevelFill" class="water-fill" style="height: 0%;"></div>
+                <div id="waterLevelText" class="water-text">--%</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">Average Gap<span id="txtFinalCm" class="stat-value">-- cm</span></div>
+                <div class="stat-box">Auto Lockout<span id="txtBypass" class="stat-value" style="color:#ffa502">--</span></div>
+                <div class="stat-box">Sensor 1 (Raw)<span id="txtS1" class="stat-value">-- cm</span></div>
+                <div class="stat-box">Sensor 2 (Raw)<span id="txtS2" class="stat-value">-- cm</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Manual Override</h3>
+            <div class="btn-container">
+                <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
+            </div>
+        </div>
+
+        <div class="card" style="width: 100%;">
+            <h3>Live Diagnostics Terminal</h3>
+            <div id="logConsole" class="log-box">Waiting for ESP32 logs...</div>
+        </div>
     </div>
 
     <script>
@@ -69,18 +138,45 @@
         const database = firebase.database();
 
         let currentPumpState = false;
+        let lastHeartbeat = 0;
+        let lastHeartbeatTime = Date.now();
 
-        firebase.auth().signInWithEmailAndPassword("homeiot@gmail.com", "12345678")
-        .then(() => {
-            console.log("Authenticated with Firebase");
-            startListeners();
-        })
-        .catch((error) => {
-            document.getElementById('logConsole').innerText = "Auth Error: " + error.message;
-        });
+        // LOGIN FUNCTION
+        function loginUser() {
+            const email = document.getElementById('emailInput').value;
+            const pass = document.getElementById('passwordInput').value;
+            
+            firebase.auth().signInWithEmailAndPassword(email, pass)
+            .then(() => {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('dashboardScreen').style.display = 'flex';
+                startListeners();
+            })
+            .catch((error) => {
+                const errDiv = document.getElementById('loginError');
+                errDiv.style.display = 'block';
+                errDiv.innerText = "Error: " + error.message;
+            });
+        }
 
+        // START LIVE DATA STREAM
         function startListeners() {
-            // Listen for Telemetry
+            // Heartbeat Watchdog Listener
+            database.ref('/WaterSystem/deviceStatus/heartbeat').on('value', (snapshot) => {
+                lastHeartbeat = snapshot.val();
+                lastHeartbeatTime = Date.now(); 
+                document.getElementById('offlineOverlay').style.display = 'none'; // Hide error if heartbeat arrives
+            });
+
+            // Offline Check Loop (Checks every 3 seconds)
+            setInterval(() => {
+                // If 10 seconds pass without a new heartbeat, show the error screen
+                if(Date.now() - lastHeartbeatTime > 10000) {
+                    document.getElementById('offlineOverlay').style.display = 'flex';
+                }
+            }, 3000);
+
+            // Telemetry Listener
             database.ref('/WaterSystem/telemetry').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
@@ -97,42 +193,38 @@
                 }
             });
 
-            // Listen for State Variables
+            // Hardware State Listener
             database.ref('/WaterSystem/state').on('value', (snapshot) => {
                 const state = snapshot.val();
                 if(state) {
-                    // Update Connection Badge
                     const badge = document.getElementById('connStatus');
                     if(state.fault) {
-                        badge.className = "status-badge status-offline";
+                        badge.style.background = "#ff4757";
                         badge.innerText = "LINK FAULT";
                     } else {
-                        badge.className = "status-badge status-online";
+                        badge.style.background = "#2ed573";
                         badge.innerText = "ONLINE";
                     }
 
-                    // Update Automation Bypass flag
                     document.getElementById('txtBypass').innerText = state.automationBypassed ? "LOCKED" : "ACTIVE";
 
-                    // Update Button UI
+                    // Update Round Button UI
                     currentPumpState = state.pumpActive;
                     const btn = document.getElementById('pumpToggleBtn');
                     if(currentPumpState) {
-                        btn.className = "btn-off";
-                        btn.innerText = "SHUT DOWN PUMP";
+                        btn.className = "btn-round btn-off";
+                        btn.innerText = "TURN\nOFF";
                     } else {
-                        btn.className = "btn-on";
-                        btn.innerText = "START PUMP";
+                        btn.className = "btn-round btn-on";
+                        btn.innerText = "TURN\nON";
                     }
                 }
             });
         }
 
         function togglePump() {
-            // Write the opposite of the current state directly to the control node. 
-            // The ESP32's Core 0 task will see this change and execute it on the hardware.
             database.ref('/WaterSystem/control/pumpCommand').set(!currentPumpState);
-            document.getElementById('pumpToggleBtn').innerText = "Transmitting Command...";
+            document.getElementById('pumpToggleBtn').innerText = "WAIT...";
         }
     </script>
 </body>
