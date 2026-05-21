@@ -186,6 +186,7 @@
                 }
             }, 3000);
 
+            // Web listens to the /state folder (Hardware dictates the truth)
             database.ref('/WaterSystem/telemetry').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
@@ -238,8 +239,14 @@
             });
         }
 
+        // ONE-WAY PIPELINE: Website generates a randomized ticket ID
         function togglePump() {
-            database.ref('/WaterSystem/control/pumpCommand').set(!currentPumpState);
+            const desiredState = !currentPumpState;
+            const newTrigger = Math.floor(Math.random() * 1000000) + 1; // Creates ID like 542013
+            
+            database.ref('/WaterSystem/control/forceState').set(desiredState);
+            database.ref('/WaterSystem/control/triggerId').set(newTrigger);
+            
             document.getElementById('pumpToggleBtn').innerText = "WAIT...";
         }
     </script>
