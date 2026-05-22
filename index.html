@@ -81,6 +81,19 @@
 
         .btn-danger { background: #ff4757; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;}
         .btn-danger:hover { background: #ff6b81; }
+
+        /* NEW CSS: Styling for the Global Admin Inbox */
+        .inbox-container {
+            max-height: 250px; overflow-y: auto; width: 100%; 
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; 
+            padding: 10px; box-sizing: border-box; background: rgba(0,0,0,0.2);
+            margin-top: 10px;
+        }
+        .inbox-card {
+            background: rgba(0,0,0,0.4); padding: 12px; margin-bottom: 8px; 
+            border-radius: 4px; font-size: 13px;
+        }
+        .inbox-card span { color: #ccc; display: block; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -116,9 +129,17 @@
             
             <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
             
+            <h3 style="color: #feca57;">Global Device Inbox</h3>
+            <p style="text-align:center; color:#ccc; font-size:12px; margin-top:-5px;">Live monitoring of faults and OTA updates for all connected machines.</p>
+            <div id="adminInbox" class="inbox-container">
+                <div style="text-align:center; color:#ccc; font-size:13px;">Scanning database...</div>
+            </div>
+
+            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
             <h3 style="color: #ff6b81;">OTA Firmware Update</h3>
-            <p style="text-align:center; color:#ccc; font-size:12px;">Paste the Firebase Storage .bin download link below to push a remote update to the connected device.</p>
-            <input type="text" id="otaUrlInput" class="input-box" placeholder="https://firebasestorage.googleapis.com/v0/b/...">
+            <p style="text-align:center; color:#ccc; font-size:12px;">Paste the GitHub Raw .bin download link below to push a remote update to the connected device.</p>
+            <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin">
             <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
         </div>
 
@@ -209,13 +230,9 @@
                 if(user.email === "homeiot@gmail.com") {
                     document.getElementById('adminPanel').style.display = 'block';
                     document.getElementById('customerPanel').style.display = 'none';
+                    startAdminInboxListener(); // NEW: Triggers the global scanner
                 } else {
                     document.getElementById('adminPanel').style.display = 'none';
-                    
-                    // --- THE DEVELOPER DIAGNOSTIC TOOL ---
-                    // This will tell us exactly what UID the website is looking for!
-                    alert("DIAGNOSTIC TEST\nThe website is looking for this exact UID folder:\n" + user.uid);
-
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
                         if(devId) {
@@ -223,11 +240,8 @@
                             document.getElementById('customerPanel').style.display = 'flex';
                             startListeners();
                         } else {
-                            alert("ERROR: It successfully connected to Firebase, but the folder was empty or missing.\n\nAre you absolutely sure the folder is named: " + user.uid + " ?");
+                            alert("Account error: Your profile has not been linked to a Device ID yet.");
                         }
-                    }).catch((error) => {
-                        // This catches the Security Rules error!
-                        alert("SECURITY FIREWALL BLOCKED THE CONNECTION!\n\nError code: " + error.message + "\n\nFix: Go to Realtime Database -> Rules and change false to 'auth != null'");
                     });
                 }
             } else {
@@ -239,6 +253,36 @@
                 }
             }
         });
+
+        // NEW LOGIC: The Global Message Box Scanner
+        function startAdminInboxListener() {
+            database.ref('/AdminInbox').on('value', (snapshot) => {
+                const inboxDiv = document.getElementById('adminInbox');
+                inboxDiv.innerHTML = ''; 
+                
+                if(!snapshot.exists()) {
+                    inboxDiv.innerHTML = '<div style="text-align:center; color:#ccc; font-size:13px;">No alerts or connected devices found.</div>';
+                    return;
+                }
+
+                snapshot.forEach((child) => {
+                    const devId = child.key;
+                    const data = child.val();
+                    
+                    let color = "#2ed573"; // Default Green (Online)
+                    if(data.status.includes("FAULT") || data.status.includes("ERROR")) color = "#ff4757"; // Red
+                    else if(data.status.includes("OTA SUCCESS")) color = "#feca57"; // Gold for Success Confirmation
+                    else if(data.status.includes("OTA")) color = "#00d2ff"; // Blue for downloading
+                    
+                    inboxDiv.innerHTML += `
+                        <div class="inbox-card" style="border-left: 4px solid ${color};">
+                            <strong style="color:${color}">${devId}</strong> - <span style="font-weight:bold; display:inline; color:white;">${data.status}</span>
+                            <span>${data.message}</span>
+                        </div>
+                    `;
+                });
+            });
+        }
 
         function connectAdminDevice() {
             const devId = document.getElementById('adminSearchInput').value.trim();
@@ -340,7 +384,7 @@
                 const basePath = '/Devices/' + currentDeviceId + '/control';
                 database.ref(basePath + '/otaUrl').set(fileUrl);
                 database.ref(basePath + '/otaTrigger').set(true);
-                alert("OTA command sent! Check the Live Diagnostics Terminal to watch the download progress.");
+                alert("OTA command sent! Check the Global Device Inbox above to watch the download progress.");
             }
         }
     </script>
