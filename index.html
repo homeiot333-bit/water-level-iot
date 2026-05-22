@@ -82,7 +82,6 @@
         .btn-danger { background: #ff4757; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;}
         .btn-danger:hover { background: #ff6b81; }
 
-        /* NEW CSS: Styling for the Global Admin Inbox */
         .inbox-container {
             max-height: 250px; overflow-y: auto; width: 100%; 
             border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; 
@@ -186,6 +185,10 @@
     </div>
 
     <script>
+        // --- GLOBAL VARIABLES FOR INBOX SCANNER ---
+        let globalDeviceState = {};
+        let adminInboxData = {};
+
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
             databaseURL: "https://home-water-level-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -230,7 +233,7 @@
                 if(user.email === "homeiot@gmail.com") {
                     document.getElementById('adminPanel').style.display = 'block';
                     document.getElementById('customerPanel').style.display = 'none';
-                    startAdminInboxListener(); // NEW: Triggers the global scanner
+                    startAdminInboxListener(); 
                 } else {
                     document.getElementById('adminPanel').style.display = 'none';
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
@@ -254,34 +257,79 @@
             }
         });
 
-        // NEW LOGIC: The Global Message Box Scanner
+        // --- NEW FEATURE: INDEPENDENT GLOBAL INBOX SCANNER ---
         function startAdminInboxListener() {
+            database.ref('/Devices').on('value', (snapshot) => {
+                snapshot.forEach(child => {
+                    let devId = child.key;
+                    let hb = 0;
+                    if(child.val().deviceStatus && child.val().deviceStatus.heartbeat) {
+                        hb = child.val().deviceStatus.heartbeat;
+                    }
+                    
+                    if(!globalDeviceState[devId]) globalDeviceState[devId] = { lastHb: -1, lastTime: Date.now() };
+                    
+                    if(globalDeviceState[devId].lastHb !== hb) {
+                        globalDeviceState[devId].lastHb = hb;
+                        globalDeviceState[devId].lastTime = Date.now();
+                    }
+                });
+                renderAdminInbox();
+            });
+
             database.ref('/AdminInbox').on('value', (snapshot) => {
-                const inboxDiv = document.getElementById('adminInbox');
-                inboxDiv.innerHTML = ''; 
-                
-                if(!snapshot.exists()) {
-                    inboxDiv.innerHTML = '<div style="text-align:center; color:#ccc; font-size:13px;">No alerts or connected devices found.</div>';
-                    return;
+                adminInboxData = snapshot.val() || {};
+                renderAdminInbox();
+            });
+
+            setInterval(renderAdminInbox, 3000); // Forces scanner to refresh every 3 seconds to catch dead machines
+        }
+
+        function renderAdminInbox() {
+            const inboxDiv = document.getElementById('adminInbox');
+            if(!inboxDiv) return; 
+
+            let html = '';
+            let hasDevices = false;
+
+            for (const devId in adminInboxData) {
+                hasDevices = true;
+                const data = adminInboxData[devId];
+                let color = "#2ed573"; 
+                let displayStatus = data.status;
+                let displayMsg = data.message;
+
+                // BUG FIX: Override Inbox if machine is actually unplugged/dead
+                let isDead = false;
+                if(globalDeviceState[devId]) {
+                    if (Date.now() - globalDeviceState[devId].lastTime > 35000) {
+                        isDead = true;
+                    }
                 }
 
-                snapshot.forEach((child) => {
-                    const devId = child.key;
-                    const data = child.val();
-                    
-                    let color = "#2ed573"; // Default Green (Online)
-                    if(data.status.includes("FAULT") || data.status.includes("ERROR")) color = "#ff4757"; // Red
-                    else if(data.status.includes("OTA SUCCESS")) color = "#feca57"; // Gold for Success Confirmation
-                    else if(data.status.includes("OTA")) color = "#00d2ff"; // Blue for downloading
-                    
-                    inboxDiv.innerHTML += `
-                        <div class="inbox-card" style="border-left: 4px solid ${color};">
-                            <strong style="color:${color}">${devId}</strong> - <span style="font-weight:bold; display:inline; color:white;">${data.status}</span>
-                            <span>${data.message}</span>
-                        </div>
-                    `;
-                });
-            });
+                if (isDead) {
+                    color = "#ff4757"; 
+                    displayStatus = "❌ OFFLINE (Power/Network Lost)";
+                    displayMsg = "Machine is unresponsive. It may be unplugged or restarting.";
+                } else {
+                    if(data.status.includes("FAULT") || data.status.includes("ERROR")) color = "#ff4757";
+                    else if(data.status.includes("OTA SUCCESS")) color = "#feca57"; 
+                    else if(data.status.includes("OTA")) color = "#00d2ff"; 
+                }
+                
+                html += `
+                    <div class="inbox-card" style="border-left: 4px solid ${color};">
+                        <strong style="color:${color}">${devId}</strong> - <span style="font-weight:bold; display:inline; color:white;">${displayStatus}</span>
+                        <span>${displayMsg}</span>
+                    </div>
+                `;
+            }
+
+            if(!hasDevices) {
+                inboxDiv.innerHTML = '<div style="text-align:center; color:#ccc; font-size:13px;">No alerts or connected devices found.</div>';
+            } else {
+                inboxDiv.innerHTML = html;
+            }
         }
 
         function connectAdminDevice() {
@@ -307,9 +355,20 @@
                 document.getElementById('offlineOverlay').style.display = 'none'; 
             });
 
+            // BUG FIX: The Admin "Anti-Freeze" Logic
             setInterval(() => {
                 if(Date.now() - lastHeartbeatTime > 35000) {
-                    document.getElementById('offlineOverlay').style.display = 'flex';
+                    const user = firebase.auth().currentUser;
+                    if(user && user.email === "homeiot@gmail.com") {
+                        // Admin Mode: Do NOT freeze the screen. Just change the badge.
+                        document.getElementById('offlineOverlay').style.display = 'none';
+                        const badge = document.getElementById('connStatus');
+                        badge.style.background = "#ff4757";
+                        badge.innerText = "OFFLINE / REBOOTING";
+                    } else {
+                        // Customer Mode: Show the offline warning overlay
+                        document.getElementById('offlineOverlay').style.display = 'flex';
+                    }
                 }
             }, 3000);
 
@@ -332,14 +391,16 @@
             database.ref(basePath + '/state').on('value', (snapshot) => {
                 const state = snapshot.val();
                 if(state) {
-                    const badge = document.getElementById('connStatus');
-                    
-                    if(state.fault) {
-                        badge.style.background = "#ff4757";
-                        badge.innerText = "LINK FAULT";
-                    } else {
-                        badge.style.background = "#2ed573";
-                        badge.innerText = "ONLINE";
+                    // Only update badge to online if the heartbeat is actually active
+                    if (Date.now() - lastHeartbeatTime <= 35000) {
+                        const badge = document.getElementById('connStatus');
+                        if(state.fault) {
+                            badge.style.background = "#ff4757";
+                            badge.innerText = "LINK FAULT";
+                        } else {
+                            badge.style.background = "#2ed573";
+                            badge.innerText = "ONLINE";
+                        }
                     }
 
                     document.getElementById('txtBypass').innerText = state.automationBypassed ? "LOCKED" : "ACTIVE";
