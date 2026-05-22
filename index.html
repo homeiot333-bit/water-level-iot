@@ -264,7 +264,7 @@
             });
 
             setInterval(() => {
-                if(Date.now() - lastHeartbeatTime > 10000) {
+                if(Date.now() - lastHeartbeatTime > 35000) {
                     document.getElementById('offlineOverlay').style.display = 'flex';
                 }
             }, 3000);
