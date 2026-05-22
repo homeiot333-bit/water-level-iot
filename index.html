@@ -188,7 +188,7 @@
         // --- GLOBAL VARIABLES ---
         let globalDeviceState = {};
         let adminInboxData = {};
-        let pendingOtaDevice = null; // Tracks which device we are waiting for an OTA popup
+        let pendingOtaDevice = null; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
@@ -281,7 +281,6 @@
             database.ref('/AdminInbox').on('value', (snapshot) => {
                 adminInboxData = snapshot.val() || {};
                 
-                // NEW FEATURE: The Explicit OTA Popup Watcher
                 if (pendingOtaDevice && adminInboxData[pendingOtaDevice]) {
                     let status = adminInboxData[pendingOtaDevice].status;
                     let msg = adminInboxData[pendingOtaDevice].message;
@@ -319,7 +318,6 @@
             let normalHtml = '';
             let hasDevices = false;
 
-            // NEW FEATURE: Sorts lists so Dead/Fault devices are pushed to the top
             for (const devId in adminInboxData) {
                 hasDevices = true;
                 const data = adminInboxData[devId];
@@ -329,7 +327,7 @@
                 
                 let isDead = false;
                 if(globalDeviceState[devId]) {
-                    if (Date.now() - globalDeviceState[devId].lastTime > 18000) { // Uses 18-second timeout
+                    if (Date.now() - globalDeviceState[devId].lastTime > 18000) { 
                         isDead = true;
                     }
                 }
@@ -367,13 +365,35 @@
         function connectAdminDevice() {
             const devId = document.getElementById('adminSearchInput').value.trim();
             if(devId) {
+                // THE FIX: Explicitly cut the exact wires to the OLD device to prevent data ghosting
                 if(currentDeviceId) {
-                    database.ref('/Devices/' + currentDeviceId).off(); 
+                    const oldPath = '/Devices/' + currentDeviceId;
+                    database.ref(oldPath + '/deviceStatus/heartbeat').off();
+                    database.ref(oldPath + '/telemetry').off();
+                    database.ref(oldPath + '/state').off();
                 }
-                currentDeviceId = devId;
-                document.getElementById('customerPanel').style.display = 'flex';
                 
-                // Show the Admin Terminal specifically for this device
+                currentDeviceId = devId;
+
+                // THE FIX: Wipe the UI dashboard clean before connecting so old data doesn't get stuck
+                document.getElementById('waterLevelFill').style.height = '0%';
+                document.getElementById('waterLevelText').innerText = '--%';
+                document.getElementById('txtFinalCm').innerText = '-- cm';
+                document.getElementById('txtS1').innerText = '-- cm';
+                document.getElementById('txtS2').innerText = '-- cm';
+                document.getElementById('txtBypass').innerText = '--';
+                
+                const btn = document.getElementById('pumpToggleBtn');
+                btn.className = "btn-round btn-off";
+                btn.innerText = "WAIT...";
+                
+                const badge = document.getElementById('connStatus');
+                badge.style.background = "#ffa502";
+                badge.innerText = "CONNECTING...";
+                
+                lastHeartbeatTime = 0; // Force heartbeat to reset
+                
+                document.getElementById('customerPanel').style.display = 'flex';
                 document.getElementById('adminTerminalContainer').style.display = 'block';
                 document.getElementById('termDevId').innerText = currentDeviceId;
                 document.getElementById('logConsole').innerText = "Connecting to " + currentDeviceId + " logs...";
@@ -394,7 +414,7 @@
             });
 
             setInterval(() => {
-                if(Date.now() - lastHeartbeatTime > 18000) { // 18 Second Sweet Spot
+                if(Date.now() - lastHeartbeatTime > 18000) { 
                     const user = firebase.auth().currentUser;
                     if(user && user.email === "homeiot@gmail.com") {
                         document.getElementById('offlineOverlay').style.display = 'none';
@@ -476,7 +496,7 @@
                 return;
             }
             if(confirm("WARNING: Are you absolutely sure you want to push a firmware update to " + currentDeviceId + "?")) {
-                pendingOtaDevice = currentDeviceId; // Tells the website to start watching for the Popup
+                pendingOtaDevice = currentDeviceId; 
                 
                 const basePath = '/Devices/' + currentDeviceId + '/control';
                 database.ref(basePath + '/otaUrl').set(fileUrl);
