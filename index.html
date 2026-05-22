@@ -302,7 +302,7 @@
                 // BUG FIX: Override Inbox if machine is actually unplugged/dead
                 let isDead = false;
                 if(globalDeviceState[devId]) {
-                    if (Date.now() - globalDeviceState[devId].lastTime > 35000) {
+                    if (Date.now() - globalDeviceState[devId].lastTime > 18000) {
                         isDead = true;
                     }
                 }
