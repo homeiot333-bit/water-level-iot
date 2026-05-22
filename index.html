@@ -90,7 +90,6 @@
         Machine is currently Offline
     </div>
 
-    <!-- 1. LOGIN SCREEN -->
     <div id="loginScreen" class="card">
         <h2>🔒 Security Gateway</h2>
         <p style="text-align:center; color:#ccc;">Enter credentials to access your device.</p>
@@ -100,7 +99,6 @@
         <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
     </div>
 
-    <!-- 2. SECURE DASHBOARD -->
     <div id="dashboardScreen">
         
         <div class="top-bar">
@@ -110,7 +108,6 @@
 
         <div id="criticalErrorBanner" class="error-banner"></div>
 
-        <!-- MASTER ADMIN PANEL -->
         <div id="adminPanel" class="card" style="display:none; border: 2px solid #00d2ff;">
             <h2>👑 Master Command Center</h2>
             <p style="text-align:center; color:#ccc; font-size:13px;">Enter Customer Device ID to view live data.</p>
@@ -125,7 +122,6 @@
             <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
         </div>
 
-        <!-- CUSTOMER VIEW PANEL -->
         <div id="customerPanel" style="display:none; width: 100%; flex-direction: column; align-items: center;">
             <div class="card">
                 <span id="connStatus" class="status-badge">ONLINE</span>
@@ -215,6 +211,11 @@
                     document.getElementById('customerPanel').style.display = 'none';
                 } else {
                     document.getElementById('adminPanel').style.display = 'none';
+                    
+                    // --- THE DEVELOPER DIAGNOSTIC TOOL ---
+                    // This will tell us exactly what UID the website is looking for!
+                    alert("DIAGNOSTIC TEST\nThe website is looking for this exact UID folder:\n" + user.uid);
+
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
                         if(devId) {
@@ -222,8 +223,11 @@
                             document.getElementById('customerPanel').style.display = 'flex';
                             startListeners();
                         } else {
-                            alert("Account error: Your profile has not been linked to a Device ID yet.");
+                            alert("ERROR: It successfully connected to Firebase, but the folder was empty or missing.\n\nAre you absolutely sure the folder is named: " + user.uid + " ?");
                         }
+                    }).catch((error) => {
+                        // This catches the Security Rules error!
+                        alert("SECURITY FIREWALL BLOCKED THE CONNECTION!\n\nError code: " + error.message + "\n\nFix: Go to Realtime Database -> Rules and change false to 'auth != null'");
                     });
                 }
             } else {
