@@ -1,296 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Water IoT Secure Dashboard</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
-    <style>
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: white; display: flex; flex-direction: column; align-items: center; 
-            margin: 0; padding: 20px; min-height: 100vh;
-        }
-        
-        .card { 
-            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
-            padding: 20px; border-radius: 15px; width: 100%; max-width: 420px; 
-            margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
-            border: 1px solid rgba(255, 255, 255, 0.1); position: relative; box-sizing: border-box;
-        }
-        
-        h2, h3 { text-align: center; margin-top: 0; color: #00d2ff; }
-        
-        .menu-dots {
-            position: absolute; top: 15px; right: 20px; font-size: 24px; 
-            font-weight: bold; cursor: pointer; color: #00d2ff; user-select: none;
-            transition: 0.3s;
-        }
-        .menu-dots:hover { color: #fff; text-shadow: 0 0 10px #00d2ff; }
-
-        .error-banner {
-            background: rgba(255, 71, 87, 0.2); border: 2px solid #ff4757;
-            color: #ff4757; padding: 15px; border-radius: 8px; margin-bottom: 20px;
-            font-weight: bold; text-align: center; display: none; width: 100%;
-            max-width: 420px; box-sizing: border-box; box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
-        }
-        
-        #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 75vh; }
-        .input-box { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box;}
-        .btn-login { background: #00d2ff; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; transition: 0.3s; margin-top: 15px;}
-        .btn-login:hover { background: #3a7bd5; color: white;}
-        
-        .top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 420px; margin-bottom: 15px;}
-        .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;}
-
-        #dashboardScreen { display: none; width: 100%; flex-direction: column; align-items: center; }
-
-        #offlineOverlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); z-index: 9999; flex-direction: column;
-            align-items: center; justify-content: center; color: #ff4757; text-align: center;
-            font-size: 28px; font-weight: bold; padding: 20px; box-sizing: border-box;
-        }
-
-        .tank-container { width: 140px; height: 240px; border: 4px solid #fff; border-radius: 15px; position: relative; margin: 20px auto; overflow: hidden; background: rgba(0,0,0,0.5); box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);}
-        .water-fill { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #005c97, #363795); transition: height 1s ease-in-out; }
-        .water-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; font-weight: bold; text-shadow: 2px 2px 4px black; z-index: 10; }
-        
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
-        .stat-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center; font-size: 13px; color: #ccc;}
-        .stat-value { font-size: 18px; font-weight: bold; color: #00d2ff; display: block; margin-top: 5px; }
-        
-        .btn-container { display: flex; justify-content: center; padding: 15px 0; }
-        .btn-round { 
-            width: 140px; height: 140px; border-radius: 50%; font-size: 18px; font-weight: bold; 
-            border: 4px solid rgba(255,255,255,0.2); cursor: pointer; color: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s; text-shadow: 1px 1px 2px black;
-        }
-        .btn-round:active { transform: scale(0.95); }
-        .btn-off { background: radial-gradient(circle, #ff6b81, #ff4757); } 
-        .btn-on { background: radial-gradient(circle, #7bed9f, #2ed573); } 
-        
-        .log-box { background: #000; color: #00ff00; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; min-height: 60px; box-shadow: inset 0 0 10px rgba(0,255,0,0.2); margin-top: 10px;}
-        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; float: left; background: #2ed573; color: black; margin-top: 4px;}
-        
-        #advancedSection { display: none; width: 100%; flex-direction: column; align-items: center; transition: 0.3s;}
-
-        .btn-danger { background: #ff4757; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;}
-        .btn-danger:hover { background: #ff6b81; }
-
-        .inbox-container {
-            max-height: 250px; overflow-y: auto; width: 100%; 
-            border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; 
-            padding: 10px; box-sizing: border-box; background: rgba(0,0,0,0.2);
-            margin-top: 10px;
-        }
-        .inbox-card {
-            background: rgba(0,0,0,0.4); padding: 12px; margin-bottom: 8px; 
-            border-radius: 4px; font-size: 13px;
-        }
-        .inbox-card span { color: #ccc; display: block; margin-top: 4px; }
-    </style>
-</head>
-<body>
-
-    <div id="offlineOverlay">
-        ⚠️<br><br>
-        Machine is currently Offline
-    </div>
-
-    <div id="loginScreen" class="card">
-        <h2>🔒 Security Gateway</h2>
-        <p style="text-align:center; color:#ccc;">Enter credentials to access your device.</p>
-        <input type="email" id="emailInput" class="input-box" placeholder="Email" />
-        <input type="password" id="passwordInput" class="input-box" placeholder="Password" />
-        <button class="btn-login" onclick="loginUser()">LOGIN</button>
-        <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
-    </div>
-
-    <div id="dashboardScreen">
-        
-        <div class="top-bar">
-            <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
-            <button class="logout-btn" onclick="logoutUser()">Logout</button>
-        </div>
-
-        <div id="criticalErrorBanner" class="error-banner"></div>
-
-        <div id="adminPanel" class="card" style="display:none; border: 2px solid #00d2ff;">
-            <h2>👑 Master Command Center</h2>
-            <p style="text-align:center; color:#ccc; font-size:13px;">Enter Customer Device ID to view live data.</p>
-            <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
-            <button class="btn-login" onclick="connectAdminDevice()" style="margin-top:10px;">Connect to Machine</button>
-            
-            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-            
-            <h3 style="color: #feca57;">Global Device Inbox</h3>
-            <p style="text-align:center; color:#ccc; font-size:12px; margin-top:-5px;">Faults automatically jump to the top of this list.</p>
-            <div id="adminInbox" class="inbox-container">
-                <div style="text-align:center; color:#ccc; font-size:13px;">Scanning database...</div>
-            </div>
-
-            <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
-                <h3 style="color: #00ff00; font-size: 16px;">Live Terminal: <span id="termDevId"></span></h3>
-                <div id="logConsole" class="log-box">Connecting to machine logs...</div>
-            </div>
-
-            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-
-            <h3 style="color: #ff6b81;">OTA Firmware Update</h3>
-            <p style="text-align:center; color:#ccc; font-size:12px;">Paste the GitHub Raw .bin download link below to push a remote update to the connected device.</p>
-            <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin">
-            <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
-        </div>
-
-        <div id="customerPanel" style="display:none; width: 100%; flex-direction: column; align-items: center;">
-            <div class="card">
-                <span id="connStatus" class="status-badge">ONLINE</span>
-                <h2>Dashboard</h2>
-                <div class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data">⋮</div>
-                
-                <div class="tank-container">
-                    <div id="waterLevelFill" class="water-fill" style="height: 0%;"></div>
-                    <div id="waterLevelText" class="water-text">--%</div>
-                </div>
-                
-                <div style="text-align: center; margin-top:10px; color:#ccc; font-size: 14px;">
-                    Manual Bypass Status: <span id="txtBypass" style="color:#ffa502; font-weight:bold;">--</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Pump Control</h3>
-                <div class="btn-container">
-                    <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
-                </div>
-            </div>
-
-            <div id="advancedSection">
-                <div class="card">
-                    <h3>Engineering Data</h3>
-                    <div class="stats-grid">
-                        <div class="stat-box">Average Gap<span id="txtFinalCm" class="stat-value">-- cm</span></div>
-                        <div class="stat-box">Sensor 1 (Raw)<span id="txtS1" class="stat-value">-- cm</span></div>
-                        <div class="stat-box">Sensor 2 (Raw)<span id="txtS2" class="stat-value">-- cm</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <script>
-        // --- GLOBAL VARIABLES ---
-        let globalDeviceState = {};
-        let adminInboxData = {};
-        let pendingOtaDevice = null; 
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
-            databaseURL: "https://home-water-level-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        let currentDeviceId = null;
-        let currentPumpState = false;
-        let lastHeartbeat = 0;
-        let lastHeartbeatTime = Date.now();
-        let currentSystemLog = "";
-
-        function toggleAdvanced() {
-            const adv = document.getElementById('advancedSection');
-            adv.style.display = (adv.style.display === "none") ? "flex" : "none";
-        }
-
-        function loginUser() {
-            const email = document.getElementById('emailInput').value;
-            const pass = document.getElementById('passwordInput').value;
-            
-            firebase.auth().signInWithEmailAndPassword(email, pass).catch((error) => {
-                const errDiv = document.getElementById('loginError');
-                errDiv.style.display = 'block';
-                errDiv.innerText = "Error: " + error.message;
-            });
-        }
-
-        function logoutUser() {
-            firebase.auth().signOut().then(() => {
-                window.location.reload();
-            });
-        }
-
-        firebase.auth().onAuthStateChanged((user) => {
-            if(user) {
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('dashboardScreen').style.display = 'flex';
-                document.getElementById('loggedInEmail').innerText = user.email;
-
-                if(user.email === "homeiot@gmail.com") {
-                    document.getElementById('adminPanel').style.display = 'block';
-                    document.getElementById('customerPanel').style.display = 'none';
-                    startAdminInboxListener(); 
-                } else {
-                    document.getElementById('adminPanel').style.display = 'none';
-                    database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
-                        const devId = snapshot.val();
-                        if(devId) {
-                            currentDeviceId = devId;
-                            document.getElementById('customerPanel').style.display = 'flex';
-                            startListeners();
-                        } else {
-                            alert("Account error: Your profile has not been linked to a Device ID yet.");
-                        }
-                    });
-                }
-            } else {
-                document.getElementById('loginScreen').style.display = 'flex';
-                document.getElementById('dashboardScreen').style.display = 'none';
-                if(currentDeviceId) {
-                    database.ref('/Devices/' + currentDeviceId).off();
-                    currentDeviceId = null;
-                }
-            }
-        });
-
-        // --- GLOBAL INBOX SCANNER & AUTO-SORTER ---
-        function startAdminInboxListener() {
-            database.ref('/Devices').on('value', (snapshot) => {
-                snapshot.forEach(child => {
-                    let devId = child.key;
-                    let hb = 0;
-                    if(child.val().deviceStatus && child.val().deviceStatus.heartbeat) {
-                        hb = child.val().deviceStatus.heartbeat;
-                    }
-                    
-                    if(!globalDeviceState[devId]) globalDeviceState[devId] = { lastHb: -1, lastTime: Date.now() };
-                    
-                    if(globalDeviceState[devId].lastHb !== hb) {
-                        globalDeviceState[devId].lastHb = hb;
-                        globalDeviceState[devId].lastTime = Date.now();
-                    }
-                });
-                renderAdminInbox();
-            });
-
-            database.ref('/AdminInbox').on('value', (snapshot) => {
-                adminInboxData = snapshot.val() || {};
-                
-                if (pendingOtaDevice && adminInboxData[pendingOtaDevice]) {
-                    let status = adminInboxData[pendingOtaDevice].status;
-                    let msg = adminInboxData[pendingOtaDevice].message;
-                    
-                    if (status.includes("OTA SUCCESS")) {
-                        alert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
-                        pendingOtaDevice = null; 
-                    } else if (status.includes("ERROR") || status.includes("Failed")) {
-                        alert("❌❌ OTA UPLOAD FAILED! ❌❌\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
-                        pendingOtaDevice = null; 
+ 
                     }
                 }
                 
@@ -508,3 +216,396 @@
     </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Water IoT Secure Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: white; display: flex; flex-direction: column; align-items: center; 
+            margin: 0; padding: 20px; min-height: 100vh;
+        }
+        
+        .card { 
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
+            padding: 20px; border-radius: 15px; width: 100%; max-width: 420px; 
+            margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
+            border: 1px solid rgba(255, 255, 255, 0.1); position: relative; box-sizing: border-box;
+        }
+        
+        h2, h3 { text-align: center; margin-top: 0; color: #00d2ff; }
+        
+        .menu-dots {
+            position: absolute; top: 15px; right: 20px; font-size: 24px; 
+            font-weight: bold; cursor: pointer; color: #00d2ff; user-select: none;
+            transition: 0.3s;
+        }
+        .menu-dots:hover { color: #fff; text-shadow: 0 0 10px #00d2ff; }
+
+        .error-banner {
+            background: rgba(255, 71, 87, 0.2); border: 2px solid #ff4757;
+            color: #ff4757; padding: 15px; border-radius: 8px; margin-bottom: 20px;
+            font-weight: bold; text-align: center; display: none; width: 100%;
+            max-width: 420px; box-sizing: border-box; box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
+        }
+        
+        #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 75vh; }
+        .input-box { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box;}
+        .btn-login { background: #00d2ff; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; transition: 0.3s; margin-top: 15px;}
+        .btn-login:hover { background: #3a7bd5; color: white;}
+        
+        .top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 420px; margin-bottom: 15px;}
+        .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;}
+
+        #dashboardScreen { display: none; width: 100%; flex-direction: column; align-items: center; }
+
+        #offlineOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 9999; flex-direction: column;
+            align-items: center; justify-content: center; color: #ff4757; text-align: center;
+            font-size: 28px; font-weight: bold; padding: 20px; box-sizing: border-box;
+        }
+
+        .tank-container { width: 140px; height: 240px; border: 4px solid #fff; border-radius: 15px; position: relative; margin: 20px auto; overflow: hidden; background: rgba(0,0,0,0.5); box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);}
+        .water-fill { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #005c97, #363795); transition: height 1s ease-in-out; }
+        .water-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; font-weight: bold; text-shadow: 2px 2px 4px black; z-index: 10; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .stat-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center; font-size: 13px; color: #ccc;}
+        .stat-value { font-size: 18px; font-weight: bold; color: #00d2ff; display: block; margin-top: 5px; }
+        
+        .btn-container { display: flex; justify-content: center; padding: 15px 0; }
+        .btn-round { 
+            width: 140px; height: 140px; border-radius: 50%; font-size: 18px; font-weight: bold; 
+            border: 4px solid rgba(255,255,255,0.2); cursor: pointer; color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s; text-shadow: 1px 1px 2px black;
+        }
+        .btn-round:active { transform: scale(0.95); }
+        .btn-off { background: radial-gradient(circle, #ff6b81, #ff4757); } 
+        .btn-on { background: radial-gradient(circle, #7bed9f, #2ed573); } 
+        
+        .log-box { background: #000; color: #00ff00; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; min-height: 60px; box-shadow: inset 0 0 10px rgba(0,255,0,0.2); margin-top: 10px;}
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; float: left; background: #2ed573; color: black; margin-top: 4px;}
+        
+        #advancedSection { display: none; width: 100%; flex-direction: column; align-items: center; transition: 0.3s;}
+
+        .btn-danger { background: #ff4757; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;}
+        .btn-danger:hover { background: #ff6b81; }
+
+        .inbox-container {
+            max-height: 250px; overflow-y: auto; width: 100%; 
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; 
+            padding: 10px; box-sizing: border-box; background: rgba(0,0,0,0.2);
+            margin-top: 10px;
+        }
+        .inbox-card {
+            background: rgba(0,0,0,0.4); padding: 12px; margin-bottom: 8px; 
+            border-radius: 4px; font-size: 13px;
+        }
+        .inbox-card span { color: #ccc; display: block; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="offlineOverlay">
+        ⚠️<br><br>
+        Machine is currently Offline
+    </div>
+
+    <div id="loginScreen" class="card">
+        <h2>🔒 Security Gateway</h2>
+        <p style="text-align:center; color:#ccc;">Enter credentials to access your device.</p>
+        <input type="email" id="emailInput" class="input-box" placeholder="Email" />
+        <input type="password" id="passwordInput" class="input-box" placeholder="Password" />
+        <button class="btn-login" onclick="loginUser()">LOGIN</button>
+        <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
+    </div>
+
+    <div id="dashboardScreen">
+        
+        <div class="top-bar">
+            <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
+            <button class="logout-btn" onclick="logoutUser()">Logout</button>
+        </div>
+
+        <div id="criticalErrorBanner" class="error-banner"></div>
+
+        <div id="adminPanel" class="card" style="display:none; border: 2px solid #00d2ff;">
+            <h2>👑 Master Command Center</h2>
+            <p style="text-align:center; color:#ccc; font-size:13px;">Enter Customer Device ID to view live data.</p>
+            <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
+            <button class="btn-login" onclick="connectAdminDevice()" style="margin-top:10px;">Connect to Machine</button>
+            
+            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+            
+            <h3 style="color: #feca57;">Global Device Inbox</h3>
+            <p style="text-align:center; color:#ccc; font-size:12px; margin-top:-5px;">Faults automatically jump to the top of this list.</p>
+            <div id="adminInbox" class="inbox-container">
+                <div style="text-align:center; color:#ccc; font-size:13px;">Scanning database...</div>
+            </div>
+
+            <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
+                <h3 style="color: #00ff00; font-size: 16px;">Live Terminal: <span id="termDevId"></span></h3>
+                <div id="logConsole" class="log-box">Connecting to machine logs...</div>
+            </div>
+
+            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+            <h3 style="color: #ff6b81;">OTA Firmware Update</h3>
+            <p style="text-align:center; color:#ccc; font-size:12px;">Paste the GitHub Raw .bin download link below to push a remote update to the connected device.</p>
+            <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin">
+            <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
+        </div>
+
+        <div id="customerPanel" style="display:none; width: 100%; flex-direction: column; align-items: center;">
+            <div class="card">
+                <span id="connStatus" class="status-badge">ONLINE</span>
+                <h2>Dashboard</h2>
+                <div class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data">⋮</div>
+                
+                <div class="tank-container">
+                    <div id="waterLevelFill" class="water-fill" style="height: 0%;"></div>
+                    <div id="waterLevelText" class="water-text">--%</div>
+                </div>
+                
+                <div style="text-align: center; margin-top:10px; color:#ccc; font-size: 14px;">
+                    Manual Bypass Status: <span id="txtBypass" style="color:#ffa502; font-weight:bold;">--</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Pump Control</h3>
+                <div class="btn-container">
+                    <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
+                </div>
+            </div>
+
+            <div id="advancedSection">
+                <div class="card">
+                    <h3>Engineering Data</h3>
+                    <div class="stats-grid">
+                        <div class="stat-box">Average Gap<span id="txtFinalCm" class="stat-value">-- cm</span></div>
+                        <div class="stat-box">Sensor 1 (Raw)<span id="txtS1" class="stat-value">-- cm</span></div>
+                        <div class="stat-box">Sensor 2 (Raw)<span id="txtS2" class="stat-value">-- cm</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GLOBAL VARIABLES ---
+        let globalDeviceState = {};
+        let adminInboxData = {};
+        let pendingOtaDevice = null; 
+        let heartbeatTimer = null; // THE FIX: Global timer tracking variable
+        let globalScannerTimer = null; 
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
+            databaseURL: "https://home-water-level-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let currentDeviceId = null;
+        let currentPumpState = false;
+        let lastHeartbeat = 0;
+        let lastHeartbeatTime = Date.now();
+        let currentSystemLog = "";
+
+        function toggleAdvanced() {
+            const adv = document.getElementById('advancedSection');
+            adv.style.display = (adv.style.display === "none") ? "flex" : "none";
+        }
+
+        function loginUser() {
+            const email = document.getElementById('emailInput').value;
+            const pass = document.getElementById('passwordInput').value;
+            
+            firebase.auth().signInWithEmailAndPassword(email, pass).catch((error) => {
+                const errDiv = document.getElementById('loginError');
+                errDiv.style.display = 'block';
+                errDiv.innerText = "Error: " + error.message;
+            });
+        }
+
+        function logoutUser() {
+            firebase.auth().signOut().then(() => {
+                window.location.reload();
+            });
+        }
+
+        firebase.auth().onAuthStateChanged((user) => {
+            if(user) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('dashboardScreen').style.display = 'flex';
+                document.getElementById('loggedInEmail').innerText = user.email;
+
+                if(user.email === "homeiot@gmail.com") {
+                    document.getElementById('adminPanel').style.display = 'block';
+                    document.getElementById('customerPanel').style.display = 'none';
+                    startAdminInboxListener(); 
+                } else {
+                    document.getElementById('adminPanel').style.display = 'none';
+                    database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
+                        const devId = snapshot.val();
+                        if(devId) {
+                            currentDeviceId = devId;
+                            document.getElementById('customerPanel').style.display = 'flex';
+                            startListeners();
+                        } else {
+                            alert("Account error: Your profile has not been linked to a Device ID yet.");
+                        }
+                    });
+                }
+            } else {
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('dashboardScreen').style.display = 'none';
+                if(currentDeviceId) {
+                    database.ref('/Devices/' + currentDeviceId).off();
+                    currentDeviceId = null;
+                }
+            }
+        });
+
+        // --- GLOBAL INBOX SCANNER & AUTO-SORTER ---
+        function startAdminInboxListener() {
+            // THE FIX: Stop freezing the browser! Only ask the DB for data once every 3 seconds
+            if(globalScannerTimer) clearInterval(globalScannerTimer);
+            
+            globalScannerTimer = setInterval(() => {
+                database.ref('/Devices').once('value').then((snapshot) => {
+                    snapshot.forEach(child => {
+                        let devId = child.key;
+                        let hb = 0;
+                        if(child.val().deviceStatus && child.val().deviceStatus.heartbeat) {
+                            hb = child.val().deviceStatus.heartbeat;
+                        }
+                        
+                        if(!globalDeviceState[devId]) globalDeviceState[devId] = { lastHb: -1, lastTime: Date.now() };
+                        
+                        if(globalDeviceState[devId].lastHb !== hb) {
+                            globalDeviceState[devId].lastHb = hb;
+                            globalDeviceState[devId].lastTime = Date.now();
+                        }
+                    });
+                    renderAdminInbox();
+                });
+            }, 3000);
+
+            // Lightweight listener for explicit faults/OTAs
+            database.ref('/AdminInbox').on('value', (snapshot) => {
+                adminInboxData = snapshot.val() || {};
+                
+                if (pendingOtaDevice && adminInboxData[pendingOtaDevice]) {
+                    let status = adminInboxData[pendingOtaDevice].status;
+                    let msg = adminInboxData[pendingOtaDevice].message;
+                    
+                    if (status.includes("OTA SUCCESS")) {
+                        alert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
+                        pendingOtaDevice = null; 
+                    } else if (status.includes("ERROR") || status.includes("Failed")) {
+                        alert("❌❌ OTA UPLOAD FAILED! ❌❌\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
+                        pendingOtaDevice = null; 
+                    }
+                }
+                
+                renderAdminInbox();
+            });
+        }
+
+        function buildInboxCard(devId, color, displayStatus, displayMsg) {
+            return `
+                <div class="inbox-card" style="border-left: 4px solid ${color};">
+                    <strong style="color:${color}">${devId}</strong> - <span style="font-weight:bold; display:inline; color:white;">${displayStatus}</span>
+                    <span>${displayMsg}</span>
+                </div>
+            `;
+        }
+
+        function renderAdminInbox() {
+            const inboxDiv = document.getElementById('adminInbox');
+            if(!inboxDiv) return; 
+
+            let faultsHtml = '';
+            let otasHtml = '';
+            let normalHtml = '';
+            let hasDevices = false;
+
+            for (const devId in adminInboxData) {
+                hasDevices = true;
+                const data = adminInboxData[devId];
+                let color = "#2ed573"; 
+                let displayStatus = data.status;
+                let displayMsg = data.message;
+                
+                let isDead = false;
+                if(globalDeviceState[devId]) {
+                    if (Date.now() - globalDeviceState[devId].lastTime > 18000) { 
+                        isDead = true;
+                    }
+                }
+
+                if (isDead) {
+                    color = "#ff4757"; 
+                    displayStatus = "❌ OFFLINE (Power/Network Lost)";
+                    displayMsg = "Machine is unresponsive. It may be unplugged or restarting.";
+                    faultsHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
+                } else {
+                    if(data.status.includes("FAULT") || data.status.includes("ERROR")) {
+                        color = "#ff4757";
+                        faultsHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
+                    }
+                    else if(data.status.includes("OTA SUCCESS")) {
+                        color = "#feca57";
+                        otasHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
+                    }
+                    else if(data.status.includes("OTA")) {
+                        color = "#00d2ff";
+                        otasHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
+                    } else {
+                        normalHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
+                    }
+                }
+            }
+
+            if(!hasDevices) {
+                inboxDiv.innerHTML = '<div style="text-align:center; color:#ccc; font-size:13px;">No alerts or connected devices found.</div>';
+            } else {
+                inboxDiv.innerHTML = faultsHtml + otasHtml + normalHtml;
+            }
+        }
+
+        function connectAdminDevice() {
+            const devId = document.getElementById('adminSearchInput').value.trim();
+            if(devId) {
+                // Cut the exact wires to the OLD device
+                if(currentDeviceId) {
+                    const oldPath = '/Devices/' + currentDeviceId;
+                    database.ref(oldPath + '/deviceStatus/heartbeat').off();
+                    database.ref(oldPath + '/telemetry').off();
+                    database.ref(oldPath + '/state').off();
+                }
+
+                // THE FIX: Kill the overlapping ghost timer from the previous device
+                if (heartbeatTimer) {
+                    clearInterval(heartbeatTimer);
+                }
+                
+                currentDeviceId = devId;
+
+                // Deep wipe the UI dashboard
+                document.getElementById('waterLevelFill').style.height = '0%';
+                document.getElementById('waterLevelText').innerText = '--%';
+                document.getElementById('txtFinalCm').innerText = '-- cm';
+                docu
