@@ -185,19 +185,29 @@
     </div>
 
     <script>
+        // ==========================================
+        // ⚠️ YOUR FIREBASE CONFIGURATION GOES HERE
+        // Make sure all these fields are filled out!
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4", 
+            authDomain: "home-water-level-default-rtdb.firebaseapp.com", /* REPLACE WITH YOUR AUTH DOMAIN */
+            databaseURL: "https://home-water-level-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "home-water-level-default", /* REPLACE WITH YOUR PROJECT ID */
+            storageBucket: "", /* Optional */
+            messagingSenderId: "", /* Optional */
+            appId: "" /* Optional */
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         // --- GLOBAL VARIABLES ---
         let globalDeviceState = {};
         let adminInboxData = {};
         let pendingOtaDevice = null; 
-        let heartbeatTimer = null; // THE FIX: Global timer tracking variable
+        let heartbeatTimer = null; 
         let globalScannerTimer = null; 
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
-            databaseURL: "https://home-water-level-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
 
         let currentDeviceId = null;
         let currentPumpState = false;
@@ -213,9 +223,16 @@
         function loginUser() {
             const email = document.getElementById('emailInput').value;
             const pass = document.getElementById('passwordInput').value;
+            const errDiv = document.getElementById('loginError');
             
+            // Check if config is likely broken before attempting login
+            if(!firebaseConfig.authDomain || firebaseConfig.authDomain === "") {
+                errDiv.style.display = 'block';
+                errDiv.innerText = "Error: Missing 'authDomain' in Firebase Config!";
+                return;
+            }
+
             firebase.auth().signInWithEmailAndPassword(email, pass).catch((error) => {
-                const errDiv = document.getElementById('loginError');
                 errDiv.style.display = 'block';
                 errDiv.innerText = "Error: " + error.message;
             });
@@ -262,7 +279,6 @@
 
         // --- GLOBAL INBOX SCANNER & AUTO-SORTER ---
         function startAdminInboxListener() {
-            // THE FIX: Stop freezing the browser! Only ask the DB for data once every 3 seconds
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
             globalScannerTimer = setInterval(() => {
@@ -285,13 +301,13 @@
                 });
             }, 3000);
 
-            // Lightweight listener for explicit faults/OTAs
             database.ref('/AdminInbox').on('value', (snapshot) => {
                 adminInboxData = snapshot.val() || {};
                 
                 if (pendingOtaDevice && adminInboxData[pendingOtaDevice]) {
-                    let status = adminInboxData[pendingOtaDevice].status;
-                    let msg = adminInboxData[pendingOtaDevice].message;
+                    // FALLBACK FIX: Prevents crashes if data is null
+                    let status = adminInboxData[pendingOtaDevice].status || "";
+                    let msg = adminInboxData[pendingOtaDevice].message || "";
                     
                     if (status.includes("OTA SUCCESS")) {
                         alert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
@@ -328,8 +344,10 @@
                 hasDevices = true;
                 const data = adminInboxData[devId];
                 let color = "#2ed573"; 
-                let displayStatus = data.status;
-                let displayMsg = data.message;
+                
+                // FALLBACK FIX: Guarantee variables exist so the screen doesn't crash
+                let displayStatus = data.status || "UNKNOWN STATUS";
+                let displayMsg = data.message || "No message available.";
                 
                 let isDead = false;
                 if(globalDeviceState[devId]) {
@@ -344,15 +362,15 @@
                     displayMsg = "Machine is unresponsive. It may be unplugged or restarting.";
                     faultsHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
                 } else {
-                    if(data.status.includes("FAULT") || data.status.includes("ERROR")) {
+                    if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
                         color = "#ff4757";
                         faultsHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
                     }
-                    else if(data.status.includes("OTA SUCCESS")) {
+                    else if(displayStatus.includes("OTA SUCCESS")) {
                         color = "#feca57";
                         otasHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
                     }
-                    else if(data.status.includes("OTA")) {
+                    else if(displayStatus.includes("OTA")) {
                         color = "#00d2ff";
                         otasHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
                     } else {
@@ -371,23 +389,4 @@
         function connectAdminDevice() {
             const devId = document.getElementById('adminSearchInput').value.trim();
             if(devId) {
-                // Cut the exact wires to the OLD device
-                if(currentDeviceId) {
-                    const oldPath = '/Devices/' + currentDeviceId;
-                    database.ref(oldPath + '/deviceStatus/heartbeat').off();
-                    database.ref(oldPath + '/telemetry').off();
-                    database.ref(oldPath + '/state').off();
-                }
-
-                // THE FIX: Kill the overlapping ghost timer from the previous device
-                if (heartbeatTimer) {
-                    clearInterval(heartbeatTimer);
-                }
-                
-                currentDeviceId = devId;
-
-                // Deep wipe the UI dashboard
-                document.getElementById('waterLevelFill').style.height = '0%';
-                document.getElementById('waterLevelText').innerText = '--%';
-                document.getElementById('txtFinalCm').innerText = '-- cm';
-                docu
+               
