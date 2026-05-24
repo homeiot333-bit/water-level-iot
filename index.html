@@ -186,7 +186,7 @@
 
     <script>
         // ==========================================
-        // ✅ INJECTED FIREBASE CONFIGURATION
+        // ⚠️ PASTE YOUR FIREBASE CONFIGURATION HERE
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
@@ -279,6 +279,7 @@
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
+            // THE FIX: Check the database much faster (every 2 seconds instead of 3)
             globalScannerTimer = setInterval(() => {
                 database.ref('/Devices').once('value').then((snapshot) => {
                     snapshot.forEach(child => {
@@ -297,7 +298,7 @@
                     });
                     renderAdminInbox();
                 });
-            }, 3000);
+            }, 2000);
 
             database.ref('/AdminInbox').on('value', (snapshot) => {
                 adminInboxData = snapshot.val() || {};
@@ -347,7 +348,8 @@
                 
                 let isDead = false;
                 if(globalDeviceState[devId]) {
-                    if (Date.now() - globalDeviceState[devId].lastTime > 18000) { 
+                    // THE FIX: Slashed the timeout from 18 seconds to 6 seconds for instant reaction
+                    if (Date.now() - globalDeviceState[devId].lastTime > 6000) { 
                         isDead = true;
                     }
                 }
@@ -414,7 +416,7 @@
                 badge.style.background = "#ffa502";
                 badge.innerText = "CONNECTING...";
                 
-                lastHeartbeatTime = 0; 
+                lastHeartbeatTime = Date.now(); 
                 
                 document.getElementById('customerPanel').style.display = 'flex';
                 document.getElementById('adminTerminalContainer').style.display = 'block';
@@ -436,21 +438,40 @@
                 document.getElementById('offlineOverlay').style.display = 'none'; 
             });
 
+            // THE FIX: Check every 2 seconds instead of 3
             heartbeatTimer = setInterval(() => {
-                if(Date.now() - lastHeartbeatTime > 18000) { 
+                // THE FIX: Slashed the timeout from 18 seconds to 6 seconds
+                if(Date.now() - lastHeartbeatTime > 6000) { 
                     const user = firebase.auth().currentUser;
+                    
                     if(user && user.email === "homeiot@gmail.com") {
                         document.getElementById('offlineOverlay').style.display = 'none';
                         const badge = document.getElementById('connStatus');
                         badge.style.background = "#ff4757";
                         badge.innerText = "OFFLINE / REBOOTING";
+                        
+                        // THE FIX: Deep Wipe Stale Data on Disconnect
+                        document.getElementById('waterLevelFill').style.height = '0%';
+                        document.getElementById('waterLevelText').innerText = '--%';
+                        document.getElementById('txtFinalCm').innerText = '-- cm';
+                        document.getElementById('txtS1').innerText = '-- cm';
+                        document.getElementById('txtS2').innerText = '-- cm';
+                        document.getElementById('txtBypass').innerText = '--';
+                        document.getElementById('pumpToggleBtn').className = "btn-round btn-off";
+                        document.getElementById('pumpToggleBtn').innerText = "OFFLINE";
+                        document.getElementById('logConsole').innerText = "Connection lost. Waiting for device...";
+
                     } else {
+                        // Customer sees the big freeze overlay
                         document.getElementById('offlineOverlay').style.display = 'flex';
                     }
                 }
-            }, 3000);
+            }, 2000);
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
+                // Only process incoming data if we are actually online
+                if(Date.now() - lastHeartbeatTime > 6000) return;
+                
                 const data = snapshot.val();
                 if(data) {
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
@@ -467,17 +488,18 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
+                // Only process incoming data if we are actually online
+                if(Date.now() - lastHeartbeatTime > 6000) return;
+                
                 const state = snapshot.val();
                 if(state) {
-                    if (Date.now() - lastHeartbeatTime <= 18000) {
-                        const badge = document.getElementById('connStatus');
-                        if(state.fault) {
-                            badge.style.background = "#ff4757";
-                            badge.innerText = "LINK FAULT";
-                        } else {
-                            badge.style.background = "#2ed573";
-                            badge.innerText = "ONLINE";
-                        }
+                    const badge = document.getElementById('connStatus');
+                    if(state.fault) {
+                        badge.style.background = "#ff4757";
+                        badge.innerText = "LINK FAULT";
+                    } else {
+                        badge.style.background = "#2ed573";
+                        badge.innerText = "ONLINE";
                     }
 
                     document.getElementById('txtBypass').innerText = state.automationBypassed ? "LOCKED" : "ACTIVE";
