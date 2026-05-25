@@ -401,7 +401,10 @@
             </div>
 
             <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
-                <h3 style="color: #fff; font-size: 16px;">Live Diagnostics: <span id="termDevId"></span></h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h3 style="color: #fff; font-size: 16px; margin:0;">Live Diagnostics: <span id="termDevId"></span></h3>
+                    <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                </div>
                 <div class="terminals-wrapper">
                     <div class="terminal-column">
                         <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px;">ESP32 (HUB)</span>
@@ -448,9 +451,6 @@
                 <div class="card">
                     <h3>Engineering Data</h3>
                     <div class="stats-grid">
-                        <div class="stat-box">
-                            Device Runtime Days <span id="txtRuntimeDays" class="stat-value">-- Days</span>
-                        </div>
                         <div class="stat-box">
                             Average Gap
                             <span id="txtFinalCm" class="stat-value">-- cm</span>
@@ -688,9 +688,7 @@
             const devId = document.getElementById('adminSearchInput').value.trim();
             
             if(devId) {
-                // THE CRUCIAL BUG FIX: Unsubscribe completely from old machine listeners
                 if(currentDeviceId) {
-                    console.log("Shutting down active listener stream for: " + currentDeviceId);
                     database.ref('/Devices/' + currentDeviceId + '/deviceStatus/heartbeat').off();
                     database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
                     database.ref('/Devices/' + currentDeviceId + '/state').off();
@@ -702,14 +700,17 @@
                 
                 currentDeviceId = devId;
 
-                // Flush user screen clean so data from previous device doesn't linger
                 document.getElementById('waterLevelFill').style.height = '0%';
                 document.getElementById('waterLevelText').innerText = '--%';
                 document.getElementById('txtFinalCm').innerText = '-- cm';
                 document.getElementById('txtS1').innerText = '-- cm';
                 document.getElementById('txtS2').innerText = '-- cm';
                 document.getElementById('txtBypass').innerText = '--';
-                document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
+                
+                // Reset Secure Uptime node inside Master Panel
+                if(document.getElementById('txtRuntimeDays')) {
+                    document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
+                }
                 
                 const btn = document.getElementById('pumpToggleBtn');
                 btn.className = "btn-round btn-off";
@@ -746,8 +747,8 @@
                 lastHeartbeatTime = Date.now(); 
                 document.getElementById('offlineOverlay').style.display = 'none'; 
                 
-                // FEATURE CONVERSION: Transform 1.5-second heartbeat counts to running days
-                if (lastHeartbeat > 0) {
+                // THE UPDATE: Compute runtime calculations exclusively for the admin layout block
+                if (lastHeartbeat > 0 && document.getElementById('txtRuntimeDays')) {
                     let totalSeconds = lastHeartbeat * 1.5;
                     let totalHours = totalSeconds / 3600;
                     let runningDays = Math.floor(totalHours / 24);
@@ -799,12 +800,15 @@
                         document.getElementById('txtS2').innerText = 'FAULT';
                     }
 
+                    // THE UPDATE: String matching logic that strips away "[RX] Pkt: X | " and "[TX] Pkt: X | " dynamically before drawing text nodes
                     if(data.log) {
-                        document.getElementById('logConsole').innerText = data.log;
+                        let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "");
+                        document.getElementById('logConsole').innerText = cleanEspLog;
                     }
                     
                     if(data.nanoLog) {
-                        document.getElementById('nanoLogConsole').innerText = data.nanoLog;
+                        let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "");
+                        document.getElementById('nanoLogConsole').innerText = cleanNanoLog;
                     }
                 }
             });
