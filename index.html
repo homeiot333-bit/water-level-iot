@@ -70,7 +70,7 @@
             width: 140px; height: 140px; border-radius: 50%; font-size: 18px; font-weight: bold; 
             border: 4px solid rgba(255,255,255,0.2); cursor: pointer; color: white;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s; text-shadow: 1px 1px 2px black;
-            -webkit-tap-highlight-color: transparent; /* Removes blue flash on mobile tap */
+            -webkit-tap-highlight-color: transparent; 
         }
         .btn-round:active { transform: scale(0.95); }
         .btn-off { background: radial-gradient(circle, #ff6b81, #ff4757); } 
@@ -101,17 +101,16 @@
         }
         .inbox-card span { color: #ccc; display: block; margin-top: 4px; }
 
-        /* THE FIX: Mobile Responsive CSS */
         @media (max-width: 600px) {
             .terminals-wrapper { 
-                flex-direction: column; /* Stacks terminals on top of each other */
+                flex-direction: column; 
                 gap: 15px;
             }
             .stats-grid {
-                grid-template-columns: 1fr; /* Stacks engineering stats */
+                grid-template-columns: 1fr; 
             }
             .log-box {
-                font-size: 11px; /* Slightly smaller text for narrow screens */
+                font-size: 11px; 
                 padding: 10px;
             }
         }
@@ -366,7 +365,8 @@
                 
                 let isDead = false;
                 if(globalDeviceState[devId]) {
-                    if (Date.now() - globalDeviceState[devId].lastTime > 6000) { 
+                    // THE FIX: Increased tolerance to 15 seconds to prevent false Mobile Offline triggers
+                    if (Date.now() - globalDeviceState[devId].lastTime > 15000) { 
                         isDead = true;
                     }
                 }
@@ -450,12 +450,22 @@
 
             database.ref(basePath + '/deviceStatus/heartbeat').on('value', (snapshot) => {
                 lastHeartbeat = snapshot.val();
-                lastHeartbeatTime = Date.now(); 
+                lastHeartbeatTime = Date.now();
                 document.getElementById('offlineOverlay').style.display = 'none'; 
+                
+                // THE FIX: If the mobile screen was wiped, reset the terminal text instantly upon reconnection
+                if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
+                    document.getElementById('logConsole').innerText = "Signal restored. Fetching logs...";
+                    document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
+                    const badge = document.getElementById('connStatus');
+                    badge.style.background = "#2ed573";
+                    badge.innerText = "ONLINE";
+                }
             });
 
             heartbeatTimer = setInterval(() => {
-                if(Date.now() - lastHeartbeatTime > 6000) { 
+                // THE FIX: Increased from 6 seconds to 15 seconds to absorb mobile network lag
+                if(Date.now() - lastHeartbeatTime > 15000) { 
                     const user = firebase.auth().currentUser;
                     
                     if(user && user.email === "homeiot@gmail.com") {
@@ -474,7 +484,6 @@
                         document.getElementById('pumpToggleBtn').innerText = "OFFLINE";
                         document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
                         document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
-
                     } else {
                         document.getElementById('offlineOverlay').style.display = 'flex';
                     }
@@ -482,8 +491,7 @@
             }, 2000);
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
-                if(Date.now() - lastHeartbeatTime > 6000) return;
-                
+                // THE FIX: Removed the code that blocked fresh data on mobile
                 const data = snapshot.val();
                 if(data) {
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
@@ -502,8 +510,7 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
-                if(Date.now() - lastHeartbeatTime > 6000) return;
-                
+                // THE FIX: Removed the code that blocked fresh data on mobile
                 const state = snapshot.val();
                 if(state) {
                     const badge = document.getElementById('connStatus');
