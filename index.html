@@ -344,6 +344,24 @@
             margin-top: 4px; 
         }
 
+        /* SYSTEM BRANDING STYLING WITH ANISH ANIMATION ELEMENT */
+        .system-credits {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .system-credits strong {
+            color: #00d2ff;
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.6);
+            font-weight: 800;
+        }
+
         @media (max-width: 600px) {
             .terminals-wrapper { 
                 flex-direction: column; 
@@ -401,10 +419,17 @@
             </div>
 
             <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <h3 style="color: #fff; font-size: 16px; margin:0;">Live Diagnostics: <span id="termDevId"></span></h3>
-                    <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="color: #fff; font-size: 15px; margin:0;">Live Diagnostics: <span id="termDevId"></span></h3>
+                        <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                        <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
+                        <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
+                    </div>
                 </div>
+                
                 <div class="terminals-wrapper">
                     <div class="terminal-column">
                         <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px;">ESP32 (HUB)</span>
@@ -465,6 +490,10 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <div class="system-credits">
+                This system is developed by <strong>ANISH</strong>
             </div>
         </div>
     </div>
@@ -649,7 +678,7 @@
                     displayMsg = "Machine is unresponsive.";
                     
                     if (devId === currentDeviceId) {
-                        currentConnectedDeviceFaultMessage = `Machine [${devId}] went completely Offline. Power supply or connection lost.`;
+                        currentConnectedDeviceFaultMessage = `Machine [${devId}] went completely Offline. Power supply or connection lost Momently.`;
                     }
                 } else if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
                     color = "#ff4757";
@@ -707,7 +736,9 @@
                 document.getElementById('txtS2').innerText = '-- cm';
                 document.getElementById('txtBypass').innerText = '--';
                 
-                // Reset Secure Uptime node inside Master Panel
+                document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
+                document.getElementById('adminTxtFullDist').innerText = '-- cm';
+                
                 if(document.getElementById('txtRuntimeDays')) {
                     document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
                 }
@@ -747,7 +778,6 @@
                 lastHeartbeatTime = Date.now(); 
                 document.getElementById('offlineOverlay').style.display = 'none'; 
                 
-                // THE UPDATE: Compute runtime calculations exclusively for the admin layout block
                 if (lastHeartbeat > 0 && document.getElementById('txtRuntimeDays')) {
                     let totalSeconds = lastHeartbeat * 1.5;
                     let totalHours = totalSeconds / 3600;
@@ -788,6 +818,9 @@
                     document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
                     document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
                     
+                    if(data.bucketEmptyHeight) document.getElementById('adminTxtEmptyDist').innerText = parseFloat(data.bucketEmptyHeight).toFixed(1) + ' cm';
+                    if(data.bucketFullHeight) document.getElementById('adminTxtFullDist').innerText = parseFloat(data.bucketFullHeight).toFixed(1) + ' cm';
+
                     if(data.sensor1Cm > 0) {
                         document.getElementById('txtS1').innerText = parseFloat(data.sensor1Cm).toFixed(1) + ' cm';
                     } else {
@@ -800,7 +833,6 @@
                         document.getElementById('txtS2').innerText = 'FAULT';
                     }
 
-                    // THE UPDATE: String matching logic that strips away "[RX] Pkt: X | " and "[TX] Pkt: X | " dynamically before drawing text nodes
                     if(data.log) {
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "");
                         document.getElementById('logConsole').innerText = cleanEspLog;
