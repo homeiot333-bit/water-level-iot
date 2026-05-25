@@ -60,9 +60,9 @@
             text-shadow: 0 0 10px #00d2ff; 
         }
 
-        /* CRITICAL ALERT BANNER SYSTEM */
+        /* DYNAMIC MOBILE ERROR BANNER */
         .error-banner {
-            background: rgba(255, 71, 87, 0.9); 
+            background: rgba(255, 71, 87, 0.95); 
             border: 2px solid #ff4757;
             color: white; 
             padding: 15px; 
@@ -406,11 +406,11 @@
                 <div class="terminals-wrapper">
                     <div class="terminal-column">
                         <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px;">ESP32 (HUB)</span>
-                        <div id="logConsole" class="log-box">Waiting for layout connection...</div>
+                        <div id="logConsole" class="log-box">Awaiting Core Stream...</div>
                     </div>
                     <div class="terminal-column">
                         <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px;">NANO (TANK)</span>
-                        <div id="nanoLogConsole" class="log-box log-nano">Waiting for link data...</div>
+                        <div id="nanoLogConsole" class="log-box log-nano">Awaiting Payload Link...</div>
                     </div>
                 </div>
             </div>
@@ -491,7 +491,7 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
 
-        // Mobile Background Thread Visibility Handler
+        // Mobile Background Network Resync
         document.addEventListener("visibilitychange", function() {
             if (document.visibilityState === 'visible') {
                 firebase.database().goOffline();
@@ -624,7 +624,7 @@
 
             let htmlStr = '';
             let hasDevices = false;
-            let activeErrors = []; // Array to track all systemic failures
+            let currentConnectedDeviceFaultMessage = null; // Target variable for the connected machine
 
             for (const devId in adminInboxData) {
                 hasDevices = true;
@@ -644,10 +644,18 @@
                     color = "#ff4757"; 
                     displayStatus = "❌ OFFLINE";
                     displayMsg = "Machine is unresponsive.";
-                    activeErrors.push(`[${devId}] Machine went completely Offline. Power supply or connection lost.`);
+                    
+                    // THE FIX: Check if this specific dead component matches your active session
+                    if (devId === currentDeviceId) {
+                        currentConnectedDeviceFaultMessage = `Machine [${devId}] went completely Offline. Power supply or connection lost.`;
+                    }
                 } else if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
                     color = "#ff4757";
-                    activeErrors.push(`[${devId}] ${displayStatus}: ${displayMsg}`);
+                    
+                    // THE FIX: Isolate the fault string to your specific connected device only
+                    if (devId === currentDeviceId) {
+                        currentConnectedDeviceFaultMessage = `[${devId}] ${displayStatus}: ${displayMsg}`;
+                    }
                 } else if(displayStatus.includes("OTA SUCCESS")) {
                     color = "#feca57";
                 } else if(displayStatus.includes("OTA")) {
@@ -660,10 +668,10 @@
                 </div>`;
             }
 
-            // THE FIX: Manage the persistent notification element at top of DOM
-            if(activeErrors.length > 0) {
+            // THE FIX: Render banner ONLY if the connected machine has an error
+            if(currentConnectedDeviceFaultMessage) {
                 errorBanner.style.display = "block";
-                errorBanner.innerHTML = `⚠️ <strong>CRITICAL SYSTEM ALERTS:</strong><br>` + activeErrors.map(e => `• ${e}`).join('<br>');
+                errorBanner.innerHTML = `⚠️ <strong>CRITICAL LIVE ALERT:</strong><br>• ${currentConnectedDeviceFaultMessage}`;
             } else {
                 errorBanner.style.display = "none";
                 errorBanner.innerHTML = "";
@@ -717,6 +725,8 @@
                 document.getElementById('logConsole').innerText = "Connecting...";
                 document.getElementById('nanoLogConsole').innerText = "Connecting...";
                 
+                // Trigger quick recalculation of banner filtering states
+                renderAdminInbox();
                 startListeners();
             } else {
                 alert("Please enter a Device ID!");
@@ -822,6 +832,7 @@
             if(!currentDeviceId) {
                 return;
             }
+            
             const desiredState = !currentPumpState;
             const newTrigger = Math.floor(Math.random() * 1000000) + 1; 
             
@@ -836,11 +847,14 @@
                 alert("You must connect to a device first!");
                 return;
             }
+            
             const fileUrl = document.getElementById('otaUrlInput').value.trim();
+            
             if(!fileUrl) {
                 alert("Please paste the .bin download link first!");
                 return;
             }
+            
             if(confirm("WARNING: Are you absolutely sure you want to push a firmware update to " + currentDeviceId + "?")) {
                 pendingOtaDevice = currentDeviceId; 
                 database.ref('/Devices/' + currentDeviceId + '/control/otaUrl').set(fileUrl);
