@@ -60,7 +60,6 @@
             text-shadow: 0 0 10px #00d2ff; 
         }
 
-        /* DYNAMIC MOBILE ERROR BANNER */
         .error-banner {
             background: rgba(255, 71, 87, 0.95); 
             border: 2px solid #ff4757;
@@ -450,6 +449,9 @@
                     <h3>Engineering Data</h3>
                     <div class="stats-grid">
                         <div class="stat-box">
+                            Device Runtime Days <span id="txtRuntimeDays" class="stat-value">-- Days</span>
+                        </div>
+                        <div class="stat-box">
                             Average Gap
                             <span id="txtFinalCm" class="stat-value">-- cm</span>
                         </div>
@@ -491,7 +493,6 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
 
-        // Mobile Background Network Resync
         document.addEventListener("visibilitychange", function() {
             if (document.visibilityState === 'visible') {
                 firebase.database().goOffline();
@@ -563,7 +564,9 @@
                 document.getElementById('dashboardScreen').style.display = 'none';
                 
                 if(currentDeviceId) {
-                    database.ref('/Devices/' + currentDeviceId).off();
+                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus/heartbeat').off();
+                    database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
+                    database.ref('/Devices/' + currentDeviceId + '/state').off();
                     currentDeviceId = null;
                 }
             }
@@ -624,7 +627,7 @@
 
             let htmlStr = '';
             let hasDevices = false;
-            let currentConnectedDeviceFaultMessage = null; // Target variable for the connected machine
+            let currentConnectedDeviceFaultMessage = null; 
 
             for (const devId in adminInboxData) {
                 hasDevices = true;
@@ -645,14 +648,12 @@
                     displayStatus = "❌ OFFLINE";
                     displayMsg = "Machine is unresponsive.";
                     
-                    // THE FIX: Check if this specific dead component matches your active session
                     if (devId === currentDeviceId) {
                         currentConnectedDeviceFaultMessage = `Machine [${devId}] went completely Offline. Power supply or connection lost.`;
                     }
                 } else if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
                     color = "#ff4757";
                     
-                    // THE FIX: Isolate the fault string to your specific connected device only
                     if (devId === currentDeviceId) {
                         currentConnectedDeviceFaultMessage = `[${devId}] ${displayStatus}: ${displayMsg}`;
                     }
@@ -668,7 +669,6 @@
                 </div>`;
             }
 
-            // THE FIX: Render banner ONLY if the connected machine has an error
             if(currentConnectedDeviceFaultMessage) {
                 errorBanner.style.display = "block";
                 errorBanner.innerHTML = `⚠️ <strong>CRITICAL LIVE ALERT:</strong><br>• ${currentConnectedDeviceFaultMessage}`;
@@ -688,8 +688,12 @@
             const devId = document.getElementById('adminSearchInput').value.trim();
             
             if(devId) {
+                // THE CRUCIAL BUG FIX: Unsubscribe completely from old machine listeners
                 if(currentDeviceId) {
-                    database.ref('/Devices/' + currentDeviceId).off();
+                    console.log("Shutting down active listener stream for: " + currentDeviceId);
+                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus/heartbeat').off();
+                    database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
+                    database.ref('/Devices/' + currentDeviceId + '/state').off();
                 }
 
                 if (heartbeatTimer) {
@@ -698,12 +702,14 @@
                 
                 currentDeviceId = devId;
 
+                // Flush user screen clean so data from previous device doesn't linger
                 document.getElementById('waterLevelFill').style.height = '0%';
                 document.getElementById('waterLevelText').innerText = '--%';
                 document.getElementById('txtFinalCm').innerText = '-- cm';
                 document.getElementById('txtS1').innerText = '-- cm';
                 document.getElementById('txtS2').innerText = '-- cm';
                 document.getElementById('txtBypass').innerText = '--';
+                document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
                 
                 const btn = document.getElementById('pumpToggleBtn');
                 btn.className = "btn-round btn-off";
@@ -725,7 +731,6 @@
                 document.getElementById('logConsole').innerText = "Connecting...";
                 document.getElementById('nanoLogConsole').innerText = "Connecting...";
                 
-                // Trigger quick recalculation of banner filtering states
                 renderAdminInbox();
                 startListeners();
             } else {
@@ -741,6 +746,16 @@
                 lastHeartbeatTime = Date.now(); 
                 document.getElementById('offlineOverlay').style.display = 'none'; 
                 
+                // FEATURE CONVERSION: Transform 1.5-second heartbeat counts to running days
+                if (lastHeartbeat > 0) {
+                    let totalSeconds = lastHeartbeat * 1.5;
+                    let totalHours = totalSeconds / 3600;
+                    let runningDays = Math.floor(totalHours / 24);
+                    let remainingHours = Math.floor(totalHours % 24);
+                    
+                    document.getElementById('txtRuntimeDays').innerText = `${runningDays}d, ${remainingHours}h`;
+                }
+
                 if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
                     document.getElementById('logConsole').innerText = "Signal restored. Fetching logs...";
                     document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
@@ -770,7 +785,6 @@
                 if(data) {
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
                     document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
-                    
                     document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
                     
                     if(data.sensor1Cm > 0) {
