@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Water IoT Secure Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -13,7 +13,8 @@
             font-family: 'Segoe UI', sans-serif; 
             background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
             color: white; display: flex; flex-direction: column; align-items: center; 
-            margin: 0; padding: 20px; min-height: 100vh;
+            margin: 0; padding: 15px; min-height: 100vh;
+            box-sizing: border-box;
         }
         
         .card { 
@@ -40,7 +41,7 @@
         }
         
         #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 75vh; }
-        .input-box { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box;}
+        .input-box { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box;}
         .btn-login { background: #00d2ff; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; transition: 0.3s; margin-top: 15px;}
         .btn-login:hover { background: #3a7bd5; color: white;}
         
@@ -60,7 +61,7 @@
         .water-fill { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #005c97, #363795); transition: height 1s ease-in-out; }
         .water-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; font-weight: bold; text-shadow: 2px 2px 4px black; z-index: 10; }
         
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; width: 100%;}
         .stat-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center; font-size: 13px; color: #ccc;}
         .stat-value { font-size: 18px; font-weight: bold; color: #00d2ff; display: block; margin-top: 5px; }
         
@@ -69,14 +70,14 @@
             width: 140px; height: 140px; border-radius: 50%; font-size: 18px; font-weight: bold; 
             border: 4px solid rgba(255,255,255,0.2); cursor: pointer; color: white;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s; text-shadow: 1px 1px 2px black;
+            -webkit-tap-highlight-color: transparent; /* Removes blue flash on mobile tap */
         }
         .btn-round:active { transform: scale(0.95); }
         .btn-off { background: radial-gradient(circle, #ff6b81, #ff4757); } 
         .btn-on { background: radial-gradient(circle, #7bed9f, #2ed573); } 
         
-        /* NEW DUAL TERMINAL CSS */
         .terminals-wrapper { display: flex; gap: 10px; width: 100%; margin-top: 10px; }
-        .terminal-column { flex: 1; display: flex; flex-direction: column; }
+        .terminal-column { flex: 1; display: flex; flex-direction: column; width: 100%; }
         .log-box { background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; min-height: 60px; box-shadow: inset 0 0 10px rgba(255,255,255,0.1); word-wrap: break-word;}
         .log-esp { color: #00ff00; }
         .log-nano { color: #00d2ff; }
@@ -99,6 +100,21 @@
             border-radius: 4px; font-size: 13px;
         }
         .inbox-card span { color: #ccc; display: block; margin-top: 4px; }
+
+        /* THE FIX: Mobile Responsive CSS */
+        @media (max-width: 600px) {
+            .terminals-wrapper { 
+                flex-direction: column; /* Stacks terminals on top of each other */
+                gap: 15px;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr; /* Stacks engineering stats */
+            }
+            .log-box {
+                font-size: 11px; /* Slightly smaller text for narrow screens */
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -218,8 +234,6 @@
         let currentPumpState = false;
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
-        let currentSystemLog = "";
-        let currentNanoLog = "";
 
         function toggleAdvanced() {
             const adv = document.getElementById('advancedSection');
@@ -407,8 +421,6 @@
                 document.getElementById('txtS1').innerText = '-- cm';
                 document.getElementById('txtS2').innerText = '-- cm';
                 document.getElementById('txtBypass').innerText = '--';
-                currentSystemLog = ""; 
-                currentNanoLog = "";
                 
                 const btn = document.getElementById('pumpToggleBtn');
                 btn.className = "btn-round btn-off";
