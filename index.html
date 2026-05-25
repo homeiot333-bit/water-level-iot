@@ -344,22 +344,37 @@
             margin-top: 4px; 
         }
 
-        /* SYSTEM BRANDING STYLING WITH ANISH ANIMATION ELEMENT */
-        .system-credits {
+        /* NEW SHIMMER ENGINE: Dynamic Color Changing Credit Line for Top of Viewports */
+        .developer-credit-top {
+            width: 100%;
+            max-width: 500px;
             text-align: center;
-            margin-top: 25px;
-            font-size: 13px;
-            letter-spacing: 0.5px;
-            color: rgba(255, 255, 255, 0.6);
-            background: rgba(0, 0, 0, 0.2);
-            padding: 8px 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            padding: 12px 10px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-sizing: border-box;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        .system-credits strong {
-            color: #00d2ff;
-            text-shadow: 0 0 10px rgba(0, 210, 255, 0.6);
-            font-weight: 800;
+        
+        .developer-credit-top strong {
+            font-weight: 900;
+            font-size: 17px;
+            display: inline-block;
+            animation: gradientShimmer 6s infinite alternate linear;
+        }
+
+        @keyframes gradientShimmer {
+            0% { color: #00d2ff; text-shadow: 0 0 8px rgba(0, 210, 255, 0.6); }
+            25% { color: #7bed9f; text-shadow: 0 0 8px rgba(123, 237, 159, 0.6); }
+            50% { color: #feca57; text-shadow: 0 0 8px rgba(254, 202, 87, 0.6); }
+            75% { color: #ff4757; text-shadow: 0 0 8px rgba(255, 71, 87, 0.6); }
+            100% { color: #3a7bd5; text-shadow: 0 0 8px rgba(58, 123, 213, 0.6); }
         }
 
         @media (max-width: 600px) {
@@ -406,51 +421,61 @@
             <button class="logout-btn" onclick="logoutUser()">Logout</button>
         </div>
 
-        <div id="adminPanel" class="card" style="display:none; border: 2px solid #00d2ff;">
-            <h2>👑 Master Command Center</h2>
-            <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
-            <button class="btn-login" onclick="connectAdminDevice()" style="margin-top:10px;">Connect to Machine</button>
-            
-            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-            
-            <h3 style="color: #feca57;">Global Device Inbox</h3>
-            <div id="adminInbox" class="inbox-container">
-                <div style="text-align:center; color:#ccc; font-size:13px;">Scanning database...</div>
+        <div id="adminPanel" style="display:none; width:100%; flex-direction:column; align-items:center;">
+            <div class="developer-credit-top">
+                This system is developed by <strong>ANISH</strong>
             </div>
 
-            <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
-                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3 style="color: #fff; font-size: 15px; margin:0;">Live Diagnostics: <span id="termDevId"></span></h3>
-                        <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
-                        <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
-                        <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
-                    </div>
-                </div>
+            <div class="card" style="width:100%; border: 2px solid #00d2ff;">
+                <h2>👑 Master Command Center</h2>
+                <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
+                <button class="btn-login" onclick="connectAdminDevice()" style="margin-top:10px;">Connect to Machine</button>
                 
-                <div class="terminals-wrapper">
-                    <div class="terminal-column">
-                        <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px;">ESP32 (HUB)</span>
-                        <div id="logConsole" class="log-box">Awaiting Core Stream...</div>
+                <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                
+                <h3 style="color: #feca57;">Global Device Inbox</h3>
+                <div id="adminInbox" class="inbox-container">
+                    <div style="text-align:center; color:#ccc; font-size:13px;">Scanning database...</div>
+                </div>
+
+                <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3 style="color: #fff; font-size: 15px; margin:0;">Live Diagnostics: <span id="termDevId"></span></h3>
+                            <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                            <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
+                            <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
+                        </div>
                     </div>
-                    <div class="terminal-column">
-                        <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px;">NANO (TANK)</span>
-                        <div id="nanoLogConsole" class="log-box log-nano">Awaiting Payload Link...</div>
+                    
+                    <div class="terminals-wrapper">
+                        <div class="terminal-column">
+                            <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px;">ESP32 (HUB)</span>
+                            <div id="logConsole" class="log-box">Awaiting Core Stream...</div>
+                        </div>
+                        <div class="terminal-column">
+                            <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px;">NANO (TANK)</span>
+                            <div id="nanoLogConsole" class="log-box log-nano">Awaiting Payload Link...</div>
+                        </div>
                     </div>
                 </div>
+
+                <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+                <h3 style="color: #ff6b81;">OTA Firmware Update</h3>
+                <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin">
+                <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
             </div>
-
-            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-
-            <h3 style="color: #ff6b81;">OTA Firmware Update</h3>
-            <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin">
-            <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
         </div>
 
         <div id="customerPanel" style="display:none; width: 100%; flex-direction: column; align-items: center;">
-            <div class="card">
+            <div class="developer-credit-top">
+                This system is developed by <strong>ANISH</strong>
+            </div>
+
+            <div class="card" style="width:100%;">
                 <span id="connStatus" class="status-badge">ONLINE</span>
                 <h2>Dashboard</h2>
                 <div class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data">⋮</div>
@@ -465,15 +490,15 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card" style="width:100%;">
                 <h3>Pump Control</h3>
                 <div class="btn-container">
                     <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
                 </div>
             </div>
 
-            <div id="advancedSection">
-                <div class="card">
+            <div id="advancedSection" style="width:100%;">
+                <div class="card" style="width:100%;">
                     <h3>Engineering Data</h3>
                     <div class="stats-grid">
                         <div class="stat-box">
@@ -490,10 +515,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="system-credits">
-                This system is developed by <strong>ANISH</strong>
             </div>
         </div>
     </div>
@@ -572,7 +593,7 @@
                 document.getElementById('loggedInEmail').innerText = user.email;
 
                 if(user.email === "homeiot@gmail.com") {
-                    document.getElementById('adminPanel').style.display = 'block';
+                    document.getElementById('adminPanel').style.display = 'flex';
                     document.getElementById('customerPanel').style.display = 'none';
                     startAdminInboxListener(); 
                 } else {
