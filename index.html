@@ -12,119 +12,369 @@
         body { 
             font-family: 'Segoe UI', sans-serif; 
             background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: white; display: flex; flex-direction: column; align-items: center; 
-            margin: 0; padding: 15px; min-height: 100vh;
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0; 
+            padding: 15px; 
+            min-height: 100vh; 
             box-sizing: border-box;
+            overflow-x: hidden; 
         }
         
         .card { 
-            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
-            padding: 20px; border-radius: 15px; width: 100%; max-width: 500px; 
-            margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
-            border: 1px solid rgba(255, 255, 255, 0.1); position: relative; box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(10px);
+            padding: 20px; 
+            border-radius: 15px; 
+            width: 100%; 
+            max-width: 500px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            position: relative; 
+            box-sizing: border-box;
         }
         
-        h2, h3 { text-align: center; margin-top: 0; color: #00d2ff; }
+        h2, h3 { 
+            text-align: center; 
+            margin-top: 0; 
+            color: #00d2ff; 
+        }
         
         .menu-dots {
-            position: absolute; top: 15px; right: 20px; font-size: 24px; 
-            font-weight: bold; cursor: pointer; color: #00d2ff; user-select: none;
+            position: absolute; 
+            top: 15px; 
+            right: 20px; 
+            font-size: 24px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            color: #00d2ff; 
+            user-select: none;
             transition: 0.3s;
         }
-        .menu-dots:hover { color: #fff; text-shadow: 0 0 10px #00d2ff; }
+
+        .menu-dots:hover { 
+            color: #fff; 
+            text-shadow: 0 0 10px #00d2ff; 
+        }
 
         .error-banner {
-            background: rgba(255, 71, 87, 0.2); border: 2px solid #ff4757;
-            color: #ff4757; padding: 15px; border-radius: 8px; margin-bottom: 20px;
-            font-weight: bold; text-align: center; display: none; width: 100%;
-            max-width: 500px; box-sizing: border-box; box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
+            background: rgba(255, 71, 87, 0.2); 
+            border: 2px solid #ff4757;
+            color: #ff4757; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px;
+            font-weight: bold; 
+            text-align: center; 
+            display: none; 
+            width: 100%;
+            max-width: 500px; 
+            box-sizing: border-box; 
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
         }
         
-        #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 75vh; }
-        .input-box { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box;}
-        .btn-login { background: #00d2ff; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; transition: 0.3s; margin-top: 15px;}
-        .btn-login:hover { background: #3a7bd5; color: white;}
-        
-        .top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 500px; margin-bottom: 15px;}
-        .logout-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        #loginScreen { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 75vh; 
+        }
 
-        #dashboardScreen { display: none; width: 100%; flex-direction: column; align-items: center; }
+        .input-box { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border: none; 
+            font-size: 16px; 
+            box-sizing: border-box;
+        }
+
+        .btn-login { 
+            background: #00d2ff; 
+            color: #000; 
+            font-weight: bold; 
+            width: 100%; 
+            padding: 12px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 18px; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            margin-top: 15px;
+        }
+
+        .btn-login:hover { 
+            background: #3a7bd5; 
+            color: white;
+        }
+        
+        .top-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            width: 100%; 
+            max-width: 500px; 
+            margin-bottom: 15px;
+        }
+
+        .logout-btn { 
+            background: #ff4757; 
+            color: white; 
+            border: none; 
+            padding: 8px 15px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+
+        #dashboardScreen { 
+            display: none; 
+            width: 100%; 
+            flex-direction: column; 
+            align-items: center; 
+        }
 
         #offlineOverlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); z-index: 9999; flex-direction: column;
-            align-items: center; justify-content: center; color: #ff4757; text-align: center;
-            font-size: 28px; font-weight: bold; padding: 20px; box-sizing: border-box;
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9); 
+            z-index: 9999; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            color: #ff4757; 
+            text-align: center;
+            font-size: 28px; 
+            font-weight: bold; 
+            padding: 20px; 
+            box-sizing: border-box;
         }
 
-        .tank-container { width: 140px; height: 240px; border: 4px solid #fff; border-radius: 15px; position: relative; margin: 20px auto; overflow: hidden; background: rgba(0,0,0,0.5); box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);}
-        .water-fill { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #005c97, #363795); transition: height 1s ease-in-out; }
-        .water-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; font-weight: bold; text-shadow: 2px 2px 4px black; z-index: 10; }
+        .tank-container { 
+            width: 140px; 
+            height: 240px; 
+            border: 4px solid #fff; 
+            border-radius: 15px; 
+            position: relative; 
+            margin: 20px auto; 
+            overflow: hidden; 
+            background: rgba(0,0,0,0.5); 
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+        }
+
+        .water-fill { 
+            position: absolute; 
+            bottom: 0; 
+            width: 100%; 
+            background: linear-gradient(to top, #005c97, #363795); 
+            transition: height 1s ease-in-out; 
+        }
+
+        .water-text { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 26px; 
+            font-weight: bold; 
+            text-shadow: 2px 2px 4px black; 
+            z-index: 10; 
+        }
         
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; width: 100%;}
-        .stat-box { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center; font-size: 13px; color: #ccc;}
-        .stat-value { font-size: 18px; font-weight: bold; color: #00d2ff; display: block; margin-top: 5px; }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 12px; 
+            margin-top: 15px; 
+            width: 100%;
+        }
+
+        .stat-box { 
+            background: rgba(0,0,0,0.3); 
+            padding: 12px; 
+            border-radius: 8px; 
+            text-align: center; 
+            font-size: 13px; 
+            color: #ccc;
+        }
+
+        .stat-value { 
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #00d2ff; 
+            display: block; 
+            margin-top: 5px; 
+        }
         
-        .btn-container { display: flex; justify-content: center; padding: 15px 0; }
+        .btn-container { 
+            display: flex; 
+            justify-content: center; 
+            padding: 15px 0; 
+        }
+
         .btn-round { 
-            width: 140px; height: 140px; border-radius: 50%; font-size: 18px; font-weight: bold; 
-            border: 4px solid rgba(255,255,255,0.2); cursor: pointer; color: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s; text-shadow: 1px 1px 2px black;
+            width: 140px; 
+            height: 140px; 
+            border-radius: 50%; 
+            font-size: 18px; 
+            font-weight: bold; 
+            border: 4px solid rgba(255,255,255,0.2); 
+            cursor: pointer; 
+            color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            transition: all 0.3s; 
+            text-shadow: 1px 1px 2px black;
             -webkit-tap-highlight-color: transparent; 
         }
-        .btn-round:active { transform: scale(0.95); }
-        .btn-off { background: radial-gradient(circle, #ff6b81, #ff4757); } 
-        .btn-on { background: radial-gradient(circle, #7bed9f, #2ed573); } 
-        
-        .terminals-wrapper { display: flex; gap: 10px; width: 100%; margin-top: 10px; }
-        .terminal-column { flex: 1; display: flex; flex-direction: column; width: 100%; }
-        .log-box { background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; min-height: 60px; box-shadow: inset 0 0 10px rgba(255,255,255,0.1); word-wrap: break-word;}
-        .log-esp { color: #00ff00; }
-        .log-nano { color: #00d2ff; }
-        
-        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; float: left; background: #2ed573; color: black; margin-top: 4px;}
-        
-        #advancedSection { display: none; width: 100%; flex-direction: column; align-items: center; transition: 0.3s;}
 
-        .btn-danger { background: #ff4757; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;}
-        .btn-danger:hover { background: #ff6b81; }
+        .btn-round:active { 
+            transform: scale(0.95); 
+        }
 
-        .inbox-container {
-            max-height: 250px; overflow-y: auto; width: 100%; 
-            border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; 
-            padding: 10px; box-sizing: border-box; background: rgba(0,0,0,0.2);
+        .btn-off { 
+            background: radial-gradient(circle, #ff6b81, #ff4757); 
+        } 
+
+        .btn-on { 
+            background: radial-gradient(circle, #7bed9f, #2ed573); 
+        } 
+        
+        .terminals-wrapper { 
+            display: flex; 
+            gap: 10px; 
+            width: 100%; 
+            margin-top: 10px; 
+        }
+
+        .terminal-column { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            width: 100%; 
+            min-width: 0;
+        }
+
+        .log-box { 
+            background: #000; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: monospace; 
+            font-size: 11px; 
+            height: 120px; 
+            overflow-y: auto; 
+            color: #00ff00;
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            word-break: break-all;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+        }
+
+        .log-nano { 
+            color: #00d2ff; 
+        }
+        
+        .status-badge { 
+            padding: 5px 10px; 
+            border-radius: 15px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            float: left; 
+            background: #2ed573; 
+            color: black; 
+            margin-top: 4px;
+        }
+        
+        #advancedSection { 
+            display: none; 
+            width: 100%; 
+            flex-direction: column; 
+            align-items: center; 
+            transition: 0.3s;
+        }
+
+        .btn-danger { 
+            background: #ff4757; 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%; 
             margin-top: 10px;
         }
-        .inbox-card {
-            background: rgba(0,0,0,0.4); padding: 12px; margin-bottom: 8px; 
-            border-radius: 4px; font-size: 13px;
+
+        .btn-danger:hover { 
+            background: #ff6b81; 
         }
-        .inbox-card span { color: #ccc; display: block; margin-top: 4px; }
+
+        .inbox-container {
+            max-height: 250px; 
+            overflow-y: auto; 
+            width: 100%; 
+            border: 1px solid rgba(255,255,255,0.2); 
+            border-radius: 8px; 
+            padding: 10px; 
+            box-sizing: border-box; 
+            background: rgba(0,0,0,0.2);
+            margin-top: 10px;
+        }
+
+        .inbox-card {
+            background: rgba(0,0,0,0.4); 
+            padding: 12px; 
+            margin-bottom: 8px; 
+            border-radius: 4px; 
+            font-size: 13px;
+        }
+
+        .inbox-card span { 
+            color: #ccc; 
+            display: block; 
+            margin-top: 4px; 
+        }
 
         @media (max-width: 600px) {
             .terminals-wrapper { 
                 flex-direction: column; 
-                gap: 15px;
+                gap: 15px; 
             }
-            .stats-grid {
+            .stats-grid { 
                 grid-template-columns: 1fr; 
             }
-            .log-box {
+            .log-box { 
                 font-size: 11px; 
-                padding: 10px;
+                padding: 10px; 
+                height: 100px; 
             }
         }
     </style>
 </head>
 <body>
-
-    <div id="offlineOverlay">⚠️<br><br>Machine is currently Offline</div>
+<div id="offlineOverlay">
+        ⚠️<br><br>Machine is currently Offline
+    </div>
 
     <div id="loginScreen" class="card">
         <h2>🔒 Security Gateway</h2>
+        <div id="connIndicator" style="text-align:center; font-size:12px; color:#888;">
+            Checking server connection...
+        </div>
+        
         <input type="email" id="emailInput" class="input-box" placeholder="Email" />
         <input type="password" id="passwordInput" class="input-box" placeholder="Password" />
+        
         <button class="btn-login" onclick="loginUser()">LOGIN</button>
+        
         <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
     </div>
 
@@ -151,16 +401,6 @@
 
             <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
                 <h3 style="color: #fff; font-size: 16px;">Live Diagnostics: <span id="termDevId"></span></h3>
-                <div class="terminals-wrapper">
-                    <div class="terminal-column">
-                        <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px;">ESP32 (HUB)</span>
-                        <div id="logConsole" class="log-box log-esp">Waiting...</div>
-                    </div>
-                    <div class="terminal-column">
-                        <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px;">NANO (TANK)</span>
-                        <div id="nanoLogConsole" class="log-box log-nano">Waiting...</div>
-                    </div>
-                </div>
             </div>
 
             <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
@@ -192,24 +432,43 @@
                     <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
                 </div>
             </div>
+            
+            <div class="card" style="width: 100%;">
+                <h3 style="color: #fff; font-size: 16px;">Live Diagnostics</h3>
+                <div class="terminals-wrapper">
+                    <div class="terminal-column">
+                        <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px;">ESP32 (HUB)</span>
+                        <div id="logConsole" class="log-box">Waiting...</div>
+                    </div>
+                    <div class="terminal-column">
+                        <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px;">NANO (TANK)</span>
+                        <div id="nanoLogConsole" class="log-box log-nano">Waiting...</div>
+                    </div>
+                </div>
+            </div>
 
             <div id="advancedSection">
                 <div class="card">
                     <h3>Engineering Data</h3>
                     <div class="stats-grid">
-                        <div class="stat-box">Average Gap<span id="txtFinalCm" class="stat-value">-- cm</span></div>
-                        <div class="stat-box">Sensor 1 (Raw)<span id="txtS1" class="stat-value">-- cm</span></div>
-                        <div class="stat-box">Sensor 2 (Raw)<span id="txtS2" class="stat-value">-- cm</span></div>
+                        <div class="stat-box">
+                            Average Gap
+                            <span id="txtFinalCm" class="stat-value">-- cm</span>
+                        </div>
+                        <div class="stat-box">
+                            Sensor 1 (Raw)
+                            <span id="txtS1" class="stat-value">-- cm</span>
+                        </div>
+                        <div class="stat-box">
+                            Sensor 2 (Raw)
+                            <span id="txtS2" class="stat-value">-- cm</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <script>
-        // ==========================================
-        // ⚠️ PASTE YOUR FIREBASE CONFIGURATION HERE
-        // ==========================================
+<script>
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
             authDomain: "home-water-level.firebaseapp.com",
@@ -234,9 +493,31 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
 
+        // THE MOBILE WAKE-UP SHOCK FIX
+        document.addEventListener("visibilitychange", function() {
+            if (document.visibilityState === 'visible') {
+                firebase.database().goOffline();
+                setTimeout(() => { 
+                    firebase.database().goOnline(); 
+                }, 500);
+            }
+        });
+
+        database.ref('.info/connected').on('value', (s) => {
+            if (s.val()) {
+                document.getElementById('connIndicator').innerText = "Server Connected";
+            } else {
+                document.getElementById('connIndicator').innerText = "Connecting to Server...";
+            }
+        });
+
         function toggleAdvanced() {
             const adv = document.getElementById('advancedSection');
-            adv.style.display = (adv.style.display === "none") ? "flex" : "none";
+            if (adv.style.display === "none") {
+                adv.style.display = "flex";
+            } else {
+                adv.style.display = "none";
+            }
         }
 
         function loginUser() {
@@ -244,12 +525,6 @@
             const pass = document.getElementById('passwordInput').value;
             const errDiv = document.getElementById('loginError');
             
-            if(!firebaseConfig.authDomain || firebaseConfig.authDomain === "") {
-                errDiv.style.display = 'block';
-                errDiv.innerText = "Error: Missing 'authDomain' in Firebase Config!";
-                return;
-            }
-
             firebase.auth().signInWithEmailAndPassword(email, pass).catch((error) => {
                 errDiv.style.display = 'block';
                 errDiv.innerText = "Error: " + error.message;
@@ -288,6 +563,7 @@
             } else {
                 document.getElementById('loginScreen').style.display = 'flex';
                 document.getElementById('dashboardScreen').style.display = 'none';
+                
                 if(currentDeviceId) {
                     database.ref('/Devices/' + currentDeviceId).off();
                     currentDeviceId = null;
@@ -296,18 +572,23 @@
         });
 
         function startAdminInboxListener() {
-            if(globalScannerTimer) clearInterval(globalScannerTimer);
+            if(globalScannerTimer) {
+                clearInterval(globalScannerTimer);
+            }
             
             globalScannerTimer = setInterval(() => {
                 database.ref('/Devices').once('value').then((snapshot) => {
                     snapshot.forEach(child => {
                         let devId = child.key;
                         let hb = 0;
+                        
                         if(child.val().deviceStatus && child.val().deviceStatus.heartbeat) {
                             hb = child.val().deviceStatus.heartbeat;
                         }
                         
-                        if(!globalDeviceState[devId]) globalDeviceState[devId] = { lastHb: -1, lastTime: Date.now() };
+                        if(!globalDeviceState[devId]) {
+                            globalDeviceState[devId] = { lastHb: -1, lastTime: Date.now() };
+                        }
                         
                         if(globalDeviceState[devId].lastHb !== hb) {
                             globalDeviceState[devId].lastHb = hb;
@@ -337,35 +618,23 @@
             });
         }
 
-        function buildInboxCard(devId, color, displayStatus, displayMsg) {
-            return `
-                <div class="inbox-card" style="border-left: 4px solid ${color};">
-                    <strong style="color:${color}">${devId}</strong> - <span style="font-weight:bold; display:inline; color:white;">${displayStatus}</span>
-                    <span>${displayMsg}</span>
-                </div>
-            `;
-        }
-
         function renderAdminInbox() {
             const inboxDiv = document.getElementById('adminInbox');
+            
             if(!inboxDiv) return; 
 
-            let faultsHtml = '';
-            let otasHtml = '';
-            let normalHtml = '';
+            let htmlStr = '';
             let hasDevices = false;
 
             for (const devId in adminInboxData) {
                 hasDevices = true;
                 const data = adminInboxData[devId];
                 let color = "#2ed573"; 
-                
                 let displayStatus = data.status || "UNKNOWN STATUS";
                 let displayMsg = data.message || "No message available.";
-                
                 let isDead = false;
+
                 if(globalDeviceState[devId]) {
-                    // THE FIX: Increased tolerance to 15 seconds to prevent false Mobile Offline triggers
                     if (Date.now() - globalDeviceState[devId].lastTime > 15000) { 
                         isDead = true;
                     }
@@ -373,45 +642,40 @@
 
                 if (isDead) {
                     color = "#ff4757"; 
-                    displayStatus = "❌ OFFLINE (Power/Network Lost)";
-                    displayMsg = "Machine is unresponsive. It may be unplugged or restarting.";
-                    faultsHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
-                } else {
-                    if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
-                        color = "#ff4757";
-                        faultsHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
-                    }
-                    else if(displayStatus.includes("OTA SUCCESS")) {
-                        color = "#feca57";
-                        otasHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
-                    }
-                    else if(displayStatus.includes("OTA")) {
-                        color = "#00d2ff";
-                        otasHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
-                    } else {
-                        normalHtml += buildInboxCard(devId, color, displayStatus, displayMsg);
-                    }
+                    displayStatus = "❌ OFFLINE";
+                    displayMsg = "Machine is unresponsive.";
+                } else if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
+                    color = "#ff4757";
+                } else if(displayStatus.includes("OTA SUCCESS")) {
+                    color = "#feca57";
+                } else if(displayStatus.includes("OTA")) {
+                    color = "#00d2ff";
                 }
+
+                htmlStr += `<div class="inbox-card" style="border-left: 4px solid ${color};">
+                    <strong style="color:${color}">${devId}</strong> - <span style="font-weight:bold; color:white;">${displayStatus}</span>
+                    <span style="display:block; margin-top:4px; color:#ccc;">${displayMsg}</span>
+                </div>`;
             }
 
-            if(!hasDevices) {
-                inboxDiv.innerHTML = '<div style="text-align:center; color:#ccc; font-size:13px;">No alerts or connected devices found.</div>';
+            if(hasDevices) {
+                inboxDiv.innerHTML = htmlStr;
             } else {
-                inboxDiv.innerHTML = faultsHtml + otasHtml + normalHtml;
+                inboxDiv.innerHTML = '<div style="text-align:center; color:#ccc; font-size:13px;">No alerts.</div>';
             }
         }
 
         function connectAdminDevice() {
             const devId = document.getElementById('adminSearchInput').value.trim();
+            
             if(devId) {
                 if(currentDeviceId) {
-                    const oldPath = '/Devices/' + currentDeviceId;
-                    database.ref(oldPath + '/deviceStatus/heartbeat').off();
-                    database.ref(oldPath + '/telemetry').off();
-                    database.ref(oldPath + '/state').off();
+                    database.ref('/Devices/' + currentDeviceId).off();
                 }
 
-                if (heartbeatTimer) clearInterval(heartbeatTimer);
+                if (heartbeatTimer) {
+                    clearInterval(heartbeatTimer);
+                }
                 
                 currentDeviceId = devId;
 
@@ -433,8 +697,10 @@
                 lastHeartbeatTime = Date.now(); 
                 
                 document.getElementById('customerPanel').style.display = 'flex';
-                document.getElementById('adminTerminalContainer').style.display = 'block';
-                document.getElementById('termDevId').innerText = currentDeviceId;
+                
+                if(document.getElementById('termDevId')) {
+                    document.getElementById('termDevId').innerText = currentDeviceId;
+                }
                 
                 document.getElementById('logConsole').innerText = "Connecting...";
                 document.getElementById('nanoLogConsole').innerText = "Connecting...";
@@ -450,36 +716,23 @@
 
             database.ref(basePath + '/deviceStatus/heartbeat').on('value', (snapshot) => {
                 lastHeartbeat = snapshot.val();
-                lastHeartbeatTime = Date.now();
+                lastHeartbeatTime = Date.now(); 
                 document.getElementById('offlineOverlay').style.display = 'none'; 
                 
-                // THE FIX: If the mobile screen was wiped, reset the terminal text instantly upon reconnection
                 if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
                     document.getElementById('logConsole').innerText = "Signal restored. Fetching logs...";
                     document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
-                    const badge = document.getElementById('connStatus');
-                    badge.style.background = "#2ed573";
-                    badge.innerText = "ONLINE";
                 }
             });
 
             heartbeatTimer = setInterval(() => {
-                // THE FIX: Increased from 6 seconds to 15 seconds to absorb mobile network lag
                 if(Date.now() - lastHeartbeatTime > 15000) { 
                     const user = firebase.auth().currentUser;
-                    
                     if(user && user.email === "homeiot@gmail.com") {
                         document.getElementById('offlineOverlay').style.display = 'none';
                         const badge = document.getElementById('connStatus');
                         badge.style.background = "#ff4757";
-                        badge.innerText = "OFFLINE / REBOOTING";
-                        
-                        document.getElementById('waterLevelFill').style.height = '0%';
-                        document.getElementById('waterLevelText').innerText = '--%';
-                        document.getElementById('txtFinalCm').innerText = '-- cm';
-                        document.getElementById('txtS1').innerText = '-- cm';
-                        document.getElementById('txtS2').innerText = '-- cm';
-                        document.getElementById('txtBypass').innerText = '--';
+                        badge.innerText = "OFFLINE";
                         document.getElementById('pumpToggleBtn').className = "btn-round btn-off";
                         document.getElementById('pumpToggleBtn').innerText = "OFFLINE";
                         document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
@@ -491,18 +744,29 @@
             }, 2000);
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
-                // THE FIX: Removed the code that blocked fresh data on mobile
                 const data = snapshot.val();
                 if(data) {
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
                     document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
-                    document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
-                    document.getElementById('txtS1').innerText = (data.sensor1Cm > 0) ? parseFloat(data.sensor1Cm).toFixed(1) + ' cm' : 'FAULT';
-                    document.getElementById('txtS2').innerText = (data.sensor2Cm > 0) ? parseFloat(data.sensor2Cm).toFixed(1) + ' cm' : 'FAULT';
                     
+                    document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
+                    
+                    if(data.sensor1Cm > 0) {
+                        document.getElementById('txtS1').innerText = parseFloat(data.sensor1Cm).toFixed(1) + ' cm';
+                    } else {
+                        document.getElementById('txtS1').innerText = 'FAULT';
+                    }
+                    
+                    if(data.sensor2Cm > 0) {
+                        document.getElementById('txtS2').innerText = parseFloat(data.sensor2Cm).toFixed(1) + ' cm';
+                    } else {
+                        document.getElementById('txtS2').innerText = 'FAULT';
+                    }
+
                     if(data.log) {
                         document.getElementById('logConsole').innerText = data.log;
                     }
+                    
                     if(data.nanoLog) {
                         document.getElementById('nanoLogConsole').innerText = data.nanoLog;
                     }
@@ -510,10 +774,10 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
-                // THE FIX: Removed the code that blocked fresh data on mobile
                 const state = snapshot.val();
                 if(state) {
                     const badge = document.getElementById('connStatus');
+                    
                     if(state.fault) {
                         badge.style.background = "#ff4757";
                         badge.innerText = "LINK FAULT";
@@ -521,11 +785,16 @@
                         badge.style.background = "#2ed573";
                         badge.innerText = "ONLINE";
                     }
-
-                    document.getElementById('txtBypass').innerText = state.automationBypassed ? "LOCKED" : "ACTIVE";
+                    
+                    if(state.automationBypassed) {
+                        document.getElementById('txtBypass').innerText = "LOCKED";
+                    } else {
+                        document.getElementById('txtBypass').innerText = "ACTIVE";
+                    }
 
                     currentPumpState = state.pumpActive;
                     const btn = document.getElementById('pumpToggleBtn');
+                    
                     if(currentPumpState) {
                         btn.className = "btn-round btn-off";
                         btn.innerText = "TURN\nOFF";
@@ -538,13 +807,15 @@
         }
 
         function togglePump() {
-            if(!currentDeviceId) return;
+            if(!currentDeviceId) {
+                return;
+            }
+            
             const desiredState = !currentPumpState;
             const newTrigger = Math.floor(Math.random() * 1000000) + 1; 
-            const basePath = '/Devices/' + currentDeviceId + '/control';
             
-            database.ref(basePath + '/forceState').set(desiredState);
-            database.ref(basePath + '/triggerId').set(newTrigger);
+            database.ref('/Devices/' + currentDeviceId + '/control/forceState').set(desiredState);
+            database.ref('/Devices/' + currentDeviceId + '/control/triggerId').set(newTrigger);
             
             document.getElementById('pumpToggleBtn').innerText = "WAIT...";
         }
@@ -554,19 +825,19 @@
                 alert("You must connect to a device first!");
                 return;
             }
+            
             const fileUrl = document.getElementById('otaUrlInput').value.trim();
+            
             if(!fileUrl) {
                 alert("Please paste the .bin download link first!");
                 return;
             }
+            
             if(confirm("WARNING: Are you absolutely sure you want to push a firmware update to " + currentDeviceId + "?")) {
                 pendingOtaDevice = currentDeviceId; 
-                
-                const basePath = '/Devices/' + currentDeviceId + '/control';
-                database.ref(basePath + '/otaUrl').set(fileUrl);
-                database.ref(basePath + '/otaTrigger').set(true);
-                
-                alert("OTA Upload Started! Keep this page open. A popup will alert you when it succeeds or fails.");
+                database.ref('/Devices/' + currentDeviceId + '/control/otaUrl').set(fileUrl);
+                database.ref('/Devices/' + currentDeviceId + '/control/otaTrigger').set(true);
+                alert("OTA Upload Started! Keep this page open.");
             }
         }
     </script>
