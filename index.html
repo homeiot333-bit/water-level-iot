@@ -142,7 +142,6 @@
             align-items: center; 
         }
 
-        /* RESPONSIVE CSS GRID FOR ADMIN LEFT/RIGHT LAYOUT */
         .dashboard-grid {
             display: flex;
             flex-direction: row;
@@ -368,7 +367,6 @@
             margin-top: 4px; 
         }
 
-        /* NEW FLEXBOX ENGINE TO PREVENT LOGO OVERLAP ON MOBILE */
         .developer-credit-top {
             display: flex;
             align-items: center;
@@ -453,7 +451,6 @@
             transform: scale(1.1);
         }
 
-        /* NEW EXACT 13-SECOND GREEN MARQUEE */
         .green-marquee-container {
             width: 100%;
             max-width: 500px;
@@ -638,6 +635,7 @@
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); margin-top:8px;">
                                 <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
                                 <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
+                                <span>Radio: <strong id="adminTxtRadio" style="color:#feca57;">--</strong></span>
                             </div>
                         </div>
                         
@@ -792,7 +790,6 @@
                 document.getElementById('loggedInEmail').innerText = user.email;
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
-                    // ADMIN MODE
                     document.getElementById('topBarTitle').innerText = "Admin Dashboard";
                     document.getElementById('creditText').innerHTML = "This is admin portal used by <strong>ANISH.</strong>";
                     
@@ -801,11 +798,10 @@
                     document.getElementById('advancedSection').style.display = 'none';
                     
                     document.getElementById('adminCommandCenter').style.display = 'flex';
-                    document.getElementById('mainDashboardView').style.display = 'none'; // Hidden until machine connects
+                    document.getElementById('mainDashboardView').style.display = 'none'; 
                     
                     startAdminInboxListener(); 
                 } else {
-                    // CUSTOMER MODE
                     document.getElementById('topBarTitle').innerText = "Dashboard";
                     document.getElementById('creditText').innerHTML = "This system is developed by <strong>ANISH.</strong>";
                     
@@ -830,7 +826,7 @@
                 document.getElementById('dashboardScreen').style.display = 'none';
                 
                 if(currentDeviceId) {
-                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus/heartbeat').off();
+                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus').off();
                     database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
                     database.ref('/Devices/' + currentDeviceId + '/state').off();
                     database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
@@ -985,13 +981,23 @@
                     alert("Database Error: " + err.message);
                 });
             } else {
-                executeConnection(searchVal);
+                document.getElementById('connStatus').innerText = "VERIFYING...";
+                database.ref('Devices/' + searchVal).once('value').then((snapshot) => {
+                    if(snapshot.exists()) {
+                        executeConnection(searchVal);
+                    } else {
+                        alert("❌ Error: Device ID '" + searchVal + "' does not exist in the database! Please check the spelling or link the device first.");
+                        document.getElementById('connStatus').innerText = "ONLINE";
+                    }
+                }).catch((err) => {
+                    alert("Database Error: " + err.message);
+                });
             }
         }
 
         function executeConnection(devId) {
             if(currentDeviceId) {
-                database.ref('/Devices/' + currentDeviceId + '/deviceStatus/heartbeat').off();
+                database.ref('/Devices/' + currentDeviceId + '/deviceStatus').off();
                 database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
                 database.ref('/Devices/' + currentDeviceId + '/state').off();
                 database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
@@ -1012,6 +1018,7 @@
             document.getElementById('txtBypass').innerText = '--';
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
+            document.getElementById('adminTxtRadio').innerText = '--';
             document.getElementById('credEmail').innerText = "Not saved in DB";
             document.getElementById('credPass').innerText = "Not saved in DB";
             document.getElementById('credentialsBox').style.display = "none"; 
@@ -1030,7 +1037,6 @@
             
             lastHeartbeatTime = Date.now(); 
             
-            // SHOW DASHBOARD ON THE LEFT SIDE NOW
             document.getElementById('mainDashboardView').style.display = 'flex';
             document.getElementById('adminTerminalContainer').style.display = 'block';
             
@@ -1083,8 +1089,10 @@
                 }
             });
 
-            database.ref(basePath + '/deviceStatus/heartbeat').on('value', (snapshot) => {
-                lastHeartbeat = snapshot.val();
+            database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
+                const statusData = snapshot.val() || {};
+                
+                lastHeartbeat = statusData.heartbeat || 0;
                 lastHeartbeatTime = Date.now(); 
                 document.getElementById('offlineOverlay').style.display = 'none'; 
                 
@@ -1100,6 +1108,10 @@
                 if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
                     document.getElementById('logConsole').innerText = "Signal restored. Fetching logs...";
                     document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
+                }
+
+                if (document.getElementById('adminTxtRadio')) {
+                    document.getElementById('adminTxtRadio').innerText = statusData.radioTech ? statusData.radioTech : "nRF24L01 (Legacy)";
                 }
             });
 
