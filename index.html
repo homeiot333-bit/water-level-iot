@@ -389,6 +389,43 @@
             100% { color: #3a7bd5; text-shadow: 0 0 8px rgba(58, 123, 213, 0.6); }
         }
 
+        /* NEW SLIDING INBOX PANEL CSS */
+        #sideInboxPanel {
+            position: fixed;
+            top: 0;
+            right: -360px;
+            width: 350px;
+            max-width: 85vw;
+            height: 100vh;
+            background: rgba(15, 32, 39, 0.95);
+            backdrop-filter: blur(15px);
+            border-left: 2px solid #feca57;
+            z-index: 1000;
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.6);
+        }
+        #sideInboxPanel.open {
+            right: 0;
+        }
+        .close-inbox-btn {
+            align-self: flex-end;
+            font-size: 24px;
+            color: #ff4757;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 15px;
+            user-select: none;
+            transition: 0.3s;
+        }
+        .close-inbox-btn:hover {
+            color: #ff6b81;
+            transform: scale(1.1);
+        }
+
         @media (max-width: 600px) {
             .terminals-wrapper { 
                 flex-direction: column; 
@@ -406,6 +443,16 @@
     </style>
 </head>
 <body>
+
+    <!-- NEW SLIDING SIDE PANEL FOR INBOX -->
+    <div id="sideInboxPanel">
+        <div class="close-inbox-btn" onclick="toggleInboxPanel()">✕</div>
+        <h3 style="color: #feca57; margin-top:0; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom:10px;">Global Device Inbox</h3>
+        <div id="adminInbox" class="inbox-container" style="border:none; background:transparent; max-height:none; flex:1; margin-top:0; padding:0;">
+            <div style="text-align:center; color:#ccc; font-size:13px;">Scanning database...</div>
+        </div>
+    </div>
+
     <div id="criticalErrorBanner" class="error-banner"></div>
 
     <div id="offlineOverlay">
@@ -442,8 +489,11 @@
             <div class="card" style="width:100%; border: 2px solid #00d2ff; position: relative;">
                 <h2>👑 Master Command Center</h2>
                 
-                <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options">⋮</div>
-                <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:45px; background:#1a1a2e; border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                <!-- NEW INBOX TOGGLE BUTTON -->
+                <button class="btn-login" style="background:#feca57; color:#000; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
+
+                <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options" style="top: 85px;">⋮</div>
+                <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:115px; background:#1a1a2e; border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
                     <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
                     <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
                 </div>
@@ -451,14 +501,9 @@
                 <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
                 <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
                 
-                <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-                
-                <h3 style="color: #feca57;">Global Device Inbox</h3>
-                <div id="adminInbox" class="inbox-container">
-                    <div style="text-align:center; color:#ccc; font-size:13px;">Scanning database...</div>
-                </div>
-
                 <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                    
                     <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <h3 style="color: #fff; font-size: 15px; margin:0;">Live Diagnostics: <span id="termDevId"></span></h3>
@@ -614,6 +659,12 @@
             }
         }
 
+        // SLIDING PANEL TOGGLE
+        function toggleInboxPanel() {
+            const panel = document.getElementById('sideInboxPanel');
+            panel.classList.toggle('open');
+        }
+
         function toggleSearchMenu() {
             const menu = document.getElementById('searchMenuDropdown');
             menu.style.display = (menu.style.display === "none") ? "block" : "none";
@@ -743,7 +794,6 @@
 
         function renderAdminInbox() {
             const inboxDiv = document.getElementById('adminInbox');
-            const errorBanner = document.getElementById('criticalErrorBanner');
             
             if(!inboxDiv) return; 
 
@@ -791,18 +841,24 @@
                 </div>`;
             }
 
+            // Also check for the active connected device error banner for the admin
+            const errorBanner = document.getElementById('criticalErrorBanner');
             if(currentConnectedDeviceFaultMessage) {
                 errorBanner.style.display = "block";
                 errorBanner.innerHTML = `⚠️ <strong>CRITICAL LIVE ALERT:</strong><br>• ${currentConnectedDeviceFaultMessage}`;
             } else {
-                errorBanner.style.display = "none";
-                errorBanner.innerHTML = "";
+                // Do not hide it entirely if customer is viewing it, let the state listener handle customer view
+                const currentUser = firebase.auth().currentUser;
+                if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                     errorBanner.style.display = "none";
+                     errorBanner.innerHTML = "";
+                }
             }
 
             if(hasDevices) {
                 inboxDiv.innerHTML = htmlStr;
             } else {
-                inboxDiv.innerHTML = '<div style="text-align:center; color:#ccc; font-size:13px;">No alerts.</div>';
+                inboxDiv.innerHTML = '<div style="text-align:center; color:#ccc; font-size:13px; margin-top:20px;">No active alerts.</div>';
             }
         }
 
