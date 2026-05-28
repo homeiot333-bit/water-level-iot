@@ -29,7 +29,6 @@
             padding: 20px; 
             border-radius: 15px; 
             width: 100%; 
-            max-width: 500px; 
             margin-bottom: 20px; 
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
             border: 1px solid rgba(255, 255, 255, 0.1); 
@@ -84,6 +83,8 @@
             align-items: center; 
             justify-content: center; 
             height: 75vh; 
+            max-width: 400px;
+            width: 100%;
         }
 
         .input-box { 
@@ -120,7 +121,7 @@
             justify-content: space-between; 
             align-items: center; 
             width: 100%; 
-            max-width: 500px; 
+            max-width: 1100px; 
             margin-bottom: 15px;
         }
 
@@ -139,6 +140,36 @@
             width: 100%; 
             flex-direction: column; 
             align-items: center; 
+        }
+
+        /* RESPONSIVE CSS GRID FOR ADMIN LEFT/RIGHT LAYOUT */
+        .dashboard-grid {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            max-width: 1100px;
+            gap: 25px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap; 
+        }
+
+        .dash-col-left {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 320px;
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .dash-col-right {
+            display: flex;
+            flex-direction: column;
+            flex: 1.5;
+            min-width: 320px;
+            max-width: 650px;
+            width: 100%;
         }
 
         #offlineOverlay {
@@ -295,14 +326,6 @@
             margin-bottom: 10px;
         }
         
-        #advancedSection { 
-            display: none; 
-            width: 100%; 
-            flex-direction: column; 
-            align-items: center; 
-            transition: 0.3s;
-        }
-
         .btn-danger { 
             background: #ff4757; 
             color: white; 
@@ -345,36 +368,37 @@
             margin-top: 4px; 
         }
 
+        /* NEW FLEXBOX ENGINE TO PREVENT LOGO OVERLAP ON MOBILE */
         .developer-credit-top {
             display: flex;
             align-items: center;
-            justify-content: center;
-            position: relative;
             width: 100%;
             max-width: 500px;
-            text-align: center;
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: 0.8px;
-            padding: 12px 10px;
-            margin-bottom: 15px;
-            border-radius: 10px;
+            padding: 12px 15px;
             background: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
             box-sizing: border-box;
-            color: #fff;
+            margin-bottom: 15px;
+            gap: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            min-height: 60px;
         }
 
         .brand-logo-left {
             height: 40px;
             width: auto;
             object-fit: contain;
-            position: absolute;
-            left: 15px;
+            flex-shrink: 0;
         }
         
+        .developer-credit-top span {
+            flex-grow: 1;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #fff;
+        }
+
         .developer-credit-top strong {
             font-weight: 900;
             font-size: 17px;
@@ -442,14 +466,17 @@
             border: 1px solid rgba(46, 213, 115, 0.25);
             box-sizing: border-box;
         }
+
         .green-marquee-text {
             display: inline-block;
             padding-left: 100%;
             animation: scroll-left 13s linear infinite;
-            color: #2ed573; /* Vivid Green */
+            color: #2ed573; 
             font-weight: bold;
-            font-size: 16px;
+            font-size: 15px;
+            letter-spacing: 0.5px;
         }
+
         @keyframes scroll-left {
             0% { transform: translate(0, 0); }
             100% { transform: translate(-100%, 0); }
@@ -487,7 +514,7 @@
         ⚠️<br><br>Machine is currently Offline
     </div>
 
-    <div id="loginScreen" class="card">
+    <div id="loginScreen" class="card" style="max-width: 400px;">
         <h2 style="text-align: center;">🔒 Security Gateway</h2>
         <div id="connIndicator" style="text-align:center; font-size:12px; color:#888;">
             Checking server connection...
@@ -498,7 +525,7 @@
         
         <div style="width: 100%; display: flex; align-items: center; justify-content: flex-start; margin-top: -5px; margin-bottom: 15px;">
             <input type="checkbox" id="showPassCheckbox" onclick="togglePasswordVisibility()" style="margin-right: 8px; cursor: pointer;">
-            <label for="showPassCheckbox" style="font-size: 13px; color: #ccc; cursor: pointer; user-select: none;">Show Password</label>
+            <label for="showPassCheckbox" style="font-size: 13px; color: #ccc; cursor: pointer; user-select: none;">Show password</label>
         </div>
         
         <button class="btn-login" onclick="loginUser()">LOGIN</button>
@@ -509,7 +536,6 @@
     <div id="dashboardScreen">
         
         <div class="top-bar">
-            <!-- DYNAMIC DASHBOARD TITLE - HARD LEFT -->
             <h3 id="topBarTitle" style="margin:0; color:#fff; text-align:left; flex:1;">Dashboard</h3>
             <div style="display:flex; align-items:center; gap: 15px;">
                 <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
@@ -517,142 +543,140 @@
             </div>
         </div>
 
-        <div id="adminPanel" style="display:none; width:100%; flex-direction:column; align-items:center;">
-            <div class="developer-credit-top">
-                <img src="https://i.ibb.co/d00mGVcx/AKS.png" class="brand-logo-left" alt="AKS Logo">
-                <span>This is admin portal used by <strong>ANISH.</strong></span>
-            </div>
+        <div id="customerMarquee" class="green-marquee-container" style="display:none;">
+            <div class="green-marquee-text">Thank you for using Anish's device.</div>
+        </div>
 
-            <div class="card" style="width:100%; border: 2px solid #00d2ff; position: relative;">
-                
-                <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options" style="top: 20px; right: 20px;">⋮</div>
-                
-                <h2>👑 Master Command Center</h2>
-                
-                <button class="btn-login" style="background:#feca57; color:#000; margin-top:10px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
+        <div class="developer-credit-top">
+            <img src="https://i.ibb.co/d00mGVcx/AKS.png" class="brand-logo-left" alt="AKS Logo">
+            <span id="creditText">This system is developed by <strong>ANISH.</strong></span>
+        </div>
 
-                <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:#1a1a2e; border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-                    <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
-                    <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
+        <div class="dashboard-grid">
+            
+            <div class="dash-col-left" id="mainDashboardView" style="display:none;">
+                <div class="card">
+                    <span id="connStatus" class="status-badge">ONLINE</span>
+                    <div id="customerMenuDots" class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data" style="display:none; top: 15px; right: 20px;">⋮</div>
+                    
+                    <div style="clear:both;"></div>
+                    
+                    <div class="tank-container">
+                        <div id="waterLevelFill" class="water-fill" style="height: 0%;"></div>
+                        <div id="waterLevelText" class="water-text">--%</div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top:10px; color:#ccc; font-size: 14px;">
+                        Manual Bypass Status: <span id="txtBypass" style="color:#ffa502; font-weight:bold;">--</span>
+                    </div>
                 </div>
 
-                <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
-                <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
-                
-                <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
-                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-                    
-                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <h3 style="color: #fff; font-size: 15px; margin:0; text-align:left;">Live Diagnostics: <span id="termDevId"></span></h3>
-                            
-                            <div style="display:flex; gap:12px; align-items:center;">
-                                <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
-                                <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:20px; user-select:none;" onclick="toggleCredBox()">⋮</span>
+                <div class="card">
+                    <h3 style="text-align: left;">Pump Control</h3>
+                    <div class="btn-container">
+                        <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
+                    </div>
+                </div>
+
+                <div id="advancedSection" style="display:none; width:100%;">
+                    <div class="card" style="width:100%;">
+                        <h3>Engineering Data</h3>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                Average Gap
+                                <span id="txtFinalCm" class="stat-value">-- cm</span>
+                            </div>
+                            <div class="stat-box">
+                                Sensor 1 (Raw)
+                                <span id="txtS1" class="stat-value">-- cm</span>
+                            </div>
+                            <div class="stat-box">
+                                Sensor 2 (Raw)
+                                <span id="txtS2" class="stat-value">-- cm</span>
                             </div>
                         </div>
-
-                        <div id="credentialsBox" style="display:none; margin-top:10px; padding:12px; background:rgba(0,0,0,0.5); border:1px dashed #7bed9f; border-radius:6px; font-size:13px; color:#ccc; text-align: left;">
-                            <span style="color:#7bed9f; font-weight:bold; margin-bottom:5px; display:block;">Machine Linked To:</span>
-                            <strong>Email:</strong> <span id="credEmail" style="color:#fff;">Not saved in DB</span><br>
-                            <strong>Password:</strong> <span id="credPass" style="color:#fff;">Not saved in DB</span>
-                        </div>
-
-                        <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); margin-top:8px;">
-                            <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
-                            <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
-                        </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="dash-col-right" id="adminCommandCenter" style="display:none;">
+                <div class="card" style="width:100%; border: 2px solid #00d2ff; position: relative;">
                     
-                    <div class="terminals-wrapper">
-                        <div class="terminal-column">
-                            <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ESP32 (HUB)</span>
-                            <div id="logConsole" class="log-box" style="text-align:left;">Awaiting Core Stream...</div>
+                    <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options" style="top: 20px; right: 20px;">⋮</div>
+                    
+                    <h2>👑 Master Command Center</h2>
+                    
+                    <button class="btn-login" style="background:#feca57; color:#000; margin-top:10px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
+
+                    <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:#1a1a2e; border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                        <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
+                        <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
+                    </div>
+
+                    <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
+                    <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
+                    
+                    <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
+                        <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                        
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <h3 style="color: #fff; font-size: 15px; margin:0; text-align:left;">Live Diagnostics: <span id="termDevId"></span></h3>
+                                
+                                <div style="display:flex; gap:12px; align-items:center;">
+                                    <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                                    <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:20px; user-select:none;" onclick="toggleCredBox()">⋮</span>
+                                </div>
+                            </div>
+
+                            <div id="credentialsBox" style="display:none; margin-top:10px; padding:12px; background:rgba(0,0,0,0.5); border:1px dashed #7bed9f; border-radius:6px; font-size:13px; color:#ccc; text-align: left;">
+                                <span style="color:#7bed9f; font-weight:bold; margin-bottom:5px; display:block;">Machine Linked To:</span>
+                                <strong>Email:</strong> <span id="credEmail" style="color:#fff;">Not saved in DB</span><br>
+                                <strong>Password:</strong> <span id="credPass" style="color:#fff;">Not saved in DB</span>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); margin-top:8px;">
+                                <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
+                                <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
+                            </div>
                         </div>
-                        <div class="terminal-column">
-                            <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">NANO (TANK)</span>
-                            <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left;">Awaiting Payload Link...</div>
+                        
+                        <div class="terminals-wrapper">
+                            <div class="terminal-column">
+                                <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ESP32 (HUB)</span>
+                                <div id="logConsole" class="log-box" style="text-align:left;">Awaiting Core Stream...</div>
+                            </div>
+                            <div class="terminal-column">
+                                <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">NANO (TANK)</span>
+                                <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left;">Awaiting Payload Link...</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-
-                <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
-                    <h3 style="color: #ff6b81; margin:0; text-align:left;">OTA Firmware Update</h3>
-                    <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none;" onclick="toggleLinkCustomerBox()" title="Advanced Tools">⋮</span>
-                </div>
-                <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin" style="margin-top:15px;">
-                <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
-
-                <div id="linkCustomerBox" style="display:none; width:100%; text-align: left;">
                     <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-                    <h3 style="color: #7bed9f; margin-top:0; text-align:left;">Link Customer to Machine</h3>
-                    <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
-                    <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., DEVICE_001">
-                    <input type="email" id="assignEmailInput" class="input-box" placeholder="3. Customer Email (Optional Admin Reference)">
-                    <input type="text" id="assignPassInput" class="input-box" placeholder="4. Customer Password (Optional Admin Reference)">
-                    <button class="btn-login" style="background:#2ed573; color:black;" onclick="assignDeviceToUser()">Link Device 🔗</button>
-                </div>
-            </div>
-        </div>
 
-        <div id="customerPanel" style="display:none; width: 100%; flex-direction: column; align-items: center;">
-            
-            <!-- NEW 13-SECOND GREEN MARQUEE ANIMATION -->
-            <div class="green-marquee-container">
-                <div class="green-marquee-text">Thank you for using Anish's device.</div>
-            </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
+                        <h3 style="color: #ff6b81; margin:0; text-align:left;">OTA Firmware Update</h3>
+                        <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none;" onclick="toggleLinkCustomerBox()" title="Advanced Tools">⋮</span>
+                    </div>
+                    <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin" style="margin-top:15px;">
+                    <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
 
-            <div class="developer-credit-top">
-                <img src="https://i.ibb.co/d00mGVcx/AKS.png" class="brand-logo-left" alt="AKS Logo">
-                <span>This system is developed by <strong>ANISH.</strong></span>
-            </div>
-
-            <div class="card" style="width:100%;">
-                <span id="connStatus" class="status-badge">ONLINE</span>
-                <div class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data">⋮</div>
-                
-                <div style="clear:both;"></div>
-                
-                <div class="tank-container">
-                    <div id="waterLevelFill" class="water-fill" style="height: 0%;"></div>
-                    <div id="waterLevelText" class="water-text">--%</div>
-                </div>
-                
-                <div style="text-align: center; margin-top:10px; color:#ccc; font-size: 14px;">
-                    Manual Bypass Status: <span id="txtBypass" style="color:#ffa502; font-weight:bold;">--</span>
-                </div>
-            </div>
-
-            <div class="card" style="width:100%;">
-                <h3 style="text-align: left;">Pump Control</h3>
-                <div class="btn-container">
-                    <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
-                </div>
-            </div>
-
-            <div id="advancedSection" style="width:100%;">
-                <div class="card" style="width:100%;">
-                    <h3>Engineering Data</h3>
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            Average Gap
-                            <span id="txtFinalCm" class="stat-value">-- cm</span>
-                        </div>
-                        <div class="stat-box">
-                            Sensor 1 (Raw)
-                            <span id="txtS1" class="stat-value">-- cm</span>
-                        </div>
-                        <div class="stat-box">
-                            Sensor 2 (Raw)
-                            <span id="txtS2" class="stat-value">-- cm</span>
-                        </div>
+                    <div id="linkCustomerBox" style="display:none; width:100%; text-align: left;">
+                        <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                        <h3 style="color: #7bed9f; margin-top:0; text-align:left;">Link Customer to Machine</h3>
+                        <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
+                        <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., DEVICE_001">
+                        <input type="email" id="assignEmailInput" class="input-box" placeholder="3. Customer Email (Optional Admin Reference)">
+                        <input type="text" id="assignPassInput" class="input-box" placeholder="4. Customer Password (Optional Admin Reference)">
+                        <button class="btn-login" style="background:#2ed573; color:black;" onclick="assignDeviceToUser()">Link Device 🔗</button>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
@@ -768,18 +792,33 @@
                 document.getElementById('loggedInEmail').innerText = user.email;
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
+                    // ADMIN MODE
                     document.getElementById('topBarTitle').innerText = "Admin Dashboard";
-                    document.getElementById('adminPanel').style.display = 'flex';
-                    document.getElementById('customerPanel').style.display = 'none';
+                    document.getElementById('creditText').innerHTML = "This is admin portal used by <strong>ANISH.</strong>";
+                    
+                    document.getElementById('customerMarquee').style.display = 'none';
+                    document.getElementById('customerMenuDots').style.display = 'none';
+                    document.getElementById('advancedSection').style.display = 'none';
+                    
+                    document.getElementById('adminCommandCenter').style.display = 'flex';
+                    document.getElementById('mainDashboardView').style.display = 'none'; // Hidden until machine connects
+                    
                     startAdminInboxListener(); 
                 } else {
-                    document.getElementById('topBarTitle').innerText = "Customer Dashboard";
-                    document.getElementById('adminPanel').style.display = 'none';
+                    // CUSTOMER MODE
+                    document.getElementById('topBarTitle').innerText = "Dashboard";
+                    document.getElementById('creditText').innerHTML = "This system is developed by <strong>ANISH.</strong>";
+                    
+                    document.getElementById('customerMarquee').style.display = 'block';
+                    document.getElementById('customerMenuDots').style.display = 'block';
+                    
+                    document.getElementById('adminCommandCenter').style.display = 'none';
+                    document.getElementById('mainDashboardView').style.display = 'flex';
+                    
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
                         if(devId) {
                             currentDeviceId = devId;
-                            document.getElementById('customerPanel').style.display = 'flex';
                             startListeners();
                         } else {
                             alert("Account error: Your profile has not been linked to a Device ID yet.");
@@ -991,7 +1030,8 @@
             
             lastHeartbeatTime = Date.now(); 
             
-            document.getElementById('customerPanel').style.display = 'flex';
+            // SHOW DASHBOARD ON THE LEFT SIDE NOW
+            document.getElementById('mainDashboardView').style.display = 'flex';
             document.getElementById('adminTerminalContainer').style.display = 'block';
             
             if(document.getElementById('termDevId')) {
