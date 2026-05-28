@@ -1030,7 +1030,10 @@
             document.getElementById('txtBypass').innerText = '--';
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
-            document.getElementById('adminTxtRadio').innerText = '--';
+            
+            // Default to +PA+LNA for older boards, Mini for newer boards
+            document.getElementById('adminTxtRadio').innerText = 'nRF24L01+PA+LNA'; 
+            
             document.getElementById('adminTxtDist').innerText = '-- m';
             document.getElementById('adminTxtSignal').innerText = 'N/A';
             document.getElementById('txtDistanceCustomer').innerText = '-- m';
@@ -1127,7 +1130,8 @@
                 }
 
                 if (document.getElementById('adminTxtRadio')) {
-                    document.getElementById('adminTxtRadio').innerText = statusData.radioTech ? statusData.radioTech : "nRF24L01 (Legacy)";
+                    // NEW FALLBACK LOGIC: If radioTech is empty (old boards), assume it's the +PA+LNA version.
+                    document.getElementById('adminTxtRadio').innerText = statusData.radioTech ? statusData.radioTech : "nRF24L01+PA+LNA";
                 }
             });
 
@@ -1171,7 +1175,6 @@
                         document.getElementById('txtS2').innerText = 'FAULT';
                     }
 
-                    // NEW LISTENERS: Signal & Distance
                     if(data.signalStrength !== undefined) {
                         document.getElementById('txtSignalCustomer').innerText = data.signalStrength;
                         if(document.getElementById('adminTxtSignal')) document.getElementById('adminTxtSignal').innerText = data.signalStrength;
