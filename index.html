@@ -344,7 +344,6 @@
             margin-top: 4px; 
         }
 
-        /* NEW SHIMMER ENGINE WITH LOGO ALIGNMENT */
         .developer-credit-top {
             display: flex;
             align-items: center;
@@ -440,10 +439,17 @@
                 <span>This is admin portal used by <strong>ANISH.</strong></span>
             </div>
 
-            <div class="card" style="width:100%; border: 2px solid #00d2ff;">
+            <div class="card" style="width:100%; border: 2px solid #00d2ff; position: relative;">
                 <h2>👑 Master Command Center</h2>
+                
+                <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options">⋮</div>
+                <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:45px; background:#1a1a2e; border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                    <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
+                    <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
+                </div>
+
                 <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
-                <button class="btn-login" onclick="connectAdminDevice()" style="margin-top:10px;">Connect to Machine</button>
+                <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
                 
                 <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
                 
@@ -453,12 +459,23 @@
                 </div>
 
                 <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
-                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <h3 style="color: #fff; font-size: 15px; margin:0;">Live Diagnostics: <span id="termDevId"></span></h3>
-                            <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                            
+                            <div style="display:flex; gap:12px; align-items:center;">
+                                <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                                <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:20px; user-select:none;" onclick="toggleCredBox()">⋮</span>
+                            </div>
                         </div>
-                        <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+
+                        <div id="credentialsBox" style="display:none; margin-top:10px; padding:12px; background:rgba(0,0,0,0.5); border:1px dashed #7bed9f; border-radius:6px; font-size:13px; color:#ccc;">
+                            <span style="color:#7bed9f; font-weight:bold; margin-bottom:5px; display:block;">Machine Linked To:</span>
+                            <strong>Email:</strong> <span id="credEmail" style="color:#fff;">Not saved in DB</span><br>
+                            <strong>Password:</strong> <span id="credPass" style="color:#fff;">Not saved in DB</span>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); margin-top:8px;">
                             <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
                             <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
                         </div>
@@ -485,8 +502,10 @@
                 <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
 
                 <h3 style="color: #7bed9f;">Link Customer to Machine</h3>
-                <input type="text" id="assignUidInput" class="input-box" placeholder="Paste Customer UID Here">
-                <input type="text" id="assignDevInput" class="input-box" placeholder="e.g., DEVICE_001">
+                <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
+                <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., DEVICE_001">
+                <input type="email" id="assignEmailInput" class="input-box" placeholder="3. Customer Email (Optional Admin Reference)">
+                <input type="text" id="assignPassInput" class="input-box" placeholder="4. Customer Password (Optional Admin Reference)">
                 <button class="btn-login" style="background:#2ed573; color:black;" onclick="assignDeviceToUser()">Link Device 🔗</button>
             </div>
         </div>
@@ -591,8 +610,30 @@
             }
         }
 
+        // NEW UI TOGGLES FOR ADMIN
+        function toggleSearchMenu() {
+            const menu = document.getElementById('searchMenuDropdown');
+            menu.style.display = (menu.style.display === "none") ? "block" : "none";
+        }
+
+        function updateSearchPlaceholder() {
+            const mode = document.querySelector('input[name="searchMode"]:checked').value;
+            const input = document.getElementById('adminSearchInput');
+            if(mode === "email") {
+                input.placeholder = "e.g., customer@gmail.com";
+            } else {
+                input.placeholder = "e.g., DEVICE_001";
+            }
+            document.getElementById('searchMenuDropdown').style.display = "none";
+        }
+
+        function toggleCredBox() {
+            const box = document.getElementById('credentialsBox');
+            box.style.display = (box.style.display === "none") ? "block" : "none";
+        }
+
         function loginUser() {
-            const email = document.getElementById('emailInput').value;
+            const email = document.getElementById('emailInput').value.trim();
             const pass = document.getElementById('passwordInput').value;
             const errDiv = document.getElementById('loginError');
             
@@ -614,7 +655,7 @@
                 document.getElementById('dashboardScreen').style.display = 'flex';
                 document.getElementById('loggedInEmail').innerText = user.email;
 
-                if(user.email === "adminanish@gmail.com") {
+                if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
                     document.getElementById('adminPanel').style.display = 'flex';
                     document.getElementById('customerPanel').style.display = 'none';
                     startAdminInboxListener(); 
@@ -639,6 +680,7 @@
                     database.ref('/Devices/' + currentDeviceId + '/deviceStatus/heartbeat').off();
                     database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
                     database.ref('/Devices/' + currentDeviceId + '/state').off();
+                    database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                     currentDeviceId = null;
                 }
             }
@@ -756,82 +798,134 @@
             }
         }
 
-        function connectAdminDevice() {
-            const devId = document.getElementById('adminSearchInput').value.trim();
-            
-            if(devId) {
-                if(currentDeviceId) {
-                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus/heartbeat').off();
-                    database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
-                    database.ref('/Devices/' + currentDeviceId + '/state').off();
-                }
+        // NEW SEARCH LOGIC ENGINE
+        function processAdminConnection() {
+            const searchVal = document.getElementById('adminSearchInput').value.trim();
+            const mode = document.querySelector('input[name="searchMode"]:checked').value;
 
-                if (heartbeatTimer) {
-                    clearInterval(heartbeatTimer);
-                }
-                
-                currentDeviceId = devId;
-
-                document.getElementById('waterLevelFill').style.height = '0%';
-                document.getElementById('waterLevelText').innerText = '--%';
-                document.getElementById('txtFinalCm').innerText = '-- cm';
-                document.getElementById('txtS1').innerText = '-- cm';
-                document.getElementById('txtS2').innerText = '-- cm';
-                document.getElementById('txtBypass').innerText = '--';
-                
-                document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
-                document.getElementById('adminTxtFullDist').innerText = '-- cm';
-                
-                if(document.getElementById('txtRuntimeDays')) {
-                    document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
-                }
-                
-                const btn = document.getElementById('pumpToggleBtn');
-                btn.className = "btn-round btn-off";
-                btn.innerText = "WAIT...";
-                
-                const badge = document.getElementById('connStatus');
-                badge.style.background = "#ffa502";
-                badge.innerText = "CONNECTING...";
-                
-                lastHeartbeatTime = Date.now(); 
-                
-                document.getElementById('customerPanel').style.display = 'flex';
-                document.getElementById('adminTerminalContainer').style.display = 'block';
-                
-                if(document.getElementById('termDevId')) {
-                    document.getElementById('termDevId').innerText = currentDeviceId;
-                }
-                
-                document.getElementById('logConsole').innerText = "Connecting...";
-                document.getElementById('nanoLogConsole').innerText = "Connecting...";
-                
-                renderAdminInbox();
-                startListeners();
-            } else {
-                alert("Please enter a Device ID!");
+            if(!searchVal) {
+                alert("Please enter a value to search!");
+                return;
             }
+
+            if(mode === "email") {
+                document.getElementById('connStatus').innerText = "SCANNING...";
+                
+                database.ref('Devices').once('value').then((snapshot) => {
+                    let foundDevId = null;
+                    snapshot.forEach(child => {
+                        let devData = child.val();
+                        if(devData.customerInfo && devData.customerInfo.email && devData.customerInfo.email.toLowerCase() === searchVal.toLowerCase()) {
+                            foundDevId = child.key;
+                        }
+                    });
+
+                    if(foundDevId) {
+                        executeConnection(foundDevId);
+                    } else {
+                        alert("❌ Email not found! Ensure you typed it into the 'Link Customer' tool when you created their account.");
+                    }
+                });
+            } else {
+                executeConnection(searchVal);
+            }
+        }
+
+        function executeConnection(devId) {
+            if(currentDeviceId) {
+                database.ref('/Devices/' + currentDeviceId + '/deviceStatus/heartbeat').off();
+                database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
+                database.ref('/Devices/' + currentDeviceId + '/state').off();
+                database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
+            }
+
+            if (heartbeatTimer) {
+                clearInterval(heartbeatTimer);
+            }
+            
+            currentDeviceId = devId;
+
+            // Reset UI View
+            document.getElementById('waterLevelFill').style.height = '0%';
+            document.getElementById('waterLevelText').innerText = '--%';
+            document.getElementById('txtFinalCm').innerText = '-- cm';
+            document.getElementById('txtS1').innerText = '-- cm';
+            document.getElementById('txtS2').innerText = '-- cm';
+            document.getElementById('txtBypass').innerText = '--';
+            document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
+            document.getElementById('adminTxtFullDist').innerText = '-- cm';
+            document.getElementById('credEmail').innerText = "Not saved in DB";
+            document.getElementById('credPass').innerText = "Not saved in DB";
+            document.getElementById('credentialsBox').style.display = "none"; // Hide on new connection
+            
+            if(document.getElementById('txtRuntimeDays')) {
+                document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
+            }
+            
+            const btn = document.getElementById('pumpToggleBtn');
+            btn.className = "btn-round btn-off";
+            btn.innerText = "WAIT...";
+            
+            const badge = document.getElementById('connStatus');
+            badge.style.background = "#ffa502";
+            badge.innerText = "CONNECTING...";
+            
+            lastHeartbeatTime = Date.now(); 
+            
+            document.getElementById('customerPanel').style.display = 'flex';
+            document.getElementById('adminTerminalContainer').style.display = 'block';
+            
+            if(document.getElementById('termDevId')) {
+                document.getElementById('termDevId').innerText = currentDeviceId;
+            }
+            
+            document.getElementById('logConsole').innerText = "Connecting...";
+            document.getElementById('nanoLogConsole').innerText = "Connecting...";
+            
+            renderAdminInbox();
+            startListeners();
         }
 
         function assignDeviceToUser() {
             const uid = document.getElementById('assignUidInput').value.trim();
             const devId = document.getElementById('assignDevInput').value.trim();
+            const email = document.getElementById('assignEmailInput').value.trim();
+            const pass = document.getElementById('assignPassInput').value.trim();
             
             if(uid && devId) {
+                // Core security link
                 database.ref('Users/' + uid + '/deviceId').set(devId).then(() => {
+                    
+                    // Admin Reference Link (Saves to device profile so admin can view/search it later)
+                    if(email) database.ref('Devices/' + devId + '/customerInfo/email').set(email);
+                    if(pass) database.ref('Devices/' + devId + '/customerInfo/password').set(pass);
+
                     alert("✅ Success! " + devId + " is now linked to user " + uid);
+                    
+                    // Clear fields
                     document.getElementById('assignUidInput').value = '';
                     document.getElementById('assignDevInput').value = '';
+                    document.getElementById('assignEmailInput').value = '';
+                    document.getElementById('assignPassInput').value = '';
                 }).catch((error) => {
                     alert("❌ Error: " + error.message);
                 });
             } else {
-                alert("Please enter both a UID and a Device ID.");
+                alert("Please enter at least a UID and a Device ID.");
             }
         }
 
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
+
+            // NEW LISTENER: Fetch stored credentials
+            database.ref(basePath + '/customerInfo').on('value', (snapshot) => {
+                const info = snapshot.val();
+                if(info) {
+                    document.getElementById('credEmail').innerText = info.email ? info.email : "Not saved in DB";
+                    document.getElementById('credPass').innerText = info.password ? info.password : "Not saved in DB";
+                }
+            });
 
             database.ref(basePath + '/deviceStatus/heartbeat').on('value', (snapshot) => {
                 lastHeartbeat = snapshot.val();
@@ -856,7 +950,7 @@
             heartbeatTimer = setInterval(() => {
                 if(Date.now() - lastHeartbeatTime > 15000) { 
                     const user = firebase.auth().currentUser;
-                    if(user && user.email === "homeiot@gmail.com") {
+                    if(user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com")) {
                         document.getElementById('offlineOverlay').style.display = 'none';
                         const badge = document.getElementById('connStatus');
                         badge.style.background = "#ff4757";
