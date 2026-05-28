@@ -591,6 +591,14 @@
                                 Sensor 2 (Raw)
                                 <span id="txtS2" class="stat-value">-- cm</span>
                             </div>
+                            <div class="stat-box">
+                                Est. Distance
+                                <span id="txtDistanceCustomer" class="stat-value" style="color:#feca57;">-- m</span>
+                            </div>
+                            <div class="stat-box">
+                                Signal Quality
+                                <span id="txtSignalCustomer" class="stat-value" style="color:#7bed9f;">N/A</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -636,6 +644,10 @@
                                 <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
                                 <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
                                 <span>Radio: <strong id="adminTxtRadio" style="color:#feca57;">--</strong></span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Est. Range: <strong id="adminTxtDist" style="color:#feca57;">-- m</strong></span>
+                                <span>Signal: <strong id="adminTxtSignal" style="color:#7bed9f;">N/A</strong></span>
                             </div>
                         </div>
                         
@@ -1019,6 +1031,10 @@
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
             document.getElementById('adminTxtRadio').innerText = '--';
+            document.getElementById('adminTxtDist').innerText = '-- m';
+            document.getElementById('adminTxtSignal').innerText = 'N/A';
+            document.getElementById('txtDistanceCustomer').innerText = '-- m';
+            document.getElementById('txtSignalCustomer').innerText = 'N/A';
             document.getElementById('credEmail').innerText = "Not saved in DB";
             document.getElementById('credPass').innerText = "Not saved in DB";
             document.getElementById('credentialsBox').style.display = "none"; 
@@ -1153,6 +1169,23 @@
                         document.getElementById('txtS2').innerText = parseFloat(data.sensor2Cm).toFixed(1) + ' cm';
                     } else {
                         document.getElementById('txtS2').innerText = 'FAULT';
+                    }
+
+                    // NEW LISTENERS: Signal & Distance
+                    if(data.signalStrength !== undefined) {
+                        document.getElementById('txtSignalCustomer').innerText = data.signalStrength;
+                        if(document.getElementById('adminTxtSignal')) document.getElementById('adminTxtSignal').innerText = data.signalStrength;
+                    } else {
+                        document.getElementById('txtSignalCustomer').innerText = 'N/A';
+                        if(document.getElementById('adminTxtSignal')) document.getElementById('adminTxtSignal').innerText = 'N/A';
+                    }
+
+                    if(data.estDistance !== undefined) {
+                        document.getElementById('txtDistanceCustomer').innerText = data.estDistance + ' m';
+                        if(document.getElementById('adminTxtDist')) document.getElementById('adminTxtDist').innerText = data.estDistance + ' m';
+                    } else {
+                        document.getElementById('txtDistanceCustomer').innerText = '-- m';
+                        if(document.getElementById('adminTxtDist')) document.getElementById('adminTxtDist').innerText = '-- m';
                     }
 
                     if(data.log) {
