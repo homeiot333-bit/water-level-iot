@@ -481,6 +481,13 @@
                 <h3 style="color: #ff6b81;">OTA Firmware Update</h3>
                 <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin">
                 <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
+
+                <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+                <h3 style="color: #7bed9f;">Link Customer to Machine</h3>
+                <input type="text" id="assignUidInput" class="input-box" placeholder="Paste Customer UID Here">
+                <input type="text" id="assignDevInput" class="input-box" placeholder="e.g., DEVICE_001">
+                <button class="btn-login" style="background:#2ed573; color:black;" onclick="assignDeviceToUser()">Link Device 🔗</button>
             </div>
         </div>
 
@@ -803,6 +810,23 @@
                 startListeners();
             } else {
                 alert("Please enter a Device ID!");
+            }
+        }
+
+        function assignDeviceToUser() {
+            const uid = document.getElementById('assignUidInput').value.trim();
+            const devId = document.getElementById('assignDevInput').value.trim();
+            
+            if(uid && devId) {
+                database.ref('Users/' + uid + '/deviceId').set(devId).then(() => {
+                    alert("✅ Success! " + devId + " is now linked to user " + uid);
+                    document.getElementById('assignUidInput').value = '';
+                    document.getElementById('assignDevInput').value = '';
+                }).catch((error) => {
+                    alert("❌ Error: " + error.message);
+                });
+            } else {
+                alert("Please enter both a UID and a Device ID.");
             }
         }
 
