@@ -495,18 +495,22 @@
 
                 <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
 
-                <h3 style="color: #ff6b81;">OTA Firmware Update</h3>
-                <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin">
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
+                    <h3 style="color: #ff6b81; margin:0;">OTA Firmware Update</h3>
+                    <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none;" onclick="toggleLinkCustomerBox()" title="Advanced Tools">⋮</span>
+                </div>
+                <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin" style="margin-top:15px;">
                 <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
 
-                <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-
-                <h3 style="color: #7bed9f;">Link Customer to Machine</h3>
-                <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
-                <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., DEVICE_001">
-                <input type="email" id="assignEmailInput" class="input-box" placeholder="3. Customer Email (Optional Admin Reference)">
-                <input type="text" id="assignPassInput" class="input-box" placeholder="4. Customer Password (Optional Admin Reference)">
-                <button class="btn-login" style="background:#2ed573; color:black;" onclick="assignDeviceToUser()">Link Device 🔗</button>
+                <div id="linkCustomerBox" style="display:none; width:100%;">
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                    <h3 style="color: #7bed9f; margin-top:0;">Link Customer to Machine</h3>
+                    <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
+                    <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., DEVICE_001">
+                    <input type="email" id="assignEmailInput" class="input-box" placeholder="3. Customer Email (Optional Admin Reference)">
+                    <input type="text" id="assignPassInput" class="input-box" placeholder="4. Customer Password (Optional Admin Reference)">
+                    <button class="btn-login" style="background:#2ed573; color:black;" onclick="assignDeviceToUser()">Link Device 🔗</button>
+                </div>
             </div>
         </div>
 
@@ -610,7 +614,6 @@
             }
         }
 
-        // NEW UI TOGGLES FOR ADMIN
         function toggleSearchMenu() {
             const menu = document.getElementById('searchMenuDropdown');
             menu.style.display = (menu.style.display === "none") ? "block" : "none";
@@ -629,6 +632,11 @@
 
         function toggleCredBox() {
             const box = document.getElementById('credentialsBox');
+            box.style.display = (box.style.display === "none") ? "block" : "none";
+        }
+
+        function toggleLinkCustomerBox() {
+            const box = document.getElementById('linkCustomerBox');
             box.style.display = (box.style.display === "none") ? "block" : "none";
         }
 
@@ -798,7 +806,6 @@
             }
         }
 
-        // NEW SEARCH LOGIC ENGINE
         function processAdminConnection() {
             const searchVal = document.getElementById('adminSearchInput').value.trim();
             const mode = document.querySelector('input[name="searchMode"]:checked').value;
@@ -824,7 +831,10 @@
                         executeConnection(foundDevId);
                     } else {
                         alert("❌ Email not found! Ensure you typed it into the 'Link Customer' tool when you created their account.");
+                        document.getElementById('connStatus').innerText = "ONLINE";
                     }
+                }).catch((err) => {
+                    alert("Database Error: " + err.message);
                 });
             } else {
                 executeConnection(searchVal);
@@ -845,7 +855,7 @@
             
             currentDeviceId = devId;
 
-            // Reset UI View
+            document.getElementById('criticalErrorBanner').style.display = "none";
             document.getElementById('waterLevelFill').style.height = '0%';
             document.getElementById('waterLevelText').innerText = '--%';
             document.getElementById('txtFinalCm').innerText = '-- cm';
@@ -856,7 +866,7 @@
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
             document.getElementById('credEmail').innerText = "Not saved in DB";
             document.getElementById('credPass').innerText = "Not saved in DB";
-            document.getElementById('credentialsBox').style.display = "none"; // Hide on new connection
+            document.getElementById('credentialsBox').style.display = "none"; 
             
             if(document.getElementById('txtRuntimeDays')) {
                 document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
@@ -893,20 +903,18 @@
             const pass = document.getElementById('assignPassInput').value.trim();
             
             if(uid && devId) {
-                // Core security link
                 database.ref('Users/' + uid + '/deviceId').set(devId).then(() => {
                     
-                    // Admin Reference Link (Saves to device profile so admin can view/search it later)
                     if(email) database.ref('Devices/' + devId + '/customerInfo/email').set(email);
                     if(pass) database.ref('Devices/' + devId + '/customerInfo/password').set(pass);
 
                     alert("✅ Success! " + devId + " is now linked to user " + uid);
                     
-                    // Clear fields
                     document.getElementById('assignUidInput').value = '';
                     document.getElementById('assignDevInput').value = '';
                     document.getElementById('assignEmailInput').value = '';
                     document.getElementById('assignPassInput').value = '';
+                    document.getElementById('linkCustomerBox').style.display = "none";
                 }).catch((error) => {
                     alert("❌ Error: " + error.message);
                 });
@@ -918,7 +926,6 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            // NEW LISTENER: Fetch stored credentials
             database.ref(basePath + '/customerInfo').on('value', (snapshot) => {
                 const info = snapshot.val();
                 if(info) {
@@ -1003,13 +1010,25 @@
                 const state = snapshot.val();
                 if(state) {
                     const badge = document.getElementById('connStatus');
+                    const currentUser = firebase.auth().currentUser;
+                    const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
                     
                     if(state.fault) {
                         badge.style.background = "#ff4757";
                         badge.innerText = "LINK FAULT";
+                        
+                        if(isCustomer) {
+                            const errBanner = document.getElementById('criticalErrorBanner');
+                            errBanner.style.display = "block";
+                            errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
+                        }
                     } else {
                         badge.style.background = "#2ed573";
                         badge.innerText = "ONLINE";
+                        
+                        if(isCustomer) {
+                            document.getElementById('criticalErrorBanner').style.display = "none";
+                        }
                     }
                     
                     if(state.automationBypassed) {
