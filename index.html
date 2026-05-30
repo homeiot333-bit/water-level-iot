@@ -1035,8 +1035,8 @@
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
             
-            // Default to +PA+LNA for older boards, Mini for newer boards
-            document.getElementById('adminTxtRadio').innerText = 'nRF24L01+PA+LNA'; 
+            // Default to HC-12 for older boards
+            document.getElementById('adminTxtRadio').innerText = 'HC-12 (433MHz)'; 
             
             document.getElementById('adminTxtDist').innerText = '-- m';
             document.getElementById('adminTxtSignal').innerText = 'N/A';
@@ -1137,15 +1137,15 @@
                 }
 
                 if (document.getElementById('adminTxtRadio')) {
-                    // NEW FALLBACK LOGIC: If radioTech is empty (old boards), assume it's the +PA+LNA version.
-                    document.getElementById('adminTxtRadio').innerText = statusData.radioTech ? statusData.radioTech : "nRF24L01+PA+LNA";
+                    // NEW FALLBACK LOGIC: HC-12 default
+                    document.getElementById('adminTxtRadio').innerText = statusData.radioTech ? statusData.radioTech : "HC-12 (433MHz)";
                 }
                 
                 if (document.getElementById('adminTxtChannel')) {
-                    document.getElementById('adminTxtChannel').innerText = statusData.radioChannel !== undefined ? statusData.radioChannel : "125";
+                    document.getElementById('adminTxtChannel').innerText = statusData.radioChannel !== undefined ? statusData.radioChannel : "FU3";
                 }
                 if (document.getElementById('adminTxtDataRate')) {
-                    document.getElementById('adminTxtDataRate').innerText = statusData.radioDataRate ? statusData.radioDataRate : "250 KBPS";
+                    document.getElementById('adminTxtDataRate').innerText = statusData.radioDataRate ? statusData.radioDataRate : "9600 BPS";
                 }
             });
 
