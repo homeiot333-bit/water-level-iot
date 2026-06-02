@@ -207,7 +207,7 @@
             box-sizing: border-box;
         }
 
-        /* --- NEW ANIMATED CSS MOTOR & TANK UI --- */
+        /* --- UPGRADED ANIMATED CSS MOTOR & TANK UI --- */
         .system-wrapper {
             display: flex;
             align-items: flex-start; 
@@ -219,10 +219,10 @@
 
         .motor-assembly {
             position: relative;
-            margin-top: 29px; /* Aligns perfectly with the 10% tank inlet */
+            margin-top: 29px; 
             display: flex;
             align-items: center;
-            margin-right: -4px; /* Overlaps tank border to connect */
+            margin-right: -4px; 
             z-index: 10;
         }
 
@@ -247,7 +247,6 @@
             transition: 0.3s;
         }
 
-        /* When Pump is ON, spin the fan! */
         .pump-active .motor-fan {
             border-color: #00d2ff;
             animation: motorSpin 0.15s linear infinite;
@@ -318,11 +317,11 @@
             z-index: 20; 
         }
 
-        /* The pipe inside the tank at 10% from top */
+        /* The pipe inside the tank */
         .tank-pipe-int {
             position: absolute;
             left: 0;
-            top: 10%; /* Enters 10% lower from upper side */
+            top: 10%; 
             width: 25px;
             height: 12px;
             background: linear-gradient(to bottom, #999, #555);
@@ -333,34 +332,44 @@
             z-index: 10;
         }
 
-        /* The Animated Waterfall */
+        /* The Animated Waterfall Fix */
         .waterfall {
             position: absolute;
             left: 10px; /* Aligned with pipe mouth */
-            top: calc(10% + 10px); 
-            width: 10px;
-            height: calc(90% - 10px); 
-            background: rgba(0, 210, 255, 0);
-            transition: background 0.3s;
+            top: calc(10% + 12px); 
+            width: 14px; /* Slightly wider for realism */
+            height: calc(90% - 12px); 
+            background: transparent;
             z-index: 4; /* Behind the water fill! */
-            border-radius: 5px;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
-        .pump-active .waterfall {
+        .pump-active .waterfall::before {
+            content: "";
+            position: absolute;
+            top: -100%;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            /* Multilayered turbulent gradient to look like aerated rushing water */
             background: repeating-linear-gradient(
                 to bottom,
-                rgba(0, 210, 255, 0.9),
-                rgba(0, 210, 255, 0.9) 10px,
-                rgba(255, 255, 255, 0.6) 15px,
-                rgba(0, 210, 255, 0.9) 20px
+                rgba(255, 255, 255, 0.7) 0%,
+                rgba(0, 210, 255, 0.9) 10%,
+                rgba(0, 160, 255, 0.4) 20%,
+                rgba(255, 255, 255, 0.8) 25%,
+                rgba(0, 210, 255, 0.8) 40%,
+                transparent 50%
             );
-            background-size: 100% 20px;
-            animation: waterfallFlow 0.15s linear infinite;
+            background-size: 100% 50%;
+            animation: waterfallCascade 0.25s linear infinite;
+            filter: blur(1px); /* Blends the colors together for fluid look */
         }
 
-        @keyframes waterfallFlow {
-            0% { background-position: 0 0; }
-            100% { background-position: 0 20px; }
+        @keyframes waterfallCascade {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50%); }
         }
 
         .water-fill { 
@@ -372,15 +381,32 @@
             z-index: 5;
         }
 
+        /* PROPER LAYERED WATER WAVES */
         .wave {
             position: absolute;
-            top: -15px;
+            top: -16px;
             left: 0;
             width: 200%;
-            height: 16px;
+            height: 22px;
+            /* Primary front wave */
             background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 88.7'%3E%3Cpath d='M0,40 C100,80 200,0 300,40 C400,80 500,0 600,40 C700,80 800,0 800,40 L800,88.7 L0,88.7 Z' fill='%2300d2ff'/%3E%3C/svg%3E") repeat-x;
             background-size: 50% 100%;
-            animation: waveAnimation 2.5s linear infinite;
+            animation: waveAnimation 3s linear infinite;
+            z-index: 6;
+        }
+
+        /* Secondary semi-transparent back wave moving opposite direction */
+        .wave::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 0;
+            width: 200%;
+            height: 22px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 88.7'%3E%3Cpath d='M0,40 C100,80 200,0 300,40 C400,80 500,0 600,40 C700,80 800,0 800,40 L800,88.7 L0,88.7 Z' fill='rgba(0, 92, 151, 0.6)'/%3E%3C/svg%3E") repeat-x;
+            background-size: 50% 100%;
+            animation: waveAnimation 5s linear infinite reverse;
+            z-index: 5;
         }
 
         @keyframes waveAnimation {
@@ -388,27 +414,28 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* Splash Effect that rides the water level! */
+        /* Improved Splash Physics */
         .dynamic-splash {
             position: absolute;
-            top: -5px;
+            top: -10px;
             left: 5px; /* Aligned with waterfall */
-            width: 20px;
-            height: 10px;
-            background: rgba(255,255,255,0.8);
+            width: 24px;
+            height: 12px;
+            background: rgba(255,255,255,0.9);
             border-radius: 50%;
             opacity: 0;
             z-index: 10;
-            filter: blur(2px);
+            filter: blur(1.5px);
         }
 
         .pump-active .dynamic-splash {
-            animation: splashAnim 0.3s infinite;
+            animation: splashAnim 0.35s ease-out infinite;
         }
 
         @keyframes splashAnim {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(2.2); opacity: 0; }
+            0% { transform: scale(0.3) translateY(0); opacity: 1; }
+            50% { transform: scale(1.5) translateY(-6px); opacity: 0.8; }
+            100% { transform: scale(2.5) translateY(2px); opacity: 0; }
         }
 
         .water-text { 
@@ -420,25 +447,6 @@
             font-weight: bold; 
             text-shadow: 2px 2px 8px black; 
             z-index: 30; 
-        }
-
-        .tank-filter {
-            position: absolute;
-            bottom: 5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 15px;
-            background: repeating-linear-gradient(
-                90deg,
-                #7bed9f,
-                #7bed9f 2px,
-                #2ed573 2px,
-                #2ed573 4px
-            );
-            border: 2px solid #2ed573;
-            border-radius: 8px;
-            z-index: 8;
         }
         /* --- END NEW UI --- */
         
@@ -809,7 +817,6 @@
                                     <div class="dynamic-splash"></div> </div>
                                 
                                 <div id="waterLevelText" class="water-text">--%</div>
-                                <div class="tank-filter"></div>
                             </div>
                         </div>
                     </div>
