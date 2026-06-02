@@ -97,6 +97,11 @@
             box-sizing: border-box;
         }
 
+        select.input-box {
+            background-color: #fff;
+            color: #333;
+        }
+
         .btn-login { 
             background: #00d2ff; 
             color: #000; 
@@ -500,6 +505,13 @@
     <div id="sideInboxPanel">
         <div class="close-inbox-btn" onclick="toggleInboxPanel()">✕</div>
         <h3 style="color: #feca57; margin-top:0; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom:10px; text-align: left;">Global Device Inbox</h3>
+        
+        <div style="display:flex; gap:10px; margin-bottom:15px; font-size:13px; color:#fff;">
+            <label><input type="radio" name="inboxFilter" value="All" checked onchange="renderAdminInbox()"> All</label>
+            <label><input type="radio" name="inboxFilter" value="Household" onchange="renderAdminInbox()"> Household</label>
+            <label><input type="radio" name="inboxFilter" value="Commercial" onchange="renderAdminInbox()"> Commercial</label>
+        </div>
+
         <div id="adminInbox" class="inbox-container" style="border:none; background:transparent; max-height:none; flex:1; margin-top:0; padding:0;">
             <div style="text-align:left; color:#ccc; font-size:13px;">Scanning database...</div>
         </div>
@@ -533,7 +545,9 @@
     <div id="dashboardScreen">
         
         <div class="top-bar">
-            <h3 id="topBarTitle" style="margin:0; color:#fff; text-align:left; flex:1;">Dashboard</h3>
+            <h3 id="topBarTitle" style="margin:0; color:#fff; text-align:left; flex:1;">
+                Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>
+            </h3>
             <div style="display:flex; align-items:center; gap: 15px;">
                 <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
                 <button class="logout-btn" onclick="logoutUser()">Logout</button>
@@ -568,7 +582,7 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" id="pumpControlCard">
                     <h3 style="text-align: left;">Pump Control</h3>
                     <div class="btn-container">
                         <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
@@ -610,8 +624,10 @@
                     <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options" style="top: 20px; right: 20px;">⋮</div>
                     
                     <h2>👑 Master Command Center</h2>
+
+                    <button class="btn-login" style="background:#00d2ff; color:#000; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
                     
-                    <button class="btn-login" style="background:#feca57; color:#000; margin-top:10px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
+                    <button class="btn-login" style="background:#feca57; color:#000; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
                     <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:#1a1a2e; border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
                         <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
@@ -678,12 +694,25 @@
 
                     <div id="linkCustomerBox" style="display:none; width:100%; text-align: left;">
                         <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-                        <h3 style="color: #7bed9f; margin-top:0; text-align:left;">Link Customer to Machine</h3>
+                        <h3 style="color: #7bed9f; margin-top:0; text-align:left;">Link Customer & Config Device</h3>
                         <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
                         <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., DEVICE_001">
-                        <input type="email" id="assignEmailInput" class="input-box" placeholder="3. Customer Email (Optional Admin Reference)">
-                        <input type="text" id="assignPassInput" class="input-box" placeholder="4. Customer Password (Optional Admin Reference)">
-                        <button class="btn-login" style="background:#2ed573; color:black;" onclick="assignDeviceToUser()">Link Device 🔗</button>
+                        
+                        <select id="assignTypeInput" class="input-box">
+                            <option value="Household">House Hold</option>
+                            <option value="Commercial">Commercial</option>
+                        </select>
+                        
+                        <input type="text" id="assignNameInput" class="input-box" placeholder="3. Name (Family Name / Org Name)">
+                        
+                        <input type="email" id="assignEmailInput" class="input-box" placeholder="4. Customer Email (Optional Admin Ref)">
+                        <input type="text" id="assignPassInput" class="input-box" placeholder="5. Customer Password (Optional Admin Ref)">
+                        
+                        <input type="text" id="assignRadioTech" class="input-box" placeholder="6. RF Module (Manual Override)">
+                        <input type="text" id="assignRadioChannel" class="input-box" placeholder="7. RF Channel (Manual Override)">
+                        <input type="text" id="assignRadioRate" class="input-box" placeholder="8. Data Rate (Manual Override)">
+                        
+                        <button class="btn-login" style="background:#2ed573; color:black;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
                     </div>
                 </div>
             </div>
@@ -716,6 +745,14 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
 
+        // Global variables to store manual RF config
+        window.manualRadioTech = null;
+        window.manualRadioChan = null;
+        window.manualRadioRate = null;
+        window.autoRadioTech = null;
+        window.autoRadioChan = null;
+        window.autoRadioRate = null;
+
         document.addEventListener("visibilitychange", function() {
             if (document.visibilityState === 'visible') {
                 firebase.database().goOffline();
@@ -732,6 +769,16 @@
                 document.getElementById('connIndicator').innerText = "Connecting to Server...";
             }
         });
+
+        // NEW FUNCTION: Hide/Show Pump in Admin
+        function toggleAdminPumpControl() {
+            const card = document.getElementById('pumpControlCard');
+            if (card.style.display === 'none') {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        }
 
         function toggleAdvanced() {
             const adv = document.getElementById('advancedSection');
@@ -806,7 +853,7 @@
                 document.getElementById('loggedInEmail').innerText = user.email;
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
-                    document.getElementById('topBarTitle').innerText = "Admin Dashboard";
+                    document.getElementById('topBarTitle').innerHTML = 'Admin Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>';
                     document.getElementById('creditText').innerHTML = "This is admin portal used by <strong>ANISH.</strong>";
                     
                     document.getElementById('customerMarquee').style.display = 'none';
@@ -818,7 +865,7 @@
                     
                     startAdminInboxListener(); 
                 } else {
-                    document.getElementById('topBarTitle').innerText = "Dashboard";
+                    document.getElementById('topBarTitle').innerHTML = 'Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>';
                     document.getElementById('creditText').innerHTML = "This system is developed by <strong>ANISH.</strong>";
                     
                     document.getElementById('customerMarquee').style.display = 'block';
@@ -851,6 +898,19 @@
             }
         });
 
+        // Helper function to update Radio UI correctly based on manual override vs ESP auto values
+        function updateRadioUI() {
+            if (document.getElementById('adminTxtRadio')) {
+                document.getElementById('adminTxtRadio').innerText = window.manualRadioTech || window.autoRadioTech || "nRF24L01";
+            }
+            if (document.getElementById('adminTxtChannel')) {
+                document.getElementById('adminTxtChannel').innerText = window.manualRadioChan || window.autoRadioChan || "125";
+            }
+            if (document.getElementById('adminTxtDataRate')) {
+                document.getElementById('adminTxtDataRate').innerText = window.manualRadioRate || window.autoRadioRate || "250 KBPS";
+            }
+        }
+
         function startAdminInboxListener() {
             if(globalScannerTimer) {
                 clearInterval(globalScannerTimer);
@@ -860,14 +920,16 @@
                 database.ref('/Devices').once('value').then((snapshot) => {
                     snapshot.forEach(child => {
                         let devId = child.key;
-                        let hb = 0;
-                        
-                        if(child.val().deviceStatus && child.val().deviceStatus.heartbeat) {
-                            hb = child.val().deviceStatus.heartbeat;
-                        }
+                        let val = child.val();
+                        let hb = val.deviceStatus && val.deviceStatus.heartbeat ? val.deviceStatus.heartbeat : 0;
+                        let devType = val.customerInfo && val.customerInfo.deviceType ? val.customerInfo.deviceType : "Unknown";
+                        let assignedName = val.customerInfo && val.customerInfo.assignedName ? val.customerInfo.assignedName : "";
                         
                         if(!globalDeviceState[devId]) {
-                            globalDeviceState[devId] = { lastHb: -1, lastTime: Date.now() };
+                            globalDeviceState[devId] = { lastHb: -1, lastTime: Date.now(), deviceType: devType, assignedName: assignedName };
+                        } else {
+                            globalDeviceState[devId].deviceType = devType;
+                            globalDeviceState[devId].assignedName = assignedName;
                         }
                         
                         if(globalDeviceState[devId].lastHb !== hb) {
@@ -900,14 +962,25 @@
 
         function renderAdminInbox() {
             const inboxDiv = document.getElementById('adminInbox');
-            
             if(!inboxDiv) return; 
+
+            // Get selected filter
+            const filterEle = document.querySelector('input[name="inboxFilter"]:checked');
+            const filter = filterEle ? filterEle.value : 'All';
 
             let htmlStr = '';
             let hasDevices = false;
             let currentConnectedDeviceFaultMessage = null; 
 
             for (const devId in adminInboxData) {
+                let devType = globalDeviceState[devId] && globalDeviceState[devId].deviceType ? globalDeviceState[devId].deviceType : "Unknown";
+                let assignedNameStr = globalDeviceState[devId] && globalDeviceState[devId].assignedName ? `(${globalDeviceState[devId].assignedName})` : "";
+                
+                // NEW FEATURE: Skip if it doesn't match the selected filter
+                if (filter !== "All" && devType !== filter) {
+                    continue; 
+                }
+                
                 hasDevices = true;
                 const data = adminInboxData[devId];
                 let color = "#2ed573"; 
@@ -941,8 +1014,9 @@
                     color = "#00d2ff";
                 }
 
+                // Append the assigned name and type tag to the list item
                 htmlStr += `<div class="inbox-card" style="border-left: 4px solid ${color};">
-                    <strong style="color:${color}">${devId}</strong> - <span style="font-weight:bold; color:white;">${displayStatus}</span>
+                    <strong style="color:${color}">${devId} ${assignedNameStr}</strong> <span style="font-size:10px; color:#888;">[${devType}]</span> - <span style="font-weight:bold; color:white;">${displayStatus}</span>
                     <span style="display:block; margin-top:4px; color:#ccc;">${displayMsg}</span>
                 </div>`;
             }
@@ -962,7 +1036,7 @@
             if(hasDevices) {
                 inboxDiv.innerHTML = htmlStr;
             } else {
-                inboxDiv.innerHTML = '<div style="text-align:left; color:#ccc; font-size:13px; margin-top:20px;">No active alerts.</div>';
+                inboxDiv.innerHTML = '<div style="text-align:left; color:#ccc; font-size:13px; margin-top:20px;">No devices matched the filter or no active alerts.</div>';
             }
         }
 
@@ -1025,6 +1099,15 @@
             
             currentDeviceId = devId;
 
+            // Clear UI globals for the new connection
+            window.manualRadioTech = null;
+            window.manualRadioChan = null;
+            window.manualRadioRate = null;
+            window.autoRadioTech = null;
+            window.autoRadioChan = null;
+            window.autoRadioRate = null;
+
+            document.getElementById('assignedNameDisplay').innerText = '';
             document.getElementById('criticalErrorBanner').style.display = "none";
             document.getElementById('waterLevelFill').style.height = '0%';
             document.getElementById('waterLevelText').innerText = '--%';
@@ -1035,8 +1118,9 @@
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
             
-            // Default to HC-12 for older boards
-            document.getElementById('adminTxtRadio').innerText = 'HC-12 (433MHz)'; 
+            document.getElementById('adminTxtRadio').innerText = 'nRF24L01'; 
+            document.getElementById('adminTxtChannel').innerText = '--';
+            document.getElementById('adminTxtDataRate').innerText = '--';
             
             document.getElementById('adminTxtDist').innerText = '-- m';
             document.getElementById('adminTxtSignal').innerText = 'N/A';
@@ -1050,9 +1134,6 @@
                 document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
             }
             
-            document.getElementById('adminTxtChannel').innerText = '--';
-            document.getElementById('adminTxtDataRate').innerText = '--';
-            
             const btn = document.getElementById('pumpToggleBtn');
             btn.className = "btn-round btn-off";
             btn.innerText = "WAIT...";
@@ -1065,6 +1146,14 @@
             
             document.getElementById('mainDashboardView').style.display = 'flex';
             document.getElementById('adminTerminalContainer').style.display = 'block';
+
+            // HIDE PUMP BUTTON FOR ADMIN BY DEFAULT
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                document.getElementById('pumpControlCard').style.display = 'none';
+            } else {
+                document.getElementById('pumpControlCard').style.display = 'block';
+            }
             
             if(document.getElementById('termDevId')) {
                 document.getElementById('termDevId').innerText = currentDeviceId;
@@ -1080,22 +1169,45 @@
         function assignDeviceToUser() {
             const uid = document.getElementById('assignUidInput').value.trim();
             const devId = document.getElementById('assignDevInput').value.trim();
+            
+            // Collect new inputs
+            const type = document.getElementById('assignTypeInput').value;
+            const name = document.getElementById('assignNameInput').value.trim();
             const email = document.getElementById('assignEmailInput').value.trim();
             const pass = document.getElementById('assignPassInput').value.trim();
+            const rTech = document.getElementById('assignRadioTech').value.trim();
+            const rChan = document.getElementById('assignRadioChannel').value.trim();
+            const rRate = document.getElementById('assignRadioRate').value.trim();
             
             if(uid && devId) {
                 database.ref('Users/' + uid + '/deviceId').set(devId).then(() => {
                     
-                    if(email) database.ref('Devices/' + devId + '/customerInfo/email').set(email);
-                    if(pass) database.ref('Devices/' + devId + '/customerInfo/password').set(pass);
-
-                    alert("✅ Success! " + devId + " is now linked to user " + uid);
+                    const updates = {
+                        deviceType: type
+                    };
                     
-                    document.getElementById('assignUidInput').value = '';
-                    document.getElementById('assignDevInput').value = '';
-                    document.getElementById('assignEmailInput').value = '';
-                    document.getElementById('assignPassInput').value = '';
-                    document.getElementById('linkCustomerBox').style.display = "none";
+                    if(email) updates.email = email;
+                    if(pass) updates.password = pass;
+                    if(name) updates.assignedName = name;
+                    if(rTech) updates.radioTech = rTech;
+                    if(rChan) updates.radioChannel = rChan;
+                    if(rRate) updates.radioRate = rRate;
+
+                    database.ref('Devices/' + devId + '/customerInfo').update(updates).then(() => {
+                        alert("✅ Success! " + devId + " configuration saved and linked to " + uid);
+                        
+                        // Clear out the form
+                        document.getElementById('assignUidInput').value = '';
+                        document.getElementById('assignDevInput').value = '';
+                        document.getElementById('assignTypeInput').value = 'Household';
+                        document.getElementById('assignNameInput').value = '';
+                        document.getElementById('assignEmailInput').value = '';
+                        document.getElementById('assignPassInput').value = '';
+                        document.getElementById('assignRadioTech').value = '';
+                        document.getElementById('assignRadioChannel').value = '';
+                        document.getElementById('assignRadioRate').value = '';
+                        document.getElementById('linkCustomerBox').style.display = "none";
+                    });
                 }).catch((error) => {
                     alert("❌ Error: " + error.message);
                 });
@@ -1112,6 +1224,24 @@
                 if(info) {
                     document.getElementById('credEmail').innerText = info.email ? info.email : "Not saved in DB";
                     document.getElementById('credPass').innerText = info.password ? info.password : "Not saved in DB";
+                    
+                    if(info.assignedName) {
+                        document.getElementById('assignedNameDisplay').innerText = `- ${info.assignedName} (${info.deviceType || 'Unknown'})`;
+                    } else {
+                        document.getElementById('assignedNameDisplay').innerText = "";
+                    }
+
+                    // Save manual overrides globally
+                    window.manualRadioTech = info.radioTech || null;
+                    window.manualRadioChan = info.radioChannel || null;
+                    window.manualRadioRate = info.radioRate || null;
+                    updateRadioUI();
+                } else {
+                    document.getElementById('assignedNameDisplay').innerText = "";
+                    window.manualRadioTech = null;
+                    window.manualRadioChan = null;
+                    window.manualRadioRate = null;
+                    updateRadioUI();
                 }
             });
 
@@ -1136,17 +1266,13 @@
                     document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
                 }
 
-                if (document.getElementById('adminTxtRadio')) {
-                    // NEW FALLBACK LOGIC: HC-12 default
-                    document.getElementById('adminTxtRadio').innerText = statusData.radioTech ? statusData.radioTech : "HC-12 (433MHz)";
-                }
+                // Save ESP Payload Values
+                window.autoRadioTech = statusData.radioTech;
+                window.autoRadioChan = statusData.radioChannel;
+                window.autoRadioRate = statusData.radioDataRate;
                 
-                if (document.getElementById('adminTxtChannel')) {
-                    document.getElementById('adminTxtChannel').innerText = statusData.radioChannel !== undefined ? statusData.radioChannel : "FU3";
-                }
-                if (document.getElementById('adminTxtDataRate')) {
-                    document.getElementById('adminTxtDataRate').innerText = statusData.radioDataRate ? statusData.radioDataRate : "9600 BPS";
-                }
+                // Combine payload and manual overrides
+                updateRadioUI();
             });
 
             heartbeatTimer = setInterval(() => {
