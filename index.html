@@ -207,11 +207,66 @@
             box-sizing: border-box;
         }
 
-        /* --- NEW ANIMATED CSS TANK UI --- */
+        /* --- NEW ANIMATED CSS MOTOR & TANK UI --- */
+        .system-wrapper {
+            display: flex;
+            align-items: flex-start; 
+            justify-content: center;
+            margin: 20px auto;
+            position: relative;
+            padding-left: 10px; 
+        }
+
+        .motor-assembly {
+            position: relative;
+            margin-top: 29px; /* Aligns perfectly with the 10% tank inlet */
+            display: flex;
+            align-items: center;
+            margin-right: -4px; /* Overlaps tank border to connect */
+            z-index: 10;
+        }
+
+        .motor-box {
+            width: 45px;
+            height: 35px;
+            background: linear-gradient(135deg, #2c3e50, #1a252f);
+            border: 2px solid #00d2ff;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.2);
+            z-index: 11;
+        }
+
+        .motor-fan {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px dashed #555;
+            transition: 0.3s;
+        }
+
+        /* When Pump is ON, spin the fan! */
+        .pump-active .motor-fan {
+            border-color: #00d2ff;
+            animation: motorSpin 0.15s linear infinite;
+        }
+
+        @keyframes motorSpin { 100% { transform: rotate(360deg); } }
+
+        .motor-pipe-ext {
+            width: 25px;
+            height: 12px;
+            background: linear-gradient(to bottom, #999, #555);
+            border-top: 2px solid #ccc;
+            border-bottom: 2px solid #333;
+            z-index: 10;
+        }
+
         .tank-wrapper {
             position: relative;
             width: 160px;
-            margin: 20px auto;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -263,6 +318,51 @@
             z-index: 20; 
         }
 
+        /* The pipe inside the tank at 10% from top */
+        .tank-pipe-int {
+            position: absolute;
+            left: 0;
+            top: 10%; /* Enters 10% lower from upper side */
+            width: 25px;
+            height: 12px;
+            background: linear-gradient(to bottom, #999, #555);
+            border-top: 2px solid #ccc;
+            border-bottom: 2px solid #333;
+            border-right: 2px solid #444;
+            border-radius: 0 4px 4px 0;
+            z-index: 10;
+        }
+
+        /* The Animated Waterfall */
+        .waterfall {
+            position: absolute;
+            left: 10px; /* Aligned with pipe mouth */
+            top: calc(10% + 10px); 
+            width: 10px;
+            height: calc(90% - 10px); 
+            background: rgba(0, 210, 255, 0);
+            transition: background 0.3s;
+            z-index: 4; /* Behind the water fill! */
+            border-radius: 5px;
+        }
+
+        .pump-active .waterfall {
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(0, 210, 255, 0.9),
+                rgba(0, 210, 255, 0.9) 10px,
+                rgba(255, 255, 255, 0.6) 15px,
+                rgba(0, 210, 255, 0.9) 20px
+            );
+            background-size: 100% 20px;
+            animation: waterfallFlow 0.15s linear infinite;
+        }
+
+        @keyframes waterfallFlow {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 20px; }
+        }
+
         .water-fill { 
             position: absolute; 
             bottom: 0; 
@@ -272,7 +372,6 @@
             z-index: 5;
         }
 
-        /* Animated SVG Wave at the top of the water */
         .wave {
             position: absolute;
             top: -15px;
@@ -289,6 +388,29 @@
             100% { transform: translateX(-50%); }
         }
 
+        /* Splash Effect that rides the water level! */
+        .dynamic-splash {
+            position: absolute;
+            top: -5px;
+            left: 5px; /* Aligned with waterfall */
+            width: 20px;
+            height: 10px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            opacity: 0;
+            z-index: 10;
+            filter: blur(2px);
+        }
+
+        .pump-active .dynamic-splash {
+            animation: splashAnim 0.3s infinite;
+        }
+
+        @keyframes splashAnim {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
         .water-text { 
             position: absolute; 
             top: 50%; 
@@ -300,75 +422,6 @@
             z-index: 30; 
         }
 
-        /* The pipe coming down */
-        .fill-pipe {
-            position: absolute;
-            top: -5px; 
-            right: 25px;
-            width: 12px;
-            height: 85%;
-            background: rgba(255,255,255,0.1);
-            border-left: 2px solid rgba(255,255,255,0.3);
-            border-right: 2px solid rgba(255,255,255,0.3);
-            z-index: 10;
-            border-radius: 0 0 6px 6px;
-        }
-
-        /* Water flowing inside the pipe */
-        .water-flow {
-            width: 100%;
-            height: 100%;
-            background: #00d2ff;
-            transform-origin: top;
-            transform: scaleY(0);
-            transition: transform 0.5s ease-in-out;
-            border-radius: 0 0 6px 6px;
-        }
-
-        /* Animation triggered by pump-active class */
-        .pump-active .water-flow {
-            transform: scaleY(1);
-            background: repeating-linear-gradient(
-                to bottom,
-                #00d2ff,
-                #00d2ff 8px,
-                #7bed9f 12px,
-                #00d2ff 16px
-            );
-            background-size: 100% 16px;
-            animation: pipeFlow 0.3s linear infinite;
-        }
-
-        @keyframes pipeFlow {
-            0% { background-position: 0 0; }
-            100% { background-position: 0 16px; }
-        }
-
-        .splash {
-            display: none;
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 20px;
-            height: 10px;
-            background: #00d2ff;
-            border-radius: 50%;
-            z-index: 11;
-            filter: blur(2px);
-        }
-
-        .pump-active .splash {
-            display: block;
-            animation: splashing 0.4s infinite;
-        }
-
-        @keyframes splashing {
-            0% { transform: translateX(-50%) scale(1); opacity: 0.8; }
-            100% { transform: translateX(-50%) scale(2.5); opacity: 0; }
-        }
-
-        /* The green filter at the bottom */
         .tank-filter {
             position: absolute;
             bottom: 5px;
@@ -387,7 +440,7 @@
             border-radius: 8px;
             z-index: 8;
         }
-        /* --- END TANK UI --- */
+        /* --- END NEW UI --- */
         
         .stats-grid { 
             display: grid; 
@@ -735,22 +788,29 @@
                     
                     <div style="clear:both;"></div>
                     
-                    <div class="tank-wrapper" id="waterTankModel">
-                        <div class="tank-lid-handle"></div>
-                        <div class="tank-lid"></div>
-                        <div class="tank-body">
-                            <div class="fill-pipe">
-                                <div class="water-flow"></div>
-                                <div class="splash"></div>
+                    <div id="waterTankModel" class="system-wrapper">
+                        <div class="motor-assembly">
+                            <div class="motor-box">
+                                <div class="motor-fan"></div>
                             </div>
-                            
-                            <div id="waterLevelFill" class="water-fill" style="height: 0%;">
-                                <div class="wave"></div>
+                            <div class="motor-pipe-ext"></div>
+                        </div>
+                        
+                        <div class="tank-wrapper">
+                            <div class="tank-lid-handle"></div>
+                            <div class="tank-lid"></div>
+                            <div class="tank-body">
+                                <div class="tank-pipe-int"></div>
+                                
+                                <div class="waterfall"></div>
+                                
+                                <div id="waterLevelFill" class="water-fill" style="height: 0%;">
+                                    <div class="wave"></div>
+                                    <div class="dynamic-splash"></div> </div>
+                                
+                                <div id="waterLevelText" class="water-text">--%</div>
+                                <div class="tank-filter"></div>
                             </div>
-                            
-                            <div id="waterLevelText" class="water-text">--%</div>
-                            
-                            <div class="tank-filter"></div>
                         </div>
                     </div>
                     
@@ -1008,7 +1068,6 @@
             }
         }
 
-        // Clean Error Handler for Garbage Bug
         function loginUser() {
             const email = document.getElementById('emailInput').value.trim();
             const pass = document.getElementById('passwordInput').value;
@@ -1492,6 +1551,9 @@
                         document.getElementById('pumpToggleBtn').innerText = "OFFLINE";
                         document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
                         document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
+                        
+                        const tankModel = document.getElementById('waterTankModel'); 
+                        if(tankModel) tankModel.classList.remove('pump-active'); 
                     } else {
                         document.getElementById('offlineOverlay').style.display = 'flex';
                     }
