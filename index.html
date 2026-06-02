@@ -9,12 +9,13 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <style>
-        /* NEW FEATURE: Premium Animated Colorful Background */
+        /* NEW FEATURE: Premium Dark Glassmorphism + Robotics Background */
         body { 
             font-family: 'Segoe UI', sans-serif; 
-            background: linear-gradient(-45deg, #12c2e9, #c471ed, #f64f59, #1a2a6c);
-            background-size: 400% 400%;
-            animation: gradientAnimation 15s ease infinite;
+            /* Deep, low-glow overlay mixed with a high-end robotics/tech background image */
+            background: linear-gradient(rgba(10, 15, 25, 0.85), rgba(15, 20, 30, 0.95)), 
+                        url('https://images.unsplash.com/photo-1518314916381-77a37c2a49ae?q=80&w=2000&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
             color: white; 
             display: flex; 
             flex-direction: column; 
@@ -25,24 +26,18 @@
             box-sizing: border-box;
             overflow-x: hidden; 
         }
-
-        @keyframes gradientAnimation {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
         
-        /* Updated Cards for Premium Frosted Glass look against colorful BG */
+        /* Premium Frosted Glass Cards */
         .card { 
-            background: rgba(15, 20, 30, 0.7); 
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
+            background: rgba(20, 25, 35, 0.6); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             padding: 20px; 
             border-radius: 15px; 
             width: 100%; 
             margin-bottom: 20px; 
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4); 
-            border: 1px solid rgba(255, 255, 255, 0.15); 
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
             position: relative; 
             box-sizing: border-box;
         }
@@ -106,17 +101,18 @@
             border: none; 
             font-size: 16px; 
             box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.9);
+            color: #111;
         }
 
-        /* Fix dropdowns and dates to look clean */
         select.input-box, input[type="date"].input-box {
-            background-color: #fff;
-            color: #333;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #111;
         }
 
         .btn-login { 
-            background: #00d2ff; 
-            color: #000; 
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: #fff; 
             font-weight: bold; 
             width: 100%; 
             padding: 12px; 
@@ -126,13 +122,12 @@
             cursor: pointer; 
             transition: 0.3s; 
             margin-top: 5px;
-            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.2);
         }
 
         .btn-login:hover { 
-            background: #3a7bd5; 
-            color: white;
-            box-shadow: 0 6px 20px rgba(58, 123, 213, 0.5);
+            background: linear-gradient(90deg, #3a7bd5, #00d2ff); 
+            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.4);
         }
         
         .top-bar { 
@@ -145,13 +140,18 @@
         }
 
         .logout-btn { 
-            background: #ff4757; 
+            background: rgba(255, 71, 87, 0.8); 
             color: white; 
-            border: none; 
+            border: 1px solid rgba(255, 71, 87, 0.5);
             padding: 8px 15px; 
             border-radius: 5px; 
             cursor: pointer; 
             font-weight: bold;
+            transition: 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: #ff4757;
         }
 
         #dashboardScreen { 
@@ -197,7 +197,7 @@
             left: 0; 
             width: 100%; 
             height: 100%;
-            background: rgba(0, 0, 0, 0.9); 
+            background: rgba(10, 15, 25, 0.95); 
             z-index: 9999; 
             flex-direction: column;
             align-items: center; 
@@ -213,13 +213,13 @@
         .tank-container { 
             width: 140px; 
             height: 240px; 
-            border: 4px solid #fff; 
+            border: 4px solid rgba(255, 255, 255, 0.8); 
             border-radius: 15px; 
             position: relative; 
             margin: 20px auto; 
             overflow: hidden; 
-            background: rgba(0,0,0,0.5); 
-            box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+            background: rgba(0,0,0,0.6); 
+            box-shadow: 0 0 25px rgba(0, 210, 255, 0.3);
         }
 
         .water-fill { 
@@ -237,7 +237,7 @@
             transform: translate(-50%, -50%); 
             font-size: 26px; 
             font-weight: bold; 
-            text-shadow: 2px 2px 4px black; 
+            text-shadow: 2px 2px 8px black; 
             z-index: 10; 
         }
         
@@ -255,7 +255,7 @@
             border-radius: 8px; 
             text-align: center; 
             font-size: 13px; 
-            color: #ccc;
+            color: #ddd;
             border: 1px solid rgba(255,255,255,0.05);
         }
 
@@ -279,12 +279,12 @@
             border-radius: 50%; 
             font-size: 18px; 
             font-weight: bold; 
-            border: 4px solid rgba(255,255,255,0.2); 
+            border: 4px solid rgba(255,255,255,0.15); 
             cursor: pointer; 
             color: white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
             transition: all 0.3s; 
-            text-shadow: 1px 1px 2px black;
+            text-shadow: 1px 1px 3px black;
             -webkit-tap-highlight-color: transparent; 
         }
 
@@ -293,7 +293,7 @@
         }
 
         .btn-off { 
-            background: radial-gradient(circle, #ff6b81, #ff4757); 
+            background: radial-gradient(circle, #ff6b81, #d63031); 
         } 
 
         .btn-on { 
@@ -316,7 +316,7 @@
         }
 
         .log-box { 
-            background: rgba(0,0,0,0.6); 
+            background: rgba(0,0,0,0.7); 
             padding: 15px; 
             border-radius: 8px; 
             font-family: monospace; 
@@ -327,7 +327,7 @@
             white-space: pre-wrap; 
             word-wrap: break-word; 
             word-break: break-all;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
             border: 1px solid rgba(255,255,255,0.1);
         }
 
@@ -340,45 +340,48 @@
             border-radius: 15px; 
             font-size: 12px; 
             font-weight: bold; 
-            background: #2ed573; 
-            color: black; 
+            background: rgba(46, 213, 115, 0.9); 
+            color: white; 
             display: inline-block;
             margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(46, 213, 115, 0.4);
         }
         
         .btn-danger { 
-            background: #ff4757; 
+            background: rgba(255, 71, 87, 0.9); 
             color: white; 
-            border: none; 
+            border: 1px solid rgba(255, 71, 87, 0.5);
             padding: 12px; 
             border-radius: 8px; 
             font-weight: bold; 
             cursor: pointer; 
             width: 100%; 
             margin-top: 10px;
+            transition: 0.3s;
         }
 
         .btn-danger:hover { 
-            background: #ff6b81; 
+            background: #ff4757; 
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
         }
 
         .inbox-container {
             max-height: 250px; 
             overflow-y: auto; 
             width: 100%; 
-            border: 1px solid rgba(255,255,255,0.2); 
+            border: 1px solid rgba(255,255,255,0.1); 
             border-radius: 8px; 
             padding: 10px; 
             box-sizing: border-box; 
-            background: rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.4);
             margin-top: 10px;
         }
 
         .inbox-card {
-            background: rgba(0,0,0,0.5); 
+            background: rgba(0,0,0,0.6); 
             padding: 12px; 
             margin-bottom: 8px; 
-            border-radius: 4px; 
+            border-radius: 6px; 
             font-size: 13px;
             border: 1px solid rgba(255,255,255,0.05);
         }
@@ -395,13 +398,13 @@
             width: 100%;
             max-width: 500px;
             padding: 12px 15px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             box-sizing: border-box;
             margin-bottom: 15px;
             gap: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
         .brand-logo-left {
@@ -416,14 +419,14 @@
             text-align: center;
             font-size: 14px;
             line-height: 1.4;
-            color: #fff;
+            color: #eee;
         }
 
         .developer-credit-top strong {
             font-weight: 900;
             font-size: 17px;
             display: inline-block;
-            animation: gradientShimmer 6s infinite alternate linear;
+            color: #00d2ff;
         }
 
         #sideInboxPanel {
@@ -433,16 +436,17 @@
             width: 350px;
             max-width: 85vw;
             height: 100vh;
-            background: rgba(15, 20, 30, 0.95);
-            backdrop-filter: blur(15px);
-            border-left: 2px solid #feca57;
+            background: rgba(15, 20, 25, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(254, 202, 87, 0.5);
             z-index: 1000;
             transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             padding: 20px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.6);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.8);
         }
         
         #sideInboxPanel.open {
@@ -515,10 +519,8 @@
         <div class="close-inbox-btn" onclick="toggleInboxPanel()">✕</div>
         <h3 style="color: #feca57; margin-top:0; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom:10px; text-align: left;">Global Alerts Inbox</h3>
         
-        <!-- NEW FEATURE: LIVE SEARCH BAR -->
         <input type="text" id="inboxSearchInput" class="input-box" placeholder="🔍 Search Name or Device ID..." onkeyup="renderAdminInbox()" style="margin-bottom:15px; background:rgba(255,255,255,0.1); color:white; border:1px solid rgba(255,255,255,0.3);">
 
-        <!-- FILTER TOGGLES -->
         <div style="display:flex; gap:10px; margin-bottom:15px; font-size:13px; color:#fff; justify-content: center;">
             <label><input type="radio" name="inboxFilter" value="All" checked onchange="renderAdminInbox()"> All</label>
             <label><input type="radio" name="inboxFilter" value="Household" onchange="renderAdminInbox()"> Household</label>
@@ -536,10 +538,9 @@
         ⚠️<br><br>Machine is currently Offline
     </div>
 
-    <!-- SECURITY GATEWAY -->
     <div id="loginScreen" class="card" style="max-width: 400px;">
         <h2 style="text-align: center;">🔒 Security Gateway</h2>
-        <div id="connIndicator" style="text-align:center; font-size:12px; color:#ccc;">
+        <div id="connIndicator" style="text-align:center; font-size:12px; color:#aaa;">
             Checking server connection...
         </div>
         
@@ -556,11 +557,9 @@
         <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
     <div id="dashboardScreen">
         
         <div class="top-bar">
-            <!-- SHOW ASSIGNED NAME ON BOTH PORTALS -->
             <h3 id="topBarTitle" style="margin:0; color:#fff; text-align:left; flex:1;">
                 Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>
             </h3>
@@ -579,10 +578,8 @@
             <span id="creditText">This system is developed by <strong>ANISH.</strong></span>
         </div>
 
-        <!-- DUAL-COLUMN CSS GRID -->
         <div class="dashboard-grid">
             
-            <!-- LEFT COLUMN (Shared: Tank and Pump) -->
             <div class="dash-col-left" id="mainDashboardView" style="display:none;">
                 <div class="card">
                     <span id="connStatus" class="status-badge">ONLINE</span>
@@ -600,7 +597,6 @@
                     </div>
                 </div>
 
-                <!-- PUMP CONTROL CARD -->
                 <div class="card" id="pumpControlCard">
                     <h3 style="text-align: left;">Pump Control</h3>
                     <div class="btn-container">
@@ -608,7 +604,6 @@
                     </div>
                 </div>
 
-                <!-- Customer's Advanced Stats Box -->
                 <div id="advancedSection" style="display:none; width:100%;">
                     <div class="card" style="width:100%;">
                         <h3>Engineering Data</h3>
@@ -638,20 +633,18 @@
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN (Admin Command Center Only) -->
             <div class="dash-col-right" id="adminCommandCenter" style="display:none;">
-                <div class="card" style="width:100%; border: 2px solid #00d2ff; position: relative;">
+                <div class="card" style="width:100%; border: 2px solid rgba(0, 210, 255, 0.5); position: relative;">
                     
                     <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options" style="top: 20px; right: 20px;">⋮</div>
                     
                     <h2>👑 Master Command Center</h2>
 
-                    <!-- TOGGLE PUMP VISIBILITY FOR ADMIN -->
-                    <button class="btn-login" style="background:#00d2ff; color:#000; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
+                    <button class="btn-login" style="background:rgba(0, 210, 255, 0.8); color:#fff; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
                     
-                    <button class="btn-login" style="background:#feca57; color:#000; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
+                    <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
-                    <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:#1a1a2e; border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 4px 15px rgba(0,0,0,0.8);">
+                    <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px);">
                         <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
                         <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
                     </div>
@@ -662,32 +655,32 @@
                     <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
                         <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
                         
-                        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); position:relative;">
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <h3 style="color: #fff; font-size: 15px; margin:0; text-align:left;">Live Diagnostics: <span id="termDevId"></span></h3>
                                 
                                 <div style="display:flex; gap:12px; align-items:center;">
-                                    <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.2); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                                    <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.15); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
                                     <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:20px; user-select:none;" onclick="toggleCredBox()">⋮</span>
                                 </div>
                             </div>
 
-                            <div id="credentialsBox" style="display:none; margin-top:10px; padding:12px; background:rgba(0,0,0,0.5); border:1px dashed #7bed9f; border-radius:6px; font-size:13px; color:#ccc; text-align: left;">
+                            <div id="credentialsBox" style="display:none; margin-top:10px; padding:12px; background:rgba(0,0,0,0.6); border:1px dashed #7bed9f; border-radius:6px; font-size:13px; color:#ccc; text-align: left;">
                                 <span style="color:#7bed9f; font-weight:bold; margin-bottom:5px; display:block;">Machine Linked To:</span>
                                 <strong>Email:</strong> <span id="credEmail" style="color:#fff;">Not saved in DB</span><br>
                                 <strong>Password:</strong> <span id="credPass" style="color:#fff;">Not saved in DB</span>
                             </div>
 
-                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#ccc; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.2); margin-top:8px;">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); margin-top:8px;">
                                 <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
                                 <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
                                 <span>Radio: <strong id="adminTxtRadio" style="color:#feca57;">--</strong></span>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#ccc; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.2);">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Est. Range: <strong id="adminTxtDist" style="color:#feca57;">-- m</strong></span>
                                 <span>Signal: <strong id="adminTxtSignal" style="color:#7bed9f;">N/A</strong></span>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#ccc; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.2);">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Channel: <strong id="adminTxtChannel" style="color:#00d2ff;">--</strong></span>
                                 <span>Data Rate: <strong id="adminTxtDataRate" style="color:#00d2ff;">--</strong></span>
                             </div>
@@ -720,24 +713,20 @@
                         <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
                         <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., DEVICE_001">
                         
-                        <!-- DEVICE TYPE DROPDOWN -->
                         <select id="assignTypeInput" class="input-box">
                             <option value="Household">House Hold</option>
                             <option value="Commercial">Commercial</option>
                         </select>
                         
-                        <!-- ASSIGN NAME -->
                         <input type="text" id="assignNameInput" class="input-box" placeholder="3. Name (Family Name / Org Name)">
                         
                         <input type="email" id="assignEmailInput" class="input-box" placeholder="4. Customer Email (Optional Admin Ref)">
                         <input type="text" id="assignPassInput" class="input-box" placeholder="5. Customer Password (Optional Admin Ref)">
                         
-                        <!-- MANUAL RF MODULE OVERRIDE -->
                         <input type="text" id="assignRadioTech" class="input-box" placeholder="6. RF Module (Manual Override)">
                         <input type="text" id="assignRadioChannel" class="input-box" placeholder="7. RF Channel (Manual Override)">
                         <input type="text" id="assignRadioRate" class="input-box" placeholder="8. Data Rate (Manual Override)">
                         
-                        <!-- NEW FEATURE: DEVICE DEPLOYED DATE -->
                         <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">9. Device Deployed Date:</label>
                         <input type="date" id="assignDeployDate" class="input-box">
 
@@ -774,7 +763,6 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
 
-        // Global variables to store manual RF & Config
         window.manualRadioTech = null;
         window.manualRadioChan = null;
         window.manualRadioRate = null;
@@ -800,7 +788,6 @@
             }
         });
 
-        // Hide/Show Pump in Admin
         function toggleAdminPumpControl() {
             const card = document.getElementById('pumpControlCard');
             if (card.style.display === 'none') {
@@ -859,6 +846,7 @@
             }
         }
 
+        // NEW FEATURE: Clean Error Handler for Garbage Bug
         function loginUser() {
             const email = document.getElementById('emailInput').value.trim();
             const pass = document.getElementById('passwordInput').value;
@@ -866,7 +854,14 @@
             
             firebase.auth().signInWithEmailAndPassword(email, pass).catch((error) => {
                 errDiv.style.display = 'block';
-                errDiv.innerText = "Error: " + error.message;
+                let cleanMessage = "Authentication Failed.";
+                if(error.code === 'auth/invalid-email') cleanMessage = "Invalid email format.";
+                else if(error.code === 'auth/user-not-found') cleanMessage = "User not found.";
+                else if(error.code === 'auth/wrong-password') cleanMessage = "Incorrect password.";
+                else if(error.code === 'auth/network-request-failed') cleanMessage = "Network error. Check connection.";
+                else cleanMessage = "Invalid credentials or account disabled.";
+                
+                errDiv.innerText = "⚠️ " + cleanMessage;
             });
         }
 
@@ -940,7 +935,6 @@
             }
         }
 
-        // Helper to show Runtime Days based on Deploy Date or fallback to Heartbeat uptime
         function updateRuntimeUI() {
             if (window.deviceDeployDate) {
                 let deployed = new Date(window.deviceDeployDate);
@@ -1009,11 +1003,9 @@
             const inboxDiv = document.getElementById('adminInbox');
             if(!inboxDiv) return; 
 
-            // Get selected category filter
             const filterEle = document.querySelector('input[name="inboxFilter"]:checked');
             const filter = filterEle ? filterEle.value : 'All';
 
-            // Get live search text
             const searchInput = document.getElementById('inboxSearchInput');
             const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
@@ -1025,12 +1017,10 @@
                 let devType = globalDeviceState[devId] && globalDeviceState[devId].deviceType ? globalDeviceState[devId].deviceType : "Unknown";
                 let assignedNameStrRaw = globalDeviceState[devId] && globalDeviceState[devId].assignedName ? globalDeviceState[devId].assignedName : "";
                 
-                // CATEGORY FILTER
                 if (filter !== "All" && devType !== filter) {
                     continue; 
                 }
 
-                // TEXT SEARCH FILTER
                 let devIdLower = devId.toLowerCase();
                 let nameLower = assignedNameStrRaw.toLowerCase();
                 if (searchVal !== "" && !devIdLower.includes(searchVal) && !nameLower.includes(searchVal)) {
@@ -1156,7 +1146,6 @@
             
             currentDeviceId = devId;
 
-            // Clear UI globals for the new connection
             window.manualRadioTech = null;
             window.manualRadioChan = null;
             window.manualRadioRate = null;
@@ -1205,7 +1194,6 @@
             document.getElementById('mainDashboardView').style.display = 'flex';
             document.getElementById('adminTerminalContainer').style.display = 'block';
 
-            // HIDE PUMP BUTTON FOR ADMIN BY DEFAULT
             const currentUser = firebase.auth().currentUser;
             if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
                 document.getElementById('pumpControlCard').style.display = 'none';
@@ -1228,7 +1216,6 @@
             const uid = document.getElementById('assignUidInput').value.trim();
             const devId = document.getElementById('assignDevInput').value.trim();
             
-            // Collect new inputs
             const type = document.getElementById('assignTypeInput').value;
             const name = document.getElementById('assignNameInput').value.trim();
             const email = document.getElementById('assignEmailInput').value.trim();
@@ -1256,7 +1243,6 @@
                     database.ref('Devices/' + devId + '/customerInfo').update(updates).then(() => {
                         alert("✅ Success! " + devId + " configuration saved and linked to " + uid);
                         
-                        // Clear out the form
                         document.getElementById('assignUidInput').value = '';
                         document.getElementById('assignDevInput').value = '';
                         document.getElementById('assignTypeInput').value = 'Household';
@@ -1292,7 +1278,6 @@
                         document.getElementById('assignedNameDisplay').innerText = "";
                     }
 
-                    // Save manual overrides globally
                     window.manualRadioTech = info.radioTech || null;
                     window.manualRadioChan = info.radioChannel || null;
                     window.manualRadioRate = info.radioRate || null;
@@ -1326,12 +1311,10 @@
                     document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
                 }
 
-                // Save ESP Payload Values
                 window.autoRadioTech = statusData.radioTech;
                 window.autoRadioChan = statusData.radioChannel;
                 window.autoRadioRate = statusData.radioDataRate;
                 
-                // Combine payload and manual overrides
                 updateRadioUI();
             });
 
