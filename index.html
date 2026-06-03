@@ -219,7 +219,7 @@
 
         .motor-assembly {
             position: relative;
-            margin-top: 60px; /* Aligned with the new wide tank drop */
+            margin-top: 69px; 
             display: flex;
             align-items: center;
             margin-right: -4px; 
@@ -265,7 +265,7 @@
 
         .tank-wrapper {
             position: relative;
-            width: 220px; /* WIDE SHAPE - Matches your image */
+            width: 220px; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -282,7 +282,6 @@
             margin-bottom: -3px;
         }
 
-        /* Small cap on top */
         .tank-lid {
             width: 75px;
             height: 16px;
@@ -294,7 +293,6 @@
             box-sizing: border-box;
         }
 
-        /* The Full 3D Round Top Face - Deeper curve for wide base */
         .tank-top-ellipse {
             width: 100%;
             height: 45px; 
@@ -302,18 +300,17 @@
             border: 4px solid rgba(255,255,255,0.8);
             border-radius: 50%;
             z-index: 3;
-            margin-bottom: -23px; /* Pulls the tank body up perfectly */
+            margin-bottom: -23px; 
             box-sizing: border-box;
             box-shadow: inset 0 -5px 15px rgba(0,0,0,0.6);
         }
 
-        /* The Main Cylinder Body - Squatter & Wider */
         .tank-body {
             width: 100%;
-            height: 190px; 
+            height: 280px; 
             border: 4px solid rgba(255,255,255,0.8);
             border-top: none; 
-            border-radius: 0 0 50% 50% / 0 0 22px 22px; /* Perfect curved barrel base */
+            border-radius: 0 0 50% 50% / 0 0 22px 22px; 
             position: relative;
             background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.2) 80%, rgba(0,0,0,0.85) 100%);
             overflow: hidden;
@@ -322,7 +319,6 @@
             box-sizing: border-box;
         }
 
-        /* Corrugated Horizontal Ridges */
         .tank-body::before {
             content: "";
             position: absolute;
@@ -338,12 +334,11 @@
             z-index: 8; 
         }
 
-        /* The pipe inside the tank */
         .tank-pipe-int {
             position: absolute;
             left: 0;
             top: 10%; 
-            width: 35px; /* Extended deeper into the wide tank */
+            width: 35px; 
             height: 12px;
             background: linear-gradient(to bottom, #999, #555);
             border-top: 2px solid #ccc;
@@ -353,15 +348,14 @@
             z-index: 10;
         }
 
-        /* The Animated Waterfall - Realistic Style */
         .waterfall {
             position: absolute;
-            left: 24px; /* Aligned with the new longer pipe mouth */
+            left: 24px; 
             top: calc(10% + 12px); 
             width: 16px; 
             height: calc(90% - 12px); 
             background: transparent;
-            z-index: 4; /* Behind the water fill */
+            z-index: 4; 
             border-radius: 8px;
             overflow: hidden;
         }
@@ -373,7 +367,6 @@
             left: 0;
             width: 100%;
             height: 200%;
-            /* Frothy, aerated cascading water look */
             background: repeating-linear-gradient(
                 to bottom,
                 rgba(255, 255, 255, 0.95) 0%,
@@ -401,7 +394,6 @@
             z-index: 5;
         }
 
-        /* 3D layer for the water so it matches the tank shading perfectly */
         .water-fill::after {
             content: '';
             position: absolute;
@@ -411,7 +403,6 @@
             pointer-events: none;
         }
 
-        /* Single Crisp Water Wave */
         .wave {
             position: absolute;
             top: -16px;
@@ -429,11 +420,10 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* Highly realistic large splash */
         .dynamic-splash {
             position: absolute;
             top: -10px;
-            left: 15px; /* Centered precisely under new waterfall position */
+            left: 15px; 
             width: 34px;
             height: 15px;
             background: rgba(255, 255, 255, 0.9);
@@ -463,7 +453,7 @@
             text-shadow: 2px 2px 8px black; 
             z-index: 30; 
         }
-        /* --- END NEW UI --- */
+        /* --- END TANK UI --- */
         
         .stats-grid { 
             display: grid; 
@@ -762,7 +752,6 @@
         ⚠️<br><br>Machine is currently Offline
     </div>
 
-    <!-- SECURITY GATEWAY -->
     <div id="loginScreen" class="card" style="max-width: 400px;">
         <h2 style="text-align: center;">🔒 Security Gateway</h2>
         <div id="connIndicator" style="text-align:center; font-size:12px; color:#aaa;">
@@ -782,7 +771,6 @@
         <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
     <div id="dashboardScreen">
         
         <div class="top-bar">
@@ -813,9 +801,7 @@
                     
                     <div style="clear:both;"></div>
                     
-                    <!-- NEW ANIMATED CYLINDRICAL MOTOR & TANK UI -->
                     <div id="waterTankModel" class="system-wrapper">
-                        <!-- OUTSIDE MOTOR -->
                         <div class="motor-assembly">
                             <div class="motor-box">
                                 <div class="motor-fan"></div>
@@ -823,23 +809,17 @@
                             <div class="motor-pipe-ext"></div>
                         </div>
                         
-                        <!-- MAIN CYLINDRICAL TANK -->
                         <div class="tank-wrapper">
                             <div class="tank-lid-handle"></div>
                             <div class="tank-lid"></div>
-                            <div class="tank-top-ellipse"></div> <!-- Completes the 3D top curve -->
-                            <div class="tank-body">
-                                <!-- Inner Pipe -->
+                            <div class="tank-top-ellipse"></div> <div class="tank-body">
                                 <div class="tank-pipe-int"></div>
                                 
-                                <!-- Realistic Waterfall Effect -->
                                 <div class="waterfall"></div>
                                 
-                                <!-- Rising Water Level -->
                                 <div id="waterLevelFill" class="water-fill" style="height: 0%;">
                                     <div class="wave"></div>
-                                    <div class="dynamic-splash"></div> <!-- Rides the water! -->
-                                </div>
+                                    <div class="dynamic-splash"></div> </div>
                                 
                                 <div id="waterLevelText" class="water-text">--%</div>
                             </div>
