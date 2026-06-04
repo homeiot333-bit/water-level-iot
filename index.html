@@ -997,7 +997,6 @@
 
         // --- NEW GLOBALS FOR TERMINAL HISTORY ---
         let espLogHistory = [];
-        let nanoLogHistory = [];
 
         window.manualRadioTech = null;
         window.manualRadioChan = null;
@@ -1383,7 +1382,6 @@
 
             // --- RESET LOG HISTORY ON NEW CONNECTION ---
             espLogHistory = [];
-            nanoLogHistory = [];
 
             window.manualRadioTech = null;
             window.manualRadioChan = null;
@@ -1631,14 +1629,8 @@
                     
                     if(data.nanoLog) {
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        // Only add to history if it's a new unique event string
-                        if(nanoLogHistory.length === 0 || nanoLogHistory[nanoLogHistory.length - 1] !== cleanNanoLog) {
-                            nanoLogHistory.push(cleanNanoLog);
-                            if(nanoLogHistory.length > 5) nanoLogHistory.shift(); // Keep only last 5
-                        }
                         const nanoBox = document.getElementById('nanoLogConsole');
-                        nanoBox.innerText = nanoLogHistory.join('\n\n-----------------\n\n');
-                        nanoBox.scrollTop = nanoBox.scrollHeight; // Auto-scroll
+                        nanoBox.innerText = cleanNanoLog;
                     }
                 }
             });
