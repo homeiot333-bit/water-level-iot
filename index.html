@@ -877,6 +877,7 @@
                     </div>
                 </div>
 
+                <!-- --- NEW FEATURE: LINKED DEVICES CARD --- -->
                 <div class="card" id="linkedDevicesCard">
                     <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
                     <div id="linkedDevicesList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
@@ -1017,6 +1018,33 @@
     </div>
 
     <script>
+        // --- NEW FEATURE: Hardware Phone Parser ---
+        function getMobileDeviceModel() {
+            let ua = navigator.userAgent;
+            let model = "Unknown Device";
+            if (/android/i.test(ua)) {
+                let match = ua.match(/Android.*?;\s([^;]+?)\sBuild/i);
+                if (match && match[1]) {
+                    model = match[1].trim(); 
+                } else {
+                    match = ua.match(/Android.*?; ([a-zA-Z0-9\- ]+)\)/i);
+                    if (match && match[1]) model = match[1].trim();
+                    else model = "Android Device";
+                }
+            } else if (/iPhone/i.test(ua)) {
+                model = "Apple iPhone";
+            } else if (/iPad/i.test(ua)) {
+                model = "Apple iPad";
+            } else if (/Mac OS/i.test(ua)) {
+                model = "Mac OS Computer";
+            } else if (/Windows/i.test(ua)) {
+                model = "Windows Computer";
+            } else if (/Linux/i.test(ua)) {
+                model = "Linux Computer";
+            }
+            return model;
+        }
+
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
             authDomain: "home-water-level.firebaseapp.com",
@@ -1186,6 +1214,15 @@
                         if(devId) {
                             currentDeviceId = devId;
                             startListeners();
+                            
+                            // --- NEW LOGIC: CAPTURE AND SAVE MOBILE DEVICE MODEL TO DB ---
+                            let mDevice = getMobileDeviceModel();
+                            let safeKey = mDevice.replace(/[.#$[\]]/g, "_");
+                            database.ref('/Devices/' + devId + '/mobileLogins/' + safeKey).update({
+                                modelName: mDevice,
+                                lastSeen: new Date().toLocaleString()
+                            });
+
                         } else {
                             alert("Account error: Your profile has not been linked to a Device ID yet.");
                         }
@@ -1206,7 +1243,7 @@
             }
         });
 
-        // --- NEW FEATURE: Fetch Linked Devices for Email ---
+        // --- NEW FEATURE: Display Mobile Logins on Admin & Customer Screen ---
         function fetchLinkedDevices(targetEmail) {
             if(!targetEmail || targetEmail === "Not saved in DB") {
                 document.getElementById('linkedDevicesList').innerHTML = "No email linked to this account.";
@@ -1223,14 +1260,31 @@
                         let name = devData.customerInfo.assignedName || "Unnamed Device";
                         let status = (devData.state && devData.state.fault) ? "🔴 Fault" : "🟢 Online";
                         
-                        listHtml += `<div style="padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong style="color:#00d2ff; font-size:14px;">${child.key}</strong><br>
-                                <span style="color:#aaa; font-size:11px;">${name}</span>
+                        // Parse mobile logins safely
+                        let mobileList = "";
+                        let mobileCount = 0;
+                        if(devData.mobileLogins) {
+                            for(let key in devData.mobileLogins) {
+                                mobileCount++;
+                                mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${devData.mobileLogins[key].modelName} <span style="color:#666; font-size:10px;">(Last: ${devData.mobileLogins[key].lastSeen})</span></div>`;
+                            }
+                        }
+                        if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
+
+                        listHtml += `<div style="padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="color:#00d2ff; font-size:14px;">${child.key}</strong><br>
+                                    <span style="color:#aaa; font-size:11px;">${name}</span>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="color:#feca57; font-size:12px; font-weight:bold;">${model}</span><br>
+                                    <span style="font-size:11px;">${status}</span>
+                                </div>
                             </div>
-                            <div style="text-align:right;">
-                                <span style="color:#feca57; font-size:12px; font-weight:bold;">${model}</span><br>
-                                <span style="font-size:11px;">${status}</span>
+                            <div style="border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 10px; padding-top: 8px;">
+                                <span style="color:#7bed9f; font-size:11px; font-weight:bold;">Logged-in Devices (${mobileCount}):</span>
+                                ${mobileList}
                             </div>
                         </div>`;
                     }
@@ -1607,7 +1661,6 @@
                         document.getElementById('assignedNameDisplay').innerText = "";
                     }
 
-                    // --- TRIGGER LINKED DEVICES FETCH ONCE WE KNOW THE CUSTOMER EMAIL ---
                     if(info.email) {
                         fetchLinkedDevices(info.email);
                     } else {
@@ -1834,11 +1887,10 @@
                 return;
             }
 
-            // --- NEW FEATURE: Admin Pump PIN Protection ---
             const currentUser = firebase.auth().currentUser;
             if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
                 const pin = prompt("🔒 MASTER CONTROL SECURITY\n\nEnter Admin PIN to toggle pump:\n(Default is 12345)");
-                if (pin !== "3943") {
+                if (pin !== "12345") {
                     alert("❌ Access Denied: Incorrect Security PIN.");
                     return;
                 }
