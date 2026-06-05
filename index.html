@@ -709,7 +709,6 @@
             100% { transform: translate(-100%, 0); }
         }
 
-        /* --- NEW CSS FOR SMS POPUP --- */
         .usage-popup {
             position: fixed;
             bottom: -100px;
@@ -753,7 +752,6 @@
 </head>
 <body>
 
-    <!-- --- NEW SMS POPUP DIV --- -->
     <div id="usageSmsPopup" class="usage-popup">💧 Today's Water Usage: --%</div>
 
     <div id="sideInboxPanel">
@@ -865,7 +863,6 @@
                     </div>
                 </div>
 
-                <!-- --- NEW DAILY USAGE CARD --- -->
                 <div class="card" id="usageTrackerCard">
                     <h3 style="text-align: left; margin-bottom: 15px;">💧 Daily Usage Tracker</h3>
                     <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 210, 255, 0.2);">
@@ -878,6 +875,11 @@
                             <strong id="dailyUsageLiters" style="font-size: 18px; color: #7bed9f;">0 L</strong>
                         </div>
                     </div>
+                </div>
+
+                <div class="card" id="linkedDevicesCard">
+                    <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
+                    <div id="linkedDevicesList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
 
                 <div id="advancedSection" style="display:none; width:100%;">
@@ -1039,7 +1041,6 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
 
-        // --- GLOBALS FOR TERMINAL HISTORY & USAGE TRACKING ---
         let espLogHistory = [];
         let lastWaterPercent = -1;
         let localDailyUsage = 0;
@@ -1204,6 +1205,43 @@
                 }
             }
         });
+
+        // --- NEW FEATURE: Fetch Linked Devices for Email ---
+        function fetchLinkedDevices(targetEmail) {
+            if(!targetEmail || targetEmail === "Not saved in DB") {
+                document.getElementById('linkedDevicesList').innerHTML = "No email linked to this account.";
+                return;
+            }
+            database.ref('Devices').once('value').then((snapshot) => {
+                let count = 0;
+                let listHtml = "";
+                snapshot.forEach(child => {
+                    let devData = child.val();
+                    if(devData.customerInfo && devData.customerInfo.email && devData.customerInfo.email.toLowerCase() === targetEmail.toLowerCase()) {
+                        count++;
+                        let model = devData.customerInfo.deviceType || "Unknown Model";
+                        let name = devData.customerInfo.assignedName || "Unnamed Device";
+                        let status = (devData.state && devData.state.fault) ? "🔴 Fault" : "🟢 Online";
+                        
+                        listHtml += `<div style="padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color:#00d2ff; font-size:14px;">${child.key}</strong><br>
+                                <span style="color:#aaa; font-size:11px;">${name}</span>
+                            </div>
+                            <div style="text-align:right;">
+                                <span style="color:#feca57; font-size:12px; font-weight:bold;">${model}</span><br>
+                                <span style="font-size:11px;">${status}</span>
+                            </div>
+                        </div>`;
+                    }
+                });
+                if(count === 0) {
+                    document.getElementById('linkedDevicesList').innerHTML = "No devices found.";
+                } else {
+                    document.getElementById('linkedDevicesList').innerHTML = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
+                }
+            });
+        }
 
         function updateRadioUI() {
             if (document.getElementById('adminTxtRadio')) {
@@ -1429,7 +1467,6 @@
             
             currentDeviceId = devId;
 
-            // --- RESET ALL LOCAL LOGS & TRACKERS ---
             espLogHistory = [];
             lastWaterPercent = -1;
             hasShownPopup = false;
@@ -1455,6 +1492,7 @@
             
             document.getElementById('dailyUsageText').innerText = '0.0%';
             document.getElementById('dailyUsageLiters').innerText = '0 L';
+            document.getElementById('linkedDevicesList').innerHTML = 'Scanning account data...';
             
             document.getElementById('adminTxtRadio').innerText = 'nRF24L01'; 
             document.getElementById('adminTxtChannel').innerText = '--';
@@ -1569,6 +1607,13 @@
                         document.getElementById('assignedNameDisplay').innerText = "";
                     }
 
+                    // --- TRIGGER LINKED DEVICES FETCH ONCE WE KNOW THE CUSTOMER EMAIL ---
+                    if(info.email) {
+                        fetchLinkedDevices(info.email);
+                    } else {
+                        document.getElementById('linkedDevicesList').innerHTML = "No email associated with this device.";
+                    }
+
                     window.manualRadioTech = info.radioTech || null;
                     window.manualRadioChan = info.radioChannel || null;
                     window.manualRadioRate = info.radioRate || null;
@@ -1582,13 +1627,13 @@
                     window.manualRadioChan = null;
                     window.manualRadioRate = null;
                     window.deviceDeployDate = null;
+                    document.getElementById('linkedDevicesList').innerHTML = "No configuration found for this device.";
                     
                     updateRadioUI();
                     updateRuntimeUI();
                 }
             });
 
-            // --- FETCH DAILY USAGE FROM FIREBASE ---
             database.ref(basePath + '/usageStats/today').on('value', snap => {
                 let val = snap.val();
                 let todayDate = new Date().toDateString();
@@ -1596,7 +1641,7 @@
                 if(val && val.date === todayDate) {
                     localDailyUsage = val.usage || 0;
                 } else {
-                    localDailyUsage = 0; // Reset at midnight
+                    localDailyUsage = 0; 
                 }
                 
                 if (document.getElementById('dailyUsageText')) {
@@ -1604,7 +1649,6 @@
                     document.getElementById('dailyUsageLiters').innerText = (localDailyUsage * 10).toFixed(0) + ' L';
                 }
                 
-                // Show Popup SMS automatically after 3 seconds on dashboard load
                 if(!hasShownPopup && localDailyUsage > 0) {
                     hasShownPopup = true;
                     setTimeout(() => {
@@ -1696,13 +1740,11 @@
                         if(document.getElementById('adminTxtDist')) document.getElementById('adminTxtDist').innerText = '-- m';
                     }
 
-                    // --- TRACK DAILY USAGE CALCULATION ---
                     let currentPct = parseFloat(data.waterPercent);
                     if (lastWaterPercent !== -1) {
-                        // If the tank goes down, and pump is OFF, someone used water!
                         if (currentPct < lastWaterPercent && !currentPumpState) {
                             let drop = lastWaterPercent - currentPct;
-                            if (drop > 0.2 && drop < 30) { // Filter out random sensor noise
+                            if (drop > 0.2 && drop < 30) { 
                                 let todayDate = new Date().toDateString();
                                 database.ref(basePath + '/usageStats/today').once('value').then(s => {
                                     let val = s.val();
@@ -1720,7 +1762,6 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // --- ESP32 TERMINAL LOG HISTORY (Last 5 Distinct Events) ---
                     if(data.log) {
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
@@ -1732,7 +1773,6 @@
                         logBox.scrollTop = logBox.scrollHeight; 
                     }
                     
-                    // --- NANO TERMINAL LOG (Single Latest Event Only) ---
                     if(data.nanoLog) {
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         const nanoBox = document.getElementById('nanoLogConsole');
@@ -1792,6 +1832,16 @@
         function togglePump() {
             if(!currentDeviceId) {
                 return;
+            }
+
+            // --- NEW FEATURE: Admin Pump PIN Protection ---
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                const pin = prompt("🔒 MASTER CONTROL SECURITY\n\nEnter Admin PIN to toggle pump:\n(Default is 12345)");
+                if (pin !== "12345") {
+                    alert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
             }
             
             const desiredState = !currentPumpState;
