@@ -865,22 +865,17 @@
 
                 <div class="card" id="usageTrackerCard">
                     <h3 style="text-align: left; margin-bottom: 15px;">💧 Daily Usage Tracker</h3>
-                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 210, 255, 0.2);">
+                    <div style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 210, 255, 0.2); text-align: center;">
                         <div>
                             <span style="color:#aaa; font-size: 13px;">Consumed Today</span><br>
-                            <strong id="dailyUsageText" style="font-size: 24px; color: #00d2ff;">0.0%</strong>
-                        </div>
-                        <div style="text-align: right;">
-                            <span style="color:#aaa; font-size: 13px;">Est. Volume</span><br>
-                            <strong id="dailyUsageLiters" style="font-size: 18px; color: #7bed9f;">0 L</strong>
+                            <strong id="dailyUsageText" style="font-size: 32px; color: #00d2ff;">0.0%</strong>
                         </div>
                     </div>
                 </div>
 
-                <!-- --- NEW FEATURE: LINKED DEVICES CARD --- -->
-                <div class="card" id="linkedDevicesCard">
+                <div class="card">
                     <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
-                    <div id="linkedDevicesList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                    <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
 
                 <div id="advancedSection" style="display:none; width:100%;">
@@ -975,6 +970,11 @@
                                 <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left;">Awaiting Payload Link...</div>
                             </div>
                         </div>
+
+                        <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
+                            <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                        </div>
                     </div>
 
                     <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
@@ -1018,7 +1018,6 @@
     </div>
 
     <script>
-        // --- NEW FEATURE: Hardware Phone Parser ---
         function getMobileDeviceModel() {
             let ua = navigator.userAgent;
             let model = "Unknown Device";
@@ -1063,6 +1062,7 @@
         let pendingOtaDevice = null; 
         let heartbeatTimer = null; 
         let globalScannerTimer = null; 
+        let linkedDevicesRef = null;
 
         let currentDeviceId = null;
         let currentPumpState = false;
@@ -1215,10 +1215,15 @@
                             currentDeviceId = devId;
                             startListeners();
                             
-                            // --- NEW LOGIC: CAPTURE AND SAVE MOBILE DEVICE MODEL TO DB ---
+                            // --- FIXED FEATURE: Unique Session Tracker to prevent device overwrite ---
                             let mDevice = getMobileDeviceModel();
-                            let safeKey = mDevice.replace(/[.#$[\]]/g, "_");
-                            database.ref('/Devices/' + devId + '/mobileLogins/' + safeKey).update({
+                            let sessionKey = localStorage.getItem("waterIoT_sessionKey");
+                            if(!sessionKey) {
+                                sessionKey = "sess_" + Math.random().toString(36).substr(2, 9);
+                                localStorage.setItem("waterIoT_sessionKey", sessionKey);
+                            }
+                            
+                            database.ref('/Devices/' + devId + '/mobileLogins/' + sessionKey).update({
                                 modelName: mDevice,
                                 lastSeen: new Date().toLocaleString()
                             });
@@ -1240,16 +1245,25 @@
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     currentDeviceId = null;
                 }
+                if(linkedDevicesRef) {
+                    linkedDevicesRef.off();
+                }
             }
         });
 
-        // --- NEW FEATURE: Display Mobile Logins on Admin & Customer Screen ---
+        // --- FIXED FEATURE: Shared Linked Devices logic for Admin and Customer ---
         function fetchLinkedDevices(targetEmail) {
+            const listElements = document.querySelectorAll('.linked-devices-list');
+            
             if(!targetEmail || targetEmail === "Not saved in DB") {
-                document.getElementById('linkedDevicesList').innerHTML = "No email linked to this account.";
+                listElements.forEach(el => el.innerHTML = "No email linked to this account.");
                 return;
             }
-            database.ref('Devices').once('value').then((snapshot) => {
+            
+            if(linkedDevicesRef) linkedDevicesRef.off();
+
+            linkedDevicesRef = database.ref('Devices');
+            linkedDevicesRef.on('value', (snapshot) => {
                 let count = 0;
                 let listHtml = "";
                 snapshot.forEach(child => {
@@ -1260,7 +1274,6 @@
                         let name = devData.customerInfo.assignedName || "Unnamed Device";
                         let status = (devData.state && devData.state.fault) ? "🔴 Fault" : "🟢 Online";
                         
-                        // Parse mobile logins safely
                         let mobileList = "";
                         let mobileCount = 0;
                         if(devData.mobileLogins) {
@@ -1289,11 +1302,15 @@
                         </div>`;
                     }
                 });
+                
+                let finalHtml = "";
                 if(count === 0) {
-                    document.getElementById('linkedDevicesList').innerHTML = "No devices found.";
+                    finalHtml = "No devices found.";
                 } else {
-                    document.getElementById('linkedDevicesList').innerHTML = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
+                    finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
+                
+                listElements.forEach(el => el.innerHTML = finalHtml);
             });
         }
 
@@ -1544,9 +1561,11 @@
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
             
-            document.getElementById('dailyUsageText').innerText = '0.0%';
-            document.getElementById('dailyUsageLiters').innerText = '0 L';
-            document.getElementById('linkedDevicesList').innerHTML = 'Scanning account data...';
+            if (document.getElementById('dailyUsageText')) {
+                document.getElementById('dailyUsageText').innerText = '0.0%';
+            }
+            
+            document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = 'Scanning account data...');
             
             document.getElementById('adminTxtRadio').innerText = 'nRF24L01'; 
             document.getElementById('adminTxtChannel').innerText = '--';
@@ -1664,7 +1683,7 @@
                     if(info.email) {
                         fetchLinkedDevices(info.email);
                     } else {
-                        document.getElementById('linkedDevicesList').innerHTML = "No email associated with this device.";
+                        document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = "No email associated with this device.");
                     }
 
                     window.manualRadioTech = info.radioTech || null;
@@ -1680,7 +1699,7 @@
                     window.manualRadioChan = null;
                     window.manualRadioRate = null;
                     window.deviceDeployDate = null;
-                    document.getElementById('linkedDevicesList').innerHTML = "No configuration found for this device.";
+                    document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = "No configuration found for this device.");
                     
                     updateRadioUI();
                     updateRuntimeUI();
@@ -1699,7 +1718,6 @@
                 
                 if (document.getElementById('dailyUsageText')) {
                     document.getElementById('dailyUsageText').innerText = localDailyUsage.toFixed(1) + '%';
-                    document.getElementById('dailyUsageLiters').innerText = (localDailyUsage * 10).toFixed(0) + ' L';
                 }
                 
                 if(!hasShownPopup && localDailyUsage > 0) {
