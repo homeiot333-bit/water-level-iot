@@ -709,6 +709,32 @@
             100% { transform: translate(-100%, 0); }
         }
 
+        /* --- NEW CSS FOR SMS POPUP --- */
+        .usage-popup {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 20, 35, 0.95);
+            border: 2px solid #00d2ff;
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.3);
+            font-weight: 500;
+            font-size: 15px;
+            z-index: 9999;
+            transition: bottom 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+        
+        .usage-popup.show {
+            bottom: 30px;
+        }
+
         @media (max-width: 600px) {
             .terminals-wrapper { 
                 flex-direction: column; 
@@ -726,6 +752,9 @@
     </style>
 </head>
 <body>
+
+    <!-- --- NEW SMS POPUP DIV --- -->
+    <div id="usageSmsPopup" class="usage-popup">💧 Today's Water Usage: --%</div>
 
     <div id="sideInboxPanel">
         <div class="close-inbox-btn" onclick="toggleInboxPanel()">✕</div>
@@ -833,6 +862,21 @@
                     <h3 style="text-align: left;">Pump Control</h3>
                     <div class="btn-container">
                         <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
+                    </div>
+                </div>
+
+                <!-- --- NEW DAILY USAGE CARD --- -->
+                <div class="card" id="usageTrackerCard">
+                    <h3 style="text-align: left; margin-bottom: 15px;">💧 Daily Usage Tracker</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 210, 255, 0.2);">
+                        <div>
+                            <span style="color:#aaa; font-size: 13px;">Consumed Today</span><br>
+                            <strong id="dailyUsageText" style="font-size: 24px; color: #00d2ff;">0.0%</strong>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="color:#aaa; font-size: 13px;">Est. Volume</span><br>
+                            <strong id="dailyUsageLiters" style="font-size: 18px; color: #7bed9f;">0 L</strong>
+                        </div>
                     </div>
                 </div>
 
@@ -995,8 +1039,11 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
 
-        // --- NEW GLOBALS FOR TERMINAL HISTORY ---
+        // --- GLOBALS FOR TERMINAL HISTORY & USAGE TRACKING ---
         let espLogHistory = [];
+        let lastWaterPercent = -1;
+        let localDailyUsage = 0;
+        let hasShownPopup = false;
 
         window.manualRadioTech = null;
         window.manualRadioChan = null;
@@ -1152,6 +1199,7 @@
                     database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
                     database.ref('/Devices/' + currentDeviceId + '/state').off();
                     database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
+                    database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     currentDeviceId = null;
                 }
             }
@@ -1372,6 +1420,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
                 database.ref('/Devices/' + currentDeviceId + '/state').off();
                 database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
+                database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
             }
 
             if (heartbeatTimer) {
@@ -1380,8 +1429,10 @@
             
             currentDeviceId = devId;
 
-            // --- RESET LOG HISTORY ON NEW CONNECTION ---
+            // --- RESET ALL LOCAL LOGS & TRACKERS ---
             espLogHistory = [];
+            lastWaterPercent = -1;
+            hasShownPopup = false;
 
             window.manualRadioTech = null;
             window.manualRadioChan = null;
@@ -1401,6 +1452,9 @@
             document.getElementById('txtBypass').innerText = '--';
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
+            
+            document.getElementById('dailyUsageText').innerText = '0.0%';
+            document.getElementById('dailyUsageLiters').innerText = '0 L';
             
             document.getElementById('adminTxtRadio').innerText = 'nRF24L01'; 
             document.getElementById('adminTxtChannel').innerText = '--';
@@ -1534,6 +1588,34 @@
                 }
             });
 
+            // --- FETCH DAILY USAGE FROM FIREBASE ---
+            database.ref(basePath + '/usageStats/today').on('value', snap => {
+                let val = snap.val();
+                let todayDate = new Date().toDateString();
+                
+                if(val && val.date === todayDate) {
+                    localDailyUsage = val.usage || 0;
+                } else {
+                    localDailyUsage = 0; // Reset at midnight
+                }
+                
+                if (document.getElementById('dailyUsageText')) {
+                    document.getElementById('dailyUsageText').innerText = localDailyUsage.toFixed(1) + '%';
+                    document.getElementById('dailyUsageLiters').innerText = (localDailyUsage * 10).toFixed(0) + ' L';
+                }
+                
+                // Show Popup SMS automatically after 3 seconds on dashboard load
+                if(!hasShownPopup && localDailyUsage > 0) {
+                    hasShownPopup = true;
+                    setTimeout(() => {
+                        const popup = document.getElementById('usageSmsPopup');
+                        popup.innerHTML = `💧 <strong>Daily Alert:</strong> You have used ${localDailyUsage.toFixed(1)}% of your tank today!`;
+                        popup.classList.add('show');
+                        setTimeout(() => popup.classList.remove('show'), 6000);
+                    }, 3000);
+                }
+            });
+
             database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
                 const statusData = snapshot.val() || {};
                 
@@ -1614,19 +1696,43 @@
                         if(document.getElementById('adminTxtDist')) document.getElementById('adminTxtDist').innerText = '-- m';
                     }
 
-                    // --- NEW FEATURE: TERMINAL HISTORY ARRAY ---
+                    // --- TRACK DAILY USAGE CALCULATION ---
+                    let currentPct = parseFloat(data.waterPercent);
+                    if (lastWaterPercent !== -1) {
+                        // If the tank goes down, and pump is OFF, someone used water!
+                        if (currentPct < lastWaterPercent && !currentPumpState) {
+                            let drop = lastWaterPercent - currentPct;
+                            if (drop > 0.2 && drop < 30) { // Filter out random sensor noise
+                                let todayDate = new Date().toDateString();
+                                database.ref(basePath + '/usageStats/today').once('value').then(s => {
+                                    let val = s.val();
+                                    let newUsage = drop;
+                                    if(val && val.date === todayDate) {
+                                        newUsage = (val.usage || 0) + drop;
+                                    }
+                                    database.ref(basePath + '/usageStats/today').set({
+                                        date: todayDate,
+                                        usage: newUsage
+                                    });
+                                });
+                            }
+                        }
+                    }
+                    lastWaterPercent = currentPct;
+
+                    // --- ESP32 TERMINAL LOG HISTORY (Last 5 Distinct Events) ---
                     if(data.log) {
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        // Only add to history if it's a new unique event string
                         if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
                             espLogHistory.push(cleanEspLog);
-                            if(espLogHistory.length > 5) espLogHistory.shift(); // Keep only last 5
+                            if(espLogHistory.length > 5) espLogHistory.shift(); 
                         }
                         const logBox = document.getElementById('logConsole');
                         logBox.innerText = espLogHistory.join('\n\n-----------------\n\n');
-                        logBox.scrollTop = logBox.scrollHeight; // Auto-scroll
+                        logBox.scrollTop = logBox.scrollHeight; 
                     }
                     
+                    // --- NANO TERMINAL LOG (Single Latest Event Only) ---
                     if(data.nanoLog) {
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         const nanoBox = document.getElementById('nanoLogConsole');
