@@ -1370,6 +1370,9 @@
             
             globalScannerTimer = setInterval(() => {
                 database.ref('/Devices').once('value').then((snapshot) => {
+                    // --- SECURITY/PHANTOM FIX: Clear active layout index before populating ---
+                    // This strips out memory arrays for completely deleted nodes instantly.
+                    globalDeviceState = {}; 
                     snapshot.forEach(child => {
                         let devId = child.key;
                         let val = child.val();
@@ -1377,17 +1380,7 @@
                         let devType = val.customerInfo && val.customerInfo.deviceType ? val.customerInfo.deviceType : "Unknown";
                         let assignedName = val.customerInfo && val.customerInfo.assignedName ? val.customerInfo.assignedName : "";
                         
-                        if(!globalDeviceState[devId]) {
-                            globalDeviceState[devId] = { lastHb: -1, lastTime: Date.now(), deviceType: devType, assignedName: assignedName };
-                        } else {
-                            globalDeviceState[devId].deviceType = devType;
-                            globalDeviceState[devId].assignedName = assignedName;
-                        }
-                        
-                        if(globalDeviceState[devId].lastHb !== hb) {
-                            globalDeviceState[devId].lastHb = hb;
-                            globalDeviceState[devId].lastTime = Date.now();
-                        }
+                        globalDeviceState[devId] = { lastHb: hb, lastTime: Date.now(), deviceType: devType, assignedName: assignedName };
                     });
                     renderAdminInbox();
                 });
@@ -1427,8 +1420,14 @@
             let currentConnectedDeviceFaultMessage = null; 
 
             for (const devId in adminInboxData) {
-                let devType = globalDeviceState[devId] && globalDeviceState[devId].deviceType ? globalDeviceState[devId].deviceType : "Unknown";
-                let assignedNameStrRaw = globalDeviceState[devId] && globalDeviceState[devId].assignedName ? globalDeviceState[devId].assignedName : "";
+                // --- PHANTOM SAFEGUARD FILTER: Cross-check if the ID is missing from /Devices path ---
+                // If a node has been fully deleted from /Devices, skip rendering completely!
+                if (!globalDeviceState[devId]) {
+                    continue;
+                }
+
+                let devType = globalDeviceState[devId].deviceType || "Unknown";
+                let assignedNameStrRaw = globalDeviceState[devId].assignedName || "";
                 
                 if (filter !== "All" && devType !== filter) {
                     continue; 
