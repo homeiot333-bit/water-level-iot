@@ -961,7 +961,7 @@
                             </div>
                         </div>
                         
-                       <div class="terminals-wrapper">
+                        <div class="terminals-wrapper">
                             <div class="terminal-column" style="flex: 1.6;">
                                 <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ESP32 (HUB)</span>
                                 <div id="logConsole" class="log-box" style="text-align:left;">Awaiting Core Stream...</div>
@@ -971,6 +971,12 @@
                                 <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left;">Awaiting Payload Link...</div>
                             </div>
                         </div>
+                        
+                        <div style="margin-top: 10px; width: 100%;">
+                            <button class="btn-login" style="background:rgba(255, 255, 255, 0.1); color:#00d2ff; border: 1px dashed #00d2ff; font-size:13px; padding:8px; margin-bottom:5px;" onclick="toggleHwPanel()">⚙️ Show Hardware Diagnostics</button>
+                            <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
+                        </div>
+
                         <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
                             <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
                             <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
@@ -1057,11 +1063,10 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // --- NEW: ACTIVATE ENTERPRISE APP CHECK ---
         const appCheck = firebase.appCheck();
         appCheck.activate(
             'YOUR_RECAPTCHA_V3_SITE_KEY_HERE', 
-            true // Keep true to allow testing on localhost. Flip to false when deploying live.
+            true 
         );
 
         let globalDeviceState = {};
@@ -1145,12 +1150,10 @@
             document.getElementById('searchMenuDropdown').style.display = "none";
         }
 
-        // --- FIXED FEATURE: ADMIN CREDENTIALS PIN PROTECTION ---
         function toggleCredBox() {
             const box = document.getElementById('credentialsBox');
             
             if (box.style.display === "none") {
-                // If opening the box, prompt for PIN
                 const currentUser = firebase.auth().currentUser;
                 if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
                     const pin = prompt("🔒 ADMIN SECURITY\n\nEnter Admin PIN to view credentials:\n(Default is 12345)");
@@ -1161,13 +1164,18 @@
                 }
                 box.style.display = "block";
             } else {
-                // If closing, just close it (no PIN required to hide)
                 box.style.display = "none";
             }
         }
 
         function toggleLinkCustomerBox() {
             const box = document.getElementById('linkCustomerBox');
+            box.style.display = (box.style.display === "none") ? "block" : "none";
+        }
+
+        // --- NEW: Toggle Hardware Panel ---
+        function toggleHwPanel() {
+            const box = document.getElementById('hwTerminalPanel');
             box.style.display = (box.style.display === "none") ? "block" : "none";
         }
 
@@ -1369,8 +1377,6 @@
             
             globalScannerTimer = setInterval(() => {
                 database.ref('/Devices').once('value').then((snapshot) => {
-                    // --- SECURITY/PHANTOM FIX: Clear active layout index before populating ---
-                    // This strips out memory arrays for completely deleted nodes instantly.
                     globalDeviceState = {}; 
                     snapshot.forEach(child => {
                         let devId = child.key;
@@ -1419,8 +1425,6 @@
             let currentConnectedDeviceFaultMessage = null; 
 
             for (const devId in adminInboxData) {
-                // --- PHANTOM SAFEGUARD FILTER: Cross-check if the ID is missing from /Devices path ---
-                // If a node has been fully deleted from /Devices, skip rendering completely!
                 if (!globalDeviceState[devId]) {
                     continue;
                 }
@@ -1598,6 +1602,7 @@
             document.getElementById('credEmail').innerText = "Not saved in DB";
             document.getElementById('credPass').innerText = "Not saved in DB";
             document.getElementById('credentialsBox').style.display = "none"; 
+            document.getElementById('hwTerminalPanel').innerText = "Awaiting Cloud Sync...";
             
             if(document.getElementById('txtRuntimeDays')) {
                 document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
@@ -1868,6 +1873,12 @@
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         const nanoBox = document.getElementById('nanoLogConsole');
                         nanoBox.innerText = cleanNanoLog;
+                    }
+
+                    // --- NEW: UPDATE HARDWARE PANEL IF AVAILABLE ---
+                    if(data.hardwareLog) {
+                        const hwBox = document.getElementById('hwTerminalPanel');
+                        if (hwBox) hwBox.innerText = data.hardwareLog;
                     }
                 }
             });
