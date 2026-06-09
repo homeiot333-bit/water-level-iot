@@ -184,7 +184,7 @@
             flex-direction: column;
             flex: 1.5;
             min-width: 320px;
-            max-width: 650px;
+            max-width: 850px; /* <-- NEW WIDER WIDTH */
             width: 100%;
         }
 
@@ -961,14 +961,15 @@
                             </div>
                         </div>
                         
-                        <div class="terminals-wrapper">
-                            <div class="terminal-column" style="flex: 1.6;">
+                       <div class="terminals-wrapper">
+                            <div class="terminal-column" style="flex: 1.5;">
                                 <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ESP32 (HUB)</span>
-                                <div id="logConsole" class="log-box" style="text-align:left;">Awaiting Core Stream...</div>
+                                <div id="logConsole" class="log-box" style="text-align:left; height: 120px;">Awaiting Core Stream...</div>
                             </div>
-                            <div class="terminal-column" style="flex: 0.9;">
+                            
+                            <div class="terminal-column" style="flex: 1.5;">
                                 <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">NANO (TANK)</span>
-                                <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left;">Awaiting Payload Link...</div>
+                                <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left; height: 120px;">Awaiting Payload Link...</div>
                             </div>
                         </div>
                         
