@@ -184,7 +184,7 @@
             flex-direction: column;
             flex: 1.5;
             min-width: 320px;
-            max-width: 850px; /* <-- NEW WIDER WIDTH */
+            max-width: 850px; 
             width: 100%;
         }
 
@@ -961,7 +961,7 @@
                             </div>
                         </div>
                         
-                       <div class="terminals-wrapper">
+                        <div class="terminals-wrapper">
                             <div class="terminal-column" style="flex: 1.5;">
                                 <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ESP32 (HUB)</span>
                                 <div id="logConsole" class="log-box" style="text-align:left; height: 120px;">Awaiting Core Stream...</div>
@@ -1013,7 +1013,13 @@
                         <input type="text" id="assignRadioChannel" class="input-box" placeholder="7. RF Channel (Manual Override)">
                         <input type="text" id="assignRadioRate" class="input-box" placeholder="8. Data Rate (Manual Override)">
                         
-                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">9. Device Deployed Date:</label>
+                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">9. Network Topology:</label>
+                        <select id="assignUsesRepeater" class="input-box">
+                            <option value="Yes">Uses Middleman Repeater</option>
+                            <option value="No">Direct Link Only</option>
+                        </select>
+                        
+                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">10. Device Deployed Date:</label>
                         <input type="date" id="assignDeployDate" class="input-box">
 
                         <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
@@ -1174,7 +1180,6 @@
             box.style.display = (box.style.display === "none") ? "block" : "none";
         }
 
-        // --- NEW: Toggle Hardware Panel ---
         function toggleHwPanel() {
             const box = document.getElementById('hwTerminalPanel');
             box.style.display = (box.style.display === "none") ? "block" : "none";
@@ -1651,6 +1656,7 @@
             const rTech = document.getElementById('assignRadioTech').value.trim();
             const rChan = document.getElementById('assignRadioChannel').value.trim();
             const rRate = document.getElementById('assignRadioRate').value.trim();
+            const usesRepeater = document.getElementById('assignUsesRepeater').value;
             const deployDate = document.getElementById('assignDeployDate').value;
             
             if(uid && devId) {
@@ -1666,6 +1672,7 @@
                     if(rTech) updates.radioTech = rTech;
                     if(rChan) updates.radioChannel = rChan;
                     if(rRate) updates.radioRate = rRate;
+                    if(usesRepeater) updates.usesRepeater = usesRepeater;
                     if(deployDate) updates.deployDate = deployDate;
 
                     database.ref('Devices/' + devId + '/customerInfo').update(updates).then(() => {
@@ -1680,6 +1687,7 @@
                         document.getElementById('assignRadioTech').value = '';
                         document.getElementById('assignRadioChannel').value = '';
                         document.getElementById('assignRadioRate').value = '';
+                        document.getElementById('assignUsesRepeater').value = 'Yes';
                         document.getElementById('assignDeployDate').value = '';
                         document.getElementById('linkCustomerBox').style.display = "none";
                     });
@@ -1876,7 +1884,6 @@
                         nanoBox.innerText = cleanNanoLog;
                     }
 
-                    // --- NEW: UPDATE HARDWARE PANEL IF AVAILABLE ---
                     if(data.hardwareLog) {
                         const hwBox = document.getElementById('hwTerminalPanel');
                         if (hwBox) hwBox.innerText = data.hardwareLog;
