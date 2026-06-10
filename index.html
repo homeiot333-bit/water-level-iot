@@ -1096,6 +1096,7 @@
         let lastWaterPercent = -1;
         let localDailyUsage = 0;
         let hasShownPopup = false;
+        let pumpCommandTimeout = null; 
 
         window.manualRadioTech = null;
         window.manualRadioChan = null;
@@ -1625,6 +1626,7 @@
             const btn = document.getElementById('pumpToggleBtn');
             btn.className = "btn-round btn-off";
             btn.innerText = "WAIT...";
+            btn.style.opacity = "1";
             
             const badge = document.getElementById('connStatus');
             badge.style.background = "#ffa502";
@@ -1946,6 +1948,14 @@
                     const btn = document.getElementById('pumpToggleBtn');
                     const tankModel = document.getElementById('waterTankModel'); 
                     
+                    // --- CLEAR THE TIMEOUT ---
+                    // The ESP32 successfully updated the state, so clear the safety timeout
+                    if(pumpCommandTimeout) {
+                        clearTimeout(pumpCommandTimeout);
+                        pumpCommandTimeout = null;
+                        btn.style.opacity = "1"; 
+                    }
+                    
                     if(currentPumpState) {
                         btn.className = "btn-round btn-off";
                         btn.innerText = "TURN\nOFF";
@@ -1979,7 +1989,31 @@
             database.ref('/Devices/' + currentDeviceId + '/control/forceState').set(desiredState);
             database.ref('/Devices/' + currentDeviceId + '/control/triggerId').set(newTrigger);
             
-            document.getElementById('pumpToggleBtn').innerText = "WAIT...";
+            const btn = document.getElementById('pumpToggleBtn');
+            btn.innerText = "WAIT...";
+            btn.style.opacity = "0.6"; 
+
+            // --- 6-SECOND COMMAND EXPIRATION TIMEOUT ---
+            if(pumpCommandTimeout) clearTimeout(pumpCommandTimeout);
+            
+            pumpCommandTimeout = setTimeout(() => {
+                // Revert the database command so it doesn't fire late
+                const revertTrigger = Math.floor(Math.random() * 1000000) + 1; 
+                database.ref('/Devices/' + currentDeviceId + '/control/forceState').set(currentPumpState);
+                database.ref('/Devices/' + currentDeviceId + '/control/triggerId').set(revertTrigger);
+                
+                // Revert the button UI
+                btn.style.opacity = "1";
+                if(currentPumpState) {
+                    btn.className = "btn-round btn-off";
+                    btn.innerText = "TURN\nOFF";
+                } else {
+                    btn.className = "btn-round btn-on";
+                    btn.innerText = "TURN\nON";
+                }
+                
+                alert("⏳ Command Timed Out!\n\nThe device did not respond within 6 seconds. The command was cancelled for safety. Please try again.");
+            }, 6000); 
         }
 
         function triggerOTA() {
