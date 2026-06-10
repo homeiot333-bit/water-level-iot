@@ -1948,8 +1948,6 @@
                     const btn = document.getElementById('pumpToggleBtn');
                     const tankModel = document.getElementById('waterTankModel'); 
                     
-                    // --- CLEAR THE TIMEOUT ---
-                    // The ESP32 successfully updated the state, so clear the safety timeout
                     if(pumpCommandTimeout) {
                         clearTimeout(pumpCommandTimeout);
                         pumpCommandTimeout = null;
@@ -1974,6 +1972,12 @@
                 return;
             }
 
+            // ANTI-GHOST TRIGGER FIX: Block command if already offline
+            if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
+                alert("❌ Network Offline: Cannot send command right now.");
+                return;
+            }
+
             const currentUser = firebase.auth().currentUser;
             if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
                 const pin = prompt("🔒 MASTER CONTROL SECURITY\n\nEnter Admin PIN to toggle pump:\n(Default is 12345)");
@@ -1993,16 +1997,21 @@
             btn.innerText = "WAIT...";
             btn.style.opacity = "0.6"; 
 
-            // --- 6-SECOND COMMAND EXPIRATION TIMEOUT ---
             if(pumpCommandTimeout) clearTimeout(pumpCommandTimeout);
             
             pumpCommandTimeout = setTimeout(() => {
-                // Revert the database command so it doesn't fire late
+                // ANTI-GHOST TRIGGER FIX: Destroy Firebase Memory Queue if offline
+                if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
+                    alert("⏳ Network Connection Lost!\n\nYour pending command was wiped to prevent a delayed ghost trigger. The dashboard will now reload.");
+                    window.location.reload();
+                    return;
+                }
+
+                // If online but ESP32 failed to respond, safely revert the cloud state
                 const revertTrigger = Math.floor(Math.random() * 1000000) + 1; 
                 database.ref('/Devices/' + currentDeviceId + '/control/forceState').set(currentPumpState);
                 database.ref('/Devices/' + currentDeviceId + '/control/triggerId').set(revertTrigger);
                 
-                // Revert the button UI
                 btn.style.opacity = "1";
                 if(currentPumpState) {
                     btn.className = "btn-round btn-off";
