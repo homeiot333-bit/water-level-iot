@@ -1,0 +1,129 @@
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+
+// Initialize radio on pins CE=9, CSN=10
+RF24 radio(9, 10);
+const byte address[6] = "WTR01";
+
+// --- DUAL EXTERNAL DIAGNOSTIC LED PIN ASSIGNMENTS ---
+const int tankLed = 2;               
+const int espLed  = 3;               
+
+// Independent Watchdog Timers
+unsigned long lastTankPacketTime = 0;
+const unsigned long timeoutDuration = 2000; 
+unsigned long lastTankBlinkTime = 0;
+bool tankLedState = false;
+
+// Tracks if the radio chip crashed due to a power brownout
+bool wasHardwareFaulty = false; 
+
+// 32-BYTE PERFECT FIT STRUCTURE
+struct __attribute__((packed)) AdvancedPayload {
+  float verifiedDistance;
+  float raw1;
+  float raw2;
+  uint32_t packetId;
+  char nanoLog[13]; 
+  bool tankRadioOk;
+  bool middlemanRadioOk;
+  bool espRadioOk;
+};
+AdvancedPayload relayPackage;
+
+// Dedicated function to easily reload memory if the chip crashes
+void initializeRadio() {
+  radio.begin();
+  radio.setChannel(125);   
+  radio.setAutoAck(false);           
+  radio.setPALevel(RF24_PA_LOW); // FIX: Dropped to LOW to stop the 3.3V brownout cycle
+  radio.setDataRate(RF24_250KBPS);     
+  radio.setCRCLength(RF24_CRC_16); 
+  radio.setPayloadSize(sizeof(AdvancedPayload)); 
+  radio.openReadingPipe(1, address);
+  radio.openWritingPipe(address);
+  radio.startListening();
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println(F("[REPEATER] Initializing Middleman..."));
+
+  pinMode(tankLed, OUTPUT);
+  pinMode(espLed, OUTPUT);
+  digitalWrite(tankLed, LOW); 
+  digitalWrite(espLed, LOW); 
+
+  initializeRadio();
+  lastTankPacketTime = millis();
+  
+  if (radio.isChipConnected()) {
+      Serial.println(F("[SUCCESS] -> Auto-Healing Relay Active."));
+  } else {
+      Serial.println(F("[ERROR] -> Check wiring immediately!"));
+  }
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  bool isRadioHardwareHealthy = radio.isChipConnected();
+
+  // 1. AUTO-HEALING WATCHDOG
+  if (!isRadioHardwareHealthy) {
+    wasHardwareFaulty = true; // Flag that a crash occurred
+  } 
+  else if (isRadioHardwareHealthy && wasHardwareFaulty) {
+    // The chip got power back, but its memory is wiped. We MUST reload the settings!
+    Serial.println(F("[WARNING] Radio recovered from power crash. Reloading memory..."));
+    initializeRadio();
+    wasHardwareFaulty = false;
+  }
+
+  // 2. READ PROCESS (Only allow reading if hardware is verified healthy)
+  if (isRadioHardwareHealthy && radio.available()) {
+    radio.read(&relayPackage, sizeof(relayPackage));
+    
+    // PHANTOM GARBAGE REJECTOR: Prevent forwarding static electrical noise
+    if (relayPackage.packetId == 0) {
+       return; 
+    }
+
+    lastTankPacketTime = currentMillis; 
+    digitalWrite(tankLed, LOW); 
+
+    relayPackage.middlemanRadioOk = true;
+
+    strncpy(relayPackage.nanoLog, "Via Repeater", 12);
+    relayPackage.nanoLog[12] = '\0'; 
+
+    Serial.print(F("[RELAY] Captured Packet ID: ")); 
+    Serial.print(relayPackage.packetId);
+    Serial.println(F(" | HW Status: OK"));
+
+    radio.stopListening();
+    delay(8); 
+
+    digitalWrite(espLed, HIGH);
+    
+    radio.write(&relayPackage, sizeof(relayPackage));
+    
+    Serial.println(F("        -> Packet successfully boosted to ESP32 Hub."));
+
+    delay(10); 
+    digitalWrite(espLed, LOW);
+
+    radio.startListening();
+  }
+
+  // 3. ROOF TANK LINK WATCHDOG
+  bool isTankOnline = (currentMillis - lastTankPacketTime <= timeoutDuration);
+  if (!isTankOnline) {
+    if (currentMillis - lastTankBlinkTime >= 500) {
+      lastTankBlinkTime = currentMillis;
+      tankLedState = !tankLedState;
+      digitalWrite(tankLed, tankLedState ? HIGH : LOW);
+    }
+  }
+}
