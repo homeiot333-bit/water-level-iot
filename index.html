@@ -805,6 +805,7 @@
             </h3>
             <div style="display:flex; align-items:center; gap: 15px;">
                 <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
+                <button class="logout-btn" id="changePassBtn" style="background:#feca57; color:#000; display:none;" onclick="changeCustomerPassword()">🔑 Change Password</button>
                 <button class="logout-btn" onclick="logoutUser()">Logout</button>
             </div>
         </div>
@@ -924,7 +925,7 @@
                         <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
                     </div>
 
-                    <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., DEVICE_001">
+                    <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., A4CF129B44E1 (MAC)">
                     <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
                     
                     <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
@@ -1001,7 +1002,7 @@
                         <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
                         <h3 style="color: #7bed9f; margin-top:0; text-align:left;">Link Customer & Config Device</h3>
                         <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
-                        <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., DEVICE_001">
+                        <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., A4CF129B44E1 (MAC)">
                         
                         <select id="assignTypeInput" class="input-box">
                             <option value="Household">House Hold</option>
@@ -1158,7 +1159,7 @@
             if(mode === "email") {
                 input.placeholder = "e.g., customer@gmail.com";
             } else {
-                input.placeholder = "e.g., DEVICE_001";
+                input.placeholder = "e.g., A4CF129B44E1 (MAC)";
             }
             document.getElementById('searchMenuDropdown').style.display = "none";
         }
@@ -1200,6 +1201,30 @@
             }
         }
 
+        // --- NEW: IN-APP PASSWORD CHANGER ---
+        function changeCustomerPassword() {
+            let currentPass = prompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:");
+            if(!currentPass) return;
+            
+            let newPass = prompt("🔑 NEW PASSWORD\n\nEnter your NEW password (must be at least 6 characters):");
+            if(!newPass || newPass.length < 6) {
+                alert("❌ Password change failed. The new password must be at least 6 characters.");
+                return;
+            }
+            
+            let user = firebase.auth().currentUser;
+            let cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
+            
+            user.reauthenticateWithCredential(cred).then(() => {
+                user.updatePassword(newPass).then(() => {
+                    if(currentDeviceId) {
+                        database.ref('/Devices/' + currentDeviceId + '/customerInfo/password').set(newPass);
+                    }
+                    alert("✅ Password changed successfully!\nYour new login password is: " + newPass);
+                }).catch(err => alert("❌ Error updating password: " + err.message));
+            }).catch(err => alert("❌ Verification failed. Incorrect current password."));
+        }
+
         function loginUser() {
             const email = document.getElementById('emailInput').value.trim();
             const pass = document.getElementById('passwordInput').value;
@@ -1237,6 +1262,7 @@
                     document.getElementById('customerMarquee').style.display = 'none';
                     document.getElementById('customerMenuDots').style.display = 'none';
                     document.getElementById('advancedSection').style.display = 'none';
+                    document.getElementById('changePassBtn').style.display = 'none';
                     
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
@@ -1248,6 +1274,7 @@
                     
                     document.getElementById('customerMarquee').style.display = 'block';
                     document.getElementById('customerMenuDots').style.display = 'block';
+                    document.getElementById('changePassBtn').style.display = 'inline-block';
                     
                     document.getElementById('adminCommandCenter').style.display = 'none';
                     document.getElementById('mainDashboardView').style.display = 'flex';
@@ -1397,6 +1424,29 @@
                         let devType = val.customerInfo && val.customerInfo.deviceType ? val.customerInfo.deviceType : "Unknown";
                         let assignedName = val.customerInfo && val.customerInfo.assignedName ? val.customerInfo.assignedName : "";
                         
+                        // --- ZERO-TOUCH BACKGROUND PROVISIONING WORKER ---
+                        // Automatically generates the Firebase Auth account when a new device connects
+                        if(val.customerInfo && val.customerInfo.email && val.customerInfo.accountCreated === false) {
+                            let autoEmail = val.customerInfo.email;
+                            let autoPass = val.customerInfo.password;
+                            
+                            fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + firebaseConfig.apiKey, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({email: autoEmail, password: autoPass, returnSecureToken: true})
+                            }).then(res => res.json()).then(data => {
+                                if(data.idToken || (data.error && data.error.message === "EMAIL_EXISTS")) {
+                                    database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
+                                    
+                                    // Generate the internal user link immediately
+                                    let cleanUid = devId; 
+                                    if(data.localId) cleanUid = data.localId; // Use real Firebase UID if provided
+                                    database.ref('/Users/' + cleanUid + '/deviceId').set(devId);
+                                }
+                            }).catch(err => console.log("Silent Auto-Provisioning Error:", err));
+                        }
+                        // ---------------------------------------------------
+
                         globalDeviceState[devId] = { lastHb: hb, lastTime: Date.now(), deviceType: devType, assignedName: assignedName };
                     });
                     renderAdminInbox();
@@ -1972,7 +2022,6 @@
                 return;
             }
 
-            // ANTI-GHOST TRIGGER FIX: Block command if already offline
             if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
                 alert("❌ Network Offline: Cannot send command right now.");
                 return;
@@ -2000,14 +2049,12 @@
             if(pumpCommandTimeout) clearTimeout(pumpCommandTimeout);
             
             pumpCommandTimeout = setTimeout(() => {
-                // ANTI-GHOST TRIGGER FIX: Destroy Firebase Memory Queue if offline
                 if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
                     alert("⏳ Network Connection Lost!\n\nYour pending command was wiped to prevent a delayed ghost trigger. The dashboard will now reload.");
                     window.location.reload();
                     return;
                 }
 
-                // If online but ESP32 failed to respond, safely revert the cloud state
                 const revertTrigger = Math.floor(Math.random() * 1000000) + 1; 
                 database.ref('/Devices/' + currentDeviceId + '/control/forceState').set(currentPumpState);
                 database.ref('/Devices/' + currentDeviceId + '/control/triggerId').set(revertTrigger);
