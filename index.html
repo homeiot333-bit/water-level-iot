@@ -805,7 +805,8 @@
             </h3>
             <div style="display:flex; align-items:center; gap: 15px;">
                 <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
-                <button class="logout-btn" id="changePassBtn" style="background:#feca57; color:#000; display:none;" onclick="changeCustomerPassword()">🔑 Change Password</button>
+                <button class="logout-btn" id="settingsBtn" style="background:#00d2ff; color:#000; display:none;" onclick="toggleCustomerSettings()">⚙️ Settings</button>
+                <button class="logout-btn" id="changePassBtn" style="background:#feca57; color:#000; display:none;" onclick="changeCustomerPassword()">🔑 Password</button>
                 <button class="logout-btn" onclick="logoutUser()">Logout</button>
             </div>
         </div>
@@ -822,6 +823,27 @@
         <div class="dashboard-grid">
             
             <div class="dash-col-left" id="mainDashboardView" style="display:none;">
+                
+                <div id="customerSettingsBox" style="display:none; width:100%; text-align: left; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; border: 1px dashed #00d2ff; margin-bottom: 20px;">
+                    <h3 style="color: #00d2ff; margin-top:0;">⚙️ Device Configuration</h3>
+                    <p style="font-size:12px; color:#aaa; margin-top:0;">Update your tank dimensions or connect the device to a new WiFi network.</p>
+                    
+                    <label style="color:#ccc; font-size:12px;">Tank Empty Depth (cm):</label>
+                    <input type="number" id="custEmptyInput" class="input-box" placeholder="e.g., 150">
+                    
+                    <label style="color:#ccc; font-size:12px;">Tank Full Clearance (cm):</label>
+                    <input type="number" id="custFullInput" class="input-box" placeholder="e.g., 15">
+                    
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+                    
+                    <label style="color:#ccc; font-size:12px;">New WiFi Network Name (SSID):</label>
+                    <input type="text" id="custWifiSSID" class="input-box" placeholder="Your Home WiFi Name">
+                    
+                    <label style="color:#ccc; font-size:12px;">New WiFi Password:</label>
+                    <input type="text" id="custWifiPass" class="input-box" placeholder="Your Home WiFi Password">
+                    
+                    <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="saveCustomerSettings()">Save Settings to Device</button>
+                </div>
                 <div class="card">
                     <span id="connStatus" class="status-badge">ONLINE</span>
                     <div id="customerMenuDots" class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data" style="display:none; top: 15px; right: 20px;">⋮</div>
@@ -925,7 +947,7 @@
                         <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
                     </div>
 
-                    <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., A4CF129B44E1 (MAC)">
+                    <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., a4e1 (MAC)">
                     <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
                     
                     <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
@@ -965,6 +987,46 @@
                                 <span>Deployed: <strong id="adminTxtDeployDate" style="color:#ccc;">--</strong></span>
                             </div>
                         </div>
+
+                        <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 10px; color: #7bed9f; font-size: 15px;">📏 Remote Auto-Calibration</h3>
+                            <p style="font-size:12px; color:#aaa; margin-top:0;">Capture live sensor data to automatically configure tank heights.</p>
+                            
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.6); padding:12px; border-radius:6px; margin-bottom:15px; border:1px dashed #feca57;">
+                                <span style="font-size:13px; color:#ccc;">Live Target Distance:</span>
+                                <span id="adminLiveRawDist" style="font-size:18px; font-weight:bold; color:#feca57;">-- cm</span>
+                            </div>
+                            
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn-login" style="background:rgba(255, 71, 87, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('empty')">Set as Empty (0%)</button>
+                                <button class="btn-login" style="background:rgba(46, 213, 115, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('full')">Set as Full (100%)</button>
+                            </div>
+
+                            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+                            <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">⚙️ Manual Override & Network Config</h4>
+                            
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <div style="flex:1; min-width:140px;">
+                                    <label style="color:#aaa; font-size:11px;">Empty Tank Depth (cm)</label>
+                                    <input type="number" id="adminEmptyInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 150">
+                                </div>
+                                <div style="flex:1; min-width:140px;">
+                                    <label style="color:#aaa; font-size:11px;">Full Clearance (cm)</label>
+                                    <input type="number" id="adminFullInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 15">
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:5px;">
+                                <div style="flex:1; min-width:140px;">
+                                    <label style="color:#aaa; font-size:11px;">New WiFi SSID</label>
+                                    <input type="text" id="adminWifiSSID" class="input-box" style="padding:8px; margin:5px 0;" placeholder="Network Name">
+                                </div>
+                                <div style="flex:1; min-width:140px;">
+                                    <label style="color:#aaa; font-size:11px;">New WiFi Password</label>
+                                    <input type="text" id="adminWifiPass" class="input-box" style="padding:8px; margin:5px 0;" placeholder="Password">
+                                </div>
+                            </div>
+                            <button class="btn-login" style="background:#00d2ff; color:#000; font-size:13px; padding:10px; margin-top:10px;" onclick="saveAdminManualSettings()">Push Manual Settings</button>
+                            </div>
                         
                         <div class="terminals-wrapper">
                             <div class="terminal-column" style="flex: 1.5;">
@@ -1002,7 +1064,7 @@
                         <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
                         <h3 style="color: #7bed9f; margin-top:0; text-align:left;">Link Customer & Config Device</h3>
                         <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
-                        <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., A4CF129B44E1 (MAC)">
+                        <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., a4e1 (MAC)">
                         
                         <select id="assignTypeInput" class="input-box">
                             <option value="Household">House Hold</option>
@@ -1074,6 +1136,7 @@
         
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryWorker");
 
         const appCheck = firebase.appCheck();
         appCheck.activate(
@@ -1107,6 +1170,7 @@
         window.autoRadioRate = null;
         window.deviceDeployDate = null; 
         window.deviceTopology = null; 
+        window.latestRawDistance = null; 
 
         document.addEventListener("visibilitychange", function() {
             if (document.visibilityState === 'visible') {
@@ -1143,6 +1207,19 @@
             }
         }
 
+        // --- NEW: TOGGLE CUSTOMER SETTINGS ---
+        function toggleCustomerSettings() {
+            const box = document.getElementById('customerSettingsBox');
+            box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+            
+            if (box.style.display === 'block') {
+                const emptyEl = document.getElementById('adminTxtEmptyDist');
+                const fullEl = document.getElementById('adminTxtFullDist');
+                if(emptyEl && emptyEl.innerText !== '-- cm') document.getElementById('custEmptyInput').value = parseFloat(emptyEl.innerText);
+                if(fullEl && fullEl.innerText !== '-- cm') document.getElementById('custFullInput').value = parseFloat(fullEl.innerText);
+            }
+        }
+
         function toggleInboxPanel() {
             const panel = document.getElementById('sideInboxPanel');
             panel.classList.toggle('open');
@@ -1159,7 +1236,7 @@
             if(mode === "email") {
                 input.placeholder = "e.g., customer@gmail.com";
             } else {
-                input.placeholder = "e.g., A4CF129B44E1 (MAC)";
+                input.placeholder = "e.g., a4e1 (MAC)";
             }
             document.getElementById('searchMenuDropdown').style.display = "none";
         }
@@ -1201,7 +1278,6 @@
             }
         }
 
-        // --- NEW: IN-APP PASSWORD CHANGER ---
         function changeCustomerPassword() {
             let currentPass = prompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:");
             if(!currentPass) return;
@@ -1263,6 +1339,7 @@
                     document.getElementById('customerMenuDots').style.display = 'none';
                     document.getElementById('advancedSection').style.display = 'none';
                     document.getElementById('changePassBtn').style.display = 'none';
+                    document.getElementById('settingsBtn').style.display = 'none';
                     
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
@@ -1275,6 +1352,7 @@
                     document.getElementById('customerMarquee').style.display = 'block';
                     document.getElementById('customerMenuDots').style.display = 'block';
                     document.getElementById('changePassBtn').style.display = 'inline-block';
+                    document.getElementById('settingsBtn').style.display = 'inline-block';
                     
                     document.getElementById('adminCommandCenter').style.display = 'none';
                     document.getElementById('mainDashboardView').style.display = 'flex';
@@ -1424,28 +1502,24 @@
                         let devType = val.customerInfo && val.customerInfo.deviceType ? val.customerInfo.deviceType : "Unknown";
                         let assignedName = val.customerInfo && val.customerInfo.assignedName ? val.customerInfo.assignedName : "";
                         
-                        // --- ZERO-TOUCH BACKGROUND PROVISIONING WORKER ---
-                        // Automatically generates the Firebase Auth account when a new device connects
                         if(val.customerInfo && val.customerInfo.email && val.customerInfo.accountCreated === false) {
                             let autoEmail = val.customerInfo.email;
                             let autoPass = val.customerInfo.password;
                             
-                            fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + firebaseConfig.apiKey, {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({email: autoEmail, password: autoPass, returnSecureToken: true})
-                            }).then(res => res.json()).then(data => {
-                                if(data.idToken || (data.error && data.error.message === "EMAIL_EXISTS")) {
+                            secondaryApp.auth().createUserWithEmailAndPassword(autoEmail, autoPass)
+                            .then((userCred) => {
+                                secondaryApp.auth().signOut();
+                                database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
+                                let cleanUid = userCred.user.uid; 
+                                database.ref('/Users/' + cleanUid + '/deviceId').set(devId);
+                            })
+                            .catch(err => {
+                                console.log("Silent Auto-Provisioning Error:", err);
+                                if(err.code === "auth/email-already-in-use") {
                                     database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
-                                    
-                                    // Generate the internal user link immediately
-                                    let cleanUid = devId; 
-                                    if(data.localId) cleanUid = data.localId; // Use real Firebase UID if provided
-                                    database.ref('/Users/' + cleanUid + '/deviceId').set(devId);
                                 }
-                            }).catch(err => console.log("Silent Auto-Provisioning Error:", err));
+                            });
                         }
-                        // ---------------------------------------------------
 
                         globalDeviceState[devId] = { lastHb: hb, lastTime: Date.now(), deviceType: devType, assignedName: assignedName };
                     });
@@ -1636,6 +1710,7 @@
             window.autoRadioRate = null;
             window.deviceDeployDate = null;
             window.deviceTopology = null;
+            window.latestRawDistance = null;
 
             document.getElementById('assignedNameDisplay').innerText = '';
             document.getElementById('criticalErrorBanner').style.display = "none";
@@ -1659,6 +1734,8 @@
             document.getElementById('adminTxtDataRate').innerText = '--';
             document.getElementById('adminTxtTopology').innerText = '--';
             document.getElementById('adminTxtDeployDate').innerText = '--';
+            
+            if(document.getElementById('adminLiveRawDist')) document.getElementById('adminLiveRawDist').innerText = '-- cm';
             
             document.getElementById('adminTxtDist').innerText = '-- m';
             document.getElementById('adminTxtSignal').innerText = 'N/A';
@@ -1703,6 +1780,123 @@
             
             renderAdminInbox();
             startListeners();
+        }
+
+        // --- NEW: SAVE CUSTOMER MANUAL SETTINGS ---
+        function saveCustomerSettings() {
+            if(!currentDeviceId) return;
+            
+            const emptyVal = parseFloat(document.getElementById('custEmptyInput').value);
+            const fullVal = parseFloat(document.getElementById('custFullInput').value);
+            const wifiSSID = document.getElementById('custWifiSSID').value.trim();
+            const wifiPass = document.getElementById('custWifiPass').value;
+            
+            let updates = false;
+            let willReboot = false;
+
+            if(!isNaN(emptyVal) && emptyVal > 1.0) {
+                database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
+                updates = true;
+            }
+            if(!isNaN(fullVal) && fullVal >= 1.0) {
+                database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
+                updates = true;
+            }
+            
+            if(wifiSSID !== "") {
+                database.ref('/Devices/' + currentDeviceId + '/control/setWifiSSID').set(wifiSSID);
+                updates = true;
+                willReboot = true;
+            }
+            if(wifiPass !== "") {
+                database.ref('/Devices/' + currentDeviceId + '/control/setWifiPass').set(wifiPass);
+                updates = true;
+                willReboot = true;
+            }
+            
+            if(updates) {
+                let msg = "✅ Settings successfully pushed to the device.";
+                if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi. It may take a minute to come back online.";
+                alert(msg);
+                document.getElementById('customerSettingsBox').style.display = 'none';
+                document.getElementById('custWifiSSID').value = "";
+                document.getElementById('custWifiPass').value = "";
+            } else {
+                alert("No valid changes detected.");
+            }
+        }
+
+        // --- NEW: SAVE ADMIN MANUAL SETTINGS ---
+        function saveAdminManualSettings() {
+            if(!currentDeviceId) return;
+            
+            const emptyVal = parseFloat(document.getElementById('adminEmptyInput').value);
+            const fullVal = parseFloat(document.getElementById('adminFullInput').value);
+            const wifiSSID = document.getElementById('adminWifiSSID').value.trim();
+            const wifiPass = document.getElementById('adminWifiPass').value;
+            
+            let updates = false;
+            let willReboot = false;
+
+            if(!isNaN(emptyVal) && emptyVal > 1.0) {
+                database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
+                updates = true;
+            }
+            if(!isNaN(fullVal) && fullVal >= 1.0) {
+                database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
+                updates = true;
+            }
+            
+            if(wifiSSID !== "") {
+                database.ref('/Devices/' + currentDeviceId + '/control/setWifiSSID').set(wifiSSID);
+                updates = true;
+                willReboot = true;
+            }
+            if(wifiPass !== "") {
+                database.ref('/Devices/' + currentDeviceId + '/control/setWifiPass').set(wifiPass);
+                updates = true;
+                willReboot = true;
+            }
+            
+            if(updates) {
+                let msg = "✅ Manual settings successfully pushed to the device.";
+                if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi.";
+                alert(msg);
+                document.getElementById('adminEmptyInput').value = "";
+                document.getElementById('adminFullInput').value = "";
+                document.getElementById('adminWifiSSID').value = "";
+                document.getElementById('adminWifiPass').value = "";
+            } else {
+                alert("No valid changes detected.");
+            }
+        }
+
+        function calibrateTank(type) {
+            if(!currentDeviceId || !window.latestRawDistance || window.latestRawDistance <= 0.1) {
+                alert("❌ Cannot calibrate: Invalid or missing sensor data.");
+                return;
+            }
+
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                const pin = prompt("🔒 MASTER CONTROL SECURITY\n\nEnter Admin PIN to calibrate tank:\n(Default is 12345)");
+                if (pin !== "3943") {
+                    alert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
+            }
+
+            if(type === 'empty') {
+                if(confirm("Set Empty Tank Depth to " + window.latestRawDistance + " cm?")) {
+                    database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(window.latestRawDistance);
+                    alert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
+                }
+            } else if(type === 'full') {
+                if(confirm("Set Full Water Clearance Level to " + window.latestRawDistance + " cm?")) {
+                    database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(window.latestRawDistance);
+                    alert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
+                }
+            }
         }
 
         function assignDeviceToUser() {
@@ -1885,6 +2079,11 @@
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
                     document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
                     document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
+                    
+                    window.latestRawDistance = parseFloat(data.waterCm);
+                    if(document.getElementById('adminLiveRawDist')) {
+                        document.getElementById('adminLiveRawDist').innerText = window.latestRawDistance.toFixed(1) + ' cm';
+                    }
                     
                     if(data.bucketEmptyHeight) document.getElementById('adminTxtEmptyDist').innerText = parseFloat(data.bucketEmptyHeight).toFixed(1) + ' cm';
                     if(data.bucketFullHeight) document.getElementById('adminTxtFullDist').innerText = parseFloat(data.bucketFullHeight).toFixed(1) + ' cm';
