@@ -597,7 +597,7 @@
             border-radius: 6px; 
             font-size: 13px;
             border: 1px solid rgba(255,255,255,0.05);
-            position: relative; /* REQUIRED FOR THE FLOATING MENU TO ATTACH TO */
+            position: relative; 
         }
 
         .inbox-card span { 
@@ -736,6 +736,20 @@
             bottom: 30px;
         }
 
+        #customModalOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 15, 25, 0.9); z-index: 100000;
+            align-items: center; justify-content: center; backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        #customModalBox {
+            background: rgba(20, 25, 35, 0.95); border: 2px solid #00d2ff;
+            border-radius: 12px; padding: 25px; width: 90%; max-width: 400px;
+            box-shadow: 0 15px 40px rgba(0,210,255,0.3); text-align: center;
+        }
+        #customModalTitle { color: #feca57; margin-top: 0; font-size: 18px; margin-bottom: 15px; }
+        #customModalText { color: #fff; font-size: 14px; margin-bottom: 20px; white-space: pre-wrap; line-height: 1.4; }
+
         @media (max-width: 600px) {
             .terminals-wrapper { 
                 flex-direction: column; 
@@ -754,7 +768,21 @@
 </head>
 <body>
 
-    <!-- NEW: FLOATING INBOX 3-DOT MENU -->
+
+    <!-- CUSTOM SECURITY MODAL INJECTION -->
+    <div id="customModalOverlay">
+        <div id="customModalBox">
+            <h3 id="customModalTitle"></h3>
+            <p id="customModalText"></p>
+            <input type="text" id="customModalInput" class="input-box" style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="customModalCancel" class="btn-login" style="background: rgba(255,71,87,0.8); color: white; padding: 10px; flex: 1;">Cancel</button>
+                <button id="customModalConfirm" class="btn-login" style="background: #2ed573; color: black; padding: 10px; flex: 1;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING INBOX 3-DOT MENU -->
     <div id="inboxFloatingMenu" style="display:none; position:fixed; background:rgba(20, 25, 35, 0.98); border:1px solid #00d2ff; border-radius:8px; padding:5px; z-index:10000; box-shadow: 0 10px 30px rgba(0,0,0,0.9); min-width: 160px;">
         <div style="color:#7bed9f; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('connect')">🟢 Connect Device</div>
         <div style="color:#feca57; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('remove')">🧹 Remove Alert</div>
@@ -991,6 +1019,7 @@
                     <h2>👑 Master Command Center</h2>
 
                     <button class="btn-login" style="background:rgba(0, 210, 255, 0.8); color:#fff; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
+                    
                     <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
                     <!-- Admin PIN Update Button -->
@@ -1263,7 +1292,48 @@
         window.deviceTopology = null; 
         window.latestRawDistance = null; 
 
-        // Close floating menus on outside click
+        function showModal({ title, text, type, showInput }) {
+            return new Promise((resolve) => {
+                const overlay = document.getElementById('customModalOverlay');
+                const titleEl = document.getElementById('customModalTitle');
+                const textEl = document.getElementById('customModalText');
+                const inputEl = document.getElementById('customModalInput');
+                const cancelBtn = document.getElementById('customModalCancel');
+                const confirmBtn = document.getElementById('customModalConfirm');
+
+                titleEl.innerText = title;
+                textEl.innerText = text;
+                
+                inputEl.style.display = showInput ? 'block' : 'none';
+                inputEl.type = type === 'password' ? 'password' : 'text';
+                inputEl.value = '';
+
+                cancelBtn.style.display = type === 'alert' ? 'none' : 'block';
+
+                overlay.style.display = 'flex';
+                if(showInput) inputEl.focus();
+
+                const cleanup = () => {
+                    overlay.style.display = 'none';
+                    cancelBtn.onclick = null;
+                    confirmBtn.onclick = null;
+                };
+
+                cancelBtn.onclick = () => { cleanup(); resolve(null); };
+                confirmBtn.onclick = () => { cleanup(); resolve(showInput ? inputEl.value : true); };
+            });
+        }
+
+        async function customAlert(text) {
+            await showModal({ title: "System Message", text, type: 'alert', showInput: false });
+        }
+        async function customConfirm(text) {
+            return await showModal({ title: "Action Required", text, type: 'confirm', showInput: false });
+        }
+        async function customPrompt(text, isPassword = false) {
+            return await showModal({ title: "Security Verification", text, type: isPassword ? 'password' : 'text', showInput: true });
+        }
+
         window.addEventListener('click', function(e) {
             const inboxMenu = document.getElementById('inboxFloatingMenu');
             if (inboxMenu && inboxMenu.style.display === 'block') {
@@ -1291,20 +1361,12 @@
 
         function toggleAdminPumpControl() {
             const card = document.getElementById('pumpControlCard');
-            if (card.style.display === 'none') {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
+            card.style.display = (card.style.display === 'none') ? 'block' : 'none';
         }
 
         function toggleAdvanced() {
             const adv = document.getElementById('advancedSection');
-            if (adv.style.display === "none") {
-                adv.style.display = "flex";
-            } else {
-                adv.style.display = "none";
-            }
+            adv.style.display = (adv.style.display === "none") ? "flex" : "none";
         }
 
         function toggleCustomerTopMenu() {
@@ -1351,15 +1413,15 @@
             document.getElementById('searchMenuDropdown').style.display = "none";
         }
 
-        function toggleCredBox() {
+        async function toggleCredBox() {
             const box = document.getElementById('credentialsBox');
             
             if (box.style.display === "none") {
                 const currentUser = firebase.auth().currentUser;
                 if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
-                    const pin = prompt("🔒 ADMIN SECURITY\n\nEnter Admin PIN to view credentials:");
+                    const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Admin PIN to view credentials:\n(Default is 3943)", true);
                     if (pin !== window.adminPin) {
-                        alert("❌ Access Denied: Incorrect Security PIN.");
+                        await customAlert("❌ Access Denied: Incorrect Security PIN.");
                         return;
                     }
                 }
@@ -1381,52 +1443,54 @@
 
         function togglePasswordVisibility() {
             const passInput = document.getElementById("passwordInput");
-            if (passInput.type === "password") {
-                passInput.type = "text";
-            } else {
-                passInput.type = "password";
-            }
+            passInput.type = (passInput.type === "password") ? "text" : "password";
         }
 
-        function changeCustomerPassword() {
+        // --- STREAMING_CHUNK: Replacing Blocking Prompts with Async Security Layer... ---
+        async function changeCustomerPassword() {
             document.getElementById('customerTopMenuDropdown').style.display = 'none';
-            let currentPass = prompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:");
+            let currentPass = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:", true);
             if(!currentPass) return;
             
-            let newPass = prompt("🔑 NEW PASSWORD\n\nEnter your NEW password (must be at least 6 characters):");
+            let newPass = await customPrompt("🔑 NEW PASSWORD\n\nEnter your NEW password (must be at least 6 characters):", true);
             if(!newPass || newPass.length < 6) {
-                alert("❌ Password change failed. The new password must be at least 6 characters.");
+                await customAlert("❌ Password change failed. The new password must be at least 6 characters.");
                 return;
             }
             
             let user = firebase.auth().currentUser;
             let cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
             
-            user.reauthenticateWithCredential(cred).then(() => {
-                user.updatePassword(newPass).then(() => {
-                    if(currentDeviceId) {
-                        database.ref('/Devices/' + currentDeviceId + '/customerInfo/password').set(newPass);
-                        database.ref('/Devices/' + currentDeviceId + '/control/updatePortalPass').set(newPass);
-                    }
-                    alert("✅ Password changed successfully!\nYour new login password is: " + newPass + "\n\nThis will also be updated on the device setup portal.");
-                }).catch(err => alert("❌ Error updating password: " + err.message));
-            }).catch(err => alert("❌ Verification failed. Incorrect current password."));
+            try {
+                await user.reauthenticateWithCredential(cred);
+                await user.updatePassword(newPass);
+                if(currentDeviceId) {
+                    await database.ref('/Devices/' + currentDeviceId + '/customerInfo/password').set(newPass);
+                    await database.ref('/Devices/' + currentDeviceId + '/control/updatePortalPass').set(newPass);
+                }
+                await customAlert("✅ Password changed successfully!\nYour new login password is: " + newPass + "\n\nThis will also be updated on the device setup portal.");
+            } catch (err) {
+                if (err.code === 'auth/wrong-password') {
+                    await customAlert("❌ Verification failed. Incorrect current password.");
+                } else {
+                    await customAlert("❌ Error updating password: " + err.message);
+                }
+            }
         }
 
-        // --- ADMIN PIN CHANGER ---
-        function changeMasterPin() {
-            let current = prompt("🔒 VERIFICATION\n\nEnter Current Master PIN:");
+        async function changeMasterPin() {
+            let current = await customPrompt("🔒 VERIFICATION\n\nEnter Current Master PIN:", true);
             if (current !== window.adminPin) {
-                alert("❌ Access Denied: Incorrect PIN.");
+                await customAlert("❌ Access Denied: Incorrect PIN.");
                 return;
             }
-            let newPin = prompt("🔑 NEW PIN\n\nEnter new Master PIN (Minimum 4 characters):");
+            let newPin = await customPrompt("🔑 NEW PIN\n\nEnter new Master PIN (Minimum 4 characters):", true);
             if (newPin && newPin.length >= 4) {
-                database.ref('/AdminConfig/MasterPIN').set(newPin);
+                await database.ref('/AdminConfig/MasterPIN').set(newPin);
                 window.adminPin = newPin;
-                alert("✅ Master PIN updated successfully.");
+                await customAlert("✅ Master PIN updated successfully.");
             } else {
-                alert("❌ Update failed. PIN must be at least 4 characters.");
+                await customAlert("❌ Update failed. PIN must be at least 4 characters.");
             }
         }
 
@@ -1467,12 +1531,10 @@
                     document.getElementById('customerMarquee').style.display = 'none';
                     document.getElementById('customerMenuDots').style.display = 'none';
                     document.getElementById('advancedSection').style.display = 'none';
-                    document.getElementById('customerMenuContainer').style.display = 'none';
                     
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
                     
-                    // Fetch dynamic Admin PIN securely
                     database.ref('/AdminConfig/MasterPIN').on('value', (s) => {
                         if (s.exists()) window.adminPin = s.val();
                     });
@@ -1508,7 +1570,7 @@
                             });
 
                         } else {
-                            alert("Account error: Your profile has not been linked to a Device ID yet.");
+                            customAlert("Account error: Your profile has not been linked to a Device ID yet.");
                         }
                     });
                 }
@@ -1621,9 +1683,7 @@
         }
 
         function startAdminInboxListener() {
-            if(globalScannerTimer) {
-                clearInterval(globalScannerTimer);
-            }
+            if(globalScannerTimer) clearInterval(globalScannerTimer);
             
             globalScannerTimer = setInterval(() => {
                 database.ref('/Devices').once('value').then((snapshot) => {
@@ -1660,7 +1720,7 @@
                 });
             }, 2000);
 
-            database.ref('/AdminInbox').on('value', (snapshot) => {
+            database.ref('/AdminInbox').on('value', async (snapshot) => {
                 adminInboxData = snapshot.val() || {};
                 
                 if (pendingOtaDevice && adminInboxData[pendingOtaDevice]) {
@@ -1668,10 +1728,10 @@
                     let msg = adminInboxData[pendingOtaDevice].message || "";
                     
                     if (status.includes("OTA SUCCESS")) {
-                        alert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
+                        await customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
                         pendingOtaDevice = null; 
                     } else if (status.includes("ERROR") || status.includes("Failed")) {
-                        alert("❌❌ OTA UPLOAD FAILED! ❌❌\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
+                        await customAlert("❌❌ OTA UPLOAD FAILED! ❌❌\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
                         pendingOtaDevice = null; 
                     }
                 }
@@ -1679,7 +1739,6 @@
             });
         }
 
-        // --- INBOX FLOATING MENU ACTIONS ---
         function openInboxMenu(devId, event) {
             event.stopPropagation();
             selectedInboxDevId = devId;
@@ -1690,46 +1749,45 @@
             menu.style.top = event.clientY + 'px';
         }
 
-        function handleInboxAction(action) {
+        async function handleInboxAction(action) {
             if(!selectedInboxDevId) return;
             
             if (action === 'connect') {
                 document.getElementById('sideInboxPanel').classList.remove('open');
-                processAdminConnectionDirect(selectedInboxDevId);
+                await processAdminConnectionDirect(selectedInboxDevId);
             } else if (action === 'remove') {
-                const pin = prompt("🔒 SECURITY\n\nEnter Admin PIN to clear this alert:");
+                const pin = await customPrompt("🔒 SECURITY\n\nEnter Admin PIN to clear this alert:", true);
                 if (pin !== window.adminPin) {
-                    alert("❌ Access Denied: Incorrect Security PIN.");
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
                     return;
                 }
                 database.ref('/AdminInbox/' + selectedInboxDevId).remove();
             } else if (action === 'delete') {
-                const pin = prompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to erase " + selectedInboxDevId + ":");
+                const pin = await customPrompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to erase " + selectedInboxDevId + ":", true);
                 if (pin !== window.adminPin) {
-                    alert("❌ Access Denied: Incorrect Security PIN.");
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
                     return;
                 }
-                if(confirm("Are you ABSOLUTELY sure? This will delete telemetry, config, and alerts. Cannot be undone!")) {
-                    database.ref('/Devices/' + selectedInboxDevId).remove().then(() => {
-                        database.ref('/AdminInbox/' + selectedInboxDevId).remove();
-                        alert("🗑️ Device Profile Permanently Deleted.");
-                        if(currentDeviceId === selectedInboxDevId) {
-                            window.location.reload();
-                        }
-                    });
+                if(await customConfirm("Are you ABSOLUTELY sure? This will delete telemetry, config, and alerts. Cannot be undone!")) {
+                    await database.ref('/Devices/' + selectedInboxDevId).remove();
+                    await database.ref('/AdminInbox/' + selectedInboxDevId).remove();
+                    await customAlert("🗑️ Device Profile Permanently Deleted.");
+                    if(currentDeviceId === selectedInboxDevId) {
+                        window.location.reload();
+                    }
                 }
             }
             document.getElementById('inboxFloatingMenu').style.display = 'none';
             isInboxMenuOpen = false;
         }
 
-        function processAdminConnectionDirect(devId) {
+        async function processAdminConnectionDirect(devId) {
             document.getElementById('connStatus').innerText = "VERIFYING...";
-            database.ref('Devices/' + devId).once('value').then((snapshot) => {
+            database.ref('Devices/' + devId).once('value').then(async (snapshot) => {
                 if(snapshot.exists()) {
                     executeConnection(devId);
                 } else {
-                    alert("❌ Error: Device ID '" + devId + "' does not exist.");
+                    await customAlert("❌ Error: Device ID '" + devId + "' does not exist.");
                     document.getElementById('connStatus').innerText = "ONLINE";
                 }
             });
@@ -1772,6 +1830,7 @@
                 let isDead = false;
 
                 if(globalDeviceState[devId]) {
+                    // INCREASED FROM 15 TO 35 SECONDS TO PREVENT DROPOUT FLASHES
                     if (Date.now() - globalDeviceState[devId].lastTime > 35000) { 
                         isDead = true;
                     }
@@ -1823,19 +1882,19 @@
             }
         }
 
-        function processAdminConnection() {
+        async function processAdminConnection() {
             const searchVal = document.getElementById('adminSearchInput').value.trim();
             const mode = document.querySelector('input[name="searchMode"]:checked').value;
 
             if(!searchVal) {
-                alert("Please enter a value to search!");
+                await customAlert("Please enter a value to search!");
                 return;
             }
 
             if(mode === "email") {
                 document.getElementById('connStatus').innerText = "SCANNING...";
                 
-                database.ref('Devices').once('value').then((snapshot) => {
+                database.ref('Devices').once('value').then(async (snapshot) => {
                     let foundDevId = null;
                     snapshot.forEach(child => {
                         let devData = child.val();
@@ -1847,23 +1906,23 @@
                     if(foundDevId) {
                         executeConnection(foundDevId);
                     } else {
-                        alert("❌ Email not found! Ensure you typed it into the 'Link Customer' tool when you created their account.");
+                        await customAlert("❌ Email not found! Ensure you typed it into the 'Link Customer' tool when you created their account.");
                         document.getElementById('connStatus').innerText = "ONLINE";
                     }
-                }).catch((err) => {
-                    alert("Database Error: " + err.message);
+                }).catch(async (err) => {
+                    await customAlert("Database Error: " + err.message);
                 });
             } else {
                 document.getElementById('connStatus').innerText = "VERIFYING...";
-                database.ref('Devices/' + searchVal).once('value').then((snapshot) => {
+                database.ref('Devices/' + searchVal).once('value').then(async (snapshot) => {
                     if(snapshot.exists()) {
                         executeConnection(searchVal);
                     } else {
-                        alert("❌ Error: Device ID '" + searchVal + "' does not exist in the database! Please check the spelling or link the device first.");
+                        await customAlert("❌ Error: Device ID '" + searchVal + "' does not exist in the database! Please check the spelling or link the device first.");
                         document.getElementById('connStatus').innerText = "ONLINE";
                     }
-                }).catch((err) => {
-                    alert("Database Error: " + err.message);
+                }).catch(async (err) => {
+                    await customAlert("Database Error: " + err.message);
                 });
             }
         }
@@ -1878,9 +1937,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
             }
 
-            if (heartbeatTimer) {
-                clearInterval(heartbeatTimer);
-            }
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
             
             currentDeviceId = devId;
 
@@ -1947,12 +2004,13 @@
             
             lastHeartbeatTime = Date.now(); 
             
+            // Unhide the tank for the admin view!
             document.getElementById('mainDashboardView').style.display = 'flex';
             document.getElementById('adminTerminalContainer').style.display = 'block';
 
             const currentUser = firebase.auth().currentUser;
             if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
-                document.getElementById('pumpControlCard').style.display = 'none';
+                document.getElementById('pumpControlCard').style.display = 'none'; // Re-showable via Admin Toggle
             } else {
                 document.getElementById('pumpControlCard').style.display = 'block';
             }
@@ -1968,17 +2026,18 @@
             startListeners();
         }
 
-        // --- CUSTOMER PROTECTED UPDATE ---
-        function saveCustomerSettings() {
+        // --- STREAMING_CHUNK: Replacing Customer Override Callbacks with Modals... ---
+        async function saveCustomerSettings() {
             if(!currentDeviceId) return;
             
-            let currentPass = prompt("🔒 SECURITY VERIFICATION\n\nEnter your account password to authorize device updates:");
+            let currentPass = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter your account password to authorize device updates:", true);
             if(!currentPass) return;
             
             let user = firebase.auth().currentUser;
             let cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
             
-            user.reauthenticateWithCredential(cred).then(() => {
+            try {
+                await user.reauthenticateWithCredential(cred);
                 const emptyVal = parseFloat(document.getElementById('custEmptyInput').value);
                 const fullVal = parseFloat(document.getElementById('custFullInput').value);
                 
@@ -1986,11 +2045,11 @@
                 let willReboot = false;
 
                 if(!isNaN(emptyVal) && emptyVal > 1.0) {
-                    database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
                     updates = true;
                 }
                 if(!isNaN(fullVal) && fullVal >= 1.0) {
-                    database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
                     updates = true;
                 }
                 
@@ -1998,11 +2057,11 @@
                     let ssid = document.getElementById('custWifiSSID_'+i).value.trim();
                     let pass = document.getElementById('custWifiPass_'+i).value;
                     if(ssid !== "") {
-                        database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
+                        await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
                         updates = true; willReboot = true;
                     }
                     if(pass !== "") {
-                        database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
+                        await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
                         updates = true; willReboot = true;
                     }
                 }
@@ -2010,21 +2069,21 @@
                 if(updates) {
                     let msg = "✅ Settings successfully pushed to the device.";
                     if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi. It may take a minute to come back online.";
-                    alert(msg);
+                    await customAlert(msg);
                     document.getElementById('customerSettingsBox').style.display = 'none';
                     for(let i=1; i<=4; i++) {
                         document.getElementById('custWifiSSID_'+i).value = "";
                         document.getElementById('custWifiPass_'+i).value = "";
                     }
                 } else {
-                    alert("No valid changes detected.");
+                    await customAlert("No valid changes detected.");
                 }
-            }).catch(err => {
-                alert("❌ Verification failed. Incorrect password.");
-            });
+            } catch(err) {
+                await customAlert("❌ Verification failed. Incorrect password.");
+            }
         }
 
-        function saveAdminManualSettings() {
+        async function saveAdminManualSettings() {
             if(!currentDeviceId) return;
             
             const emptyVal = parseFloat(document.getElementById('adminEmptyInput').value);
@@ -2034,11 +2093,11 @@
             let willReboot = false;
 
             if(!isNaN(emptyVal) && emptyVal > 1.0) {
-                database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
+                await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
                 updates = true;
             }
             if(!isNaN(fullVal) && fullVal >= 1.0) {
-                database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
+                await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
                 updates = true;
             }
             
@@ -2046,11 +2105,11 @@
                 let ssid = document.getElementById('adminWifiSSID_'+i).value.trim();
                 let pass = document.getElementById('adminWifiPass_'+i).value;
                 if(ssid !== "") {
-                    database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
                     updates = true; willReboot = true;
                 }
                 if(pass !== "") {
-                    database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
                     updates = true; willReboot = true;
                 }
             }
@@ -2058,7 +2117,7 @@
             if(updates) {
                 let msg = "✅ Manual settings successfully pushed to the device.";
                 if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi.";
-                alert(msg);
+                await customAlert(msg);
                 document.getElementById('adminEmptyInput').value = "";
                 document.getElementById('adminFullInput').value = "";
                 for(let i=1; i<=4; i++) {
@@ -2066,58 +2125,56 @@
                     document.getElementById('adminWifiPass_'+i).value = "";
                 }
             } else {
-                alert("No valid changes detected.");
+                await customAlert("No valid changes detected.");
             }
         }
 
-        // --- GLOBAL DELETE ---
-        function deleteDeviceProfile() {
+        async function deleteDeviceProfile() {
             if(!currentDeviceId) return;
             
-            const pin = prompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to permanently erase " + currentDeviceId + " from the database:");
+            const pin = await customPrompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to permanently erase " + currentDeviceId + " from the database:", true);
             if(pin !== window.adminPin) {
-                alert("❌ Access Denied: Incorrect Security PIN.");
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
                 return;
             }
             
-            if(confirm("Are you ABSOLUTELY sure? This will delete all telemetry, customer info, and logs for " + currentDeviceId + ". This action cannot be undone!")) {
-                database.ref('/Devices/' + currentDeviceId).remove().then(() => {
-                    database.ref('/AdminInbox/' + currentDeviceId).remove();
-                    alert("🗑️ Device Profile Permanently Deleted.");
-                    window.location.reload();
-                });
+            if(await customConfirm("Are you ABSOLUTELY sure? This will delete all telemetry, customer info, and logs for " + currentDeviceId + ". This action cannot be undone!")) {
+                await database.ref('/Devices/' + currentDeviceId).remove();
+                await database.ref('/AdminInbox/' + currentDeviceId).remove();
+                await customAlert("🗑️ Device Profile Permanently Deleted.");
+                window.location.reload();
             }
         }
 
-        function calibrateTank(type) {
+        async function calibrateTank(type) {
             if(!currentDeviceId || !window.latestRawDistance || window.latestRawDistance <= 0.1) {
-                alert("❌ Cannot calibrate: Invalid or missing sensor data.");
+                await customAlert("❌ Cannot calibrate: Invalid or missing sensor data.");
                 return;
             }
 
             const currentUser = firebase.auth().currentUser;
             if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
-                const pin = prompt("🔒 MASTER CONTROL SECURITY\n\nEnter Admin PIN to calibrate tank:");
+                const pin = await customPrompt("🔒 MASTER CONTROL SECURITY\n\nEnter Admin PIN to calibrate tank:\n(Default is 3943)", true);
                 if (pin !== window.adminPin) {
-                    alert("❌ Access Denied: Incorrect Security PIN.");
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
                     return;
                 }
             }
 
             if(type === 'empty') {
-                if(confirm("Set Empty Tank Depth to " + window.latestRawDistance + " cm?")) {
-                    database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(window.latestRawDistance);
-                    alert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
+                if(await customConfirm("Set Empty Tank Depth to " + window.latestRawDistance + " cm?")) {
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(window.latestRawDistance);
+                    await customAlert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
                 }
             } else if(type === 'full') {
-                if(confirm("Set Full Water Clearance Level to " + window.latestRawDistance + " cm?")) {
-                    database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(window.latestRawDistance);
-                    alert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
+                if(await customConfirm("Set Full Water Clearance Level to " + window.latestRawDistance + " cm?")) {
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(window.latestRawDistance);
+                    await customAlert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
                 }
             }
         }
 
-        function assignDeviceToUser() {
+        async function assignDeviceToUser() {
             const uid = document.getElementById('assignUidInput').value.trim();
             const devId = document.getElementById('assignDevInput').value.trim();
             
@@ -2132,12 +2189,9 @@
             const deployDate = document.getElementById('assignDeployDate').value;
             
             if(uid && devId) {
-                database.ref('Users/' + uid + '/deviceId').set(devId).then(() => {
-                    
-                    const updates = {
-                        deviceType: type
-                    };
-                    
+                try {
+                    await database.ref('Users/' + uid + '/deviceId').set(devId);
+                    const updates = { deviceType: type };
                     if(email) updates.email = email;
                     if(pass) updates.password = pass;
                     if(name) updates.assignedName = name;
@@ -2147,30 +2201,30 @@
                     if(usesRepeater) updates.usesRepeater = usesRepeater;
                     if(deployDate) updates.deployDate = deployDate;
 
-                    database.ref('Devices/' + devId + '/customerInfo').update(updates).then(() => {
-                        alert("✅ Success! " + devId + " configuration saved and linked to " + uid);
-                        
-                        document.getElementById('assignUidInput').value = '';
-                        document.getElementById('assignDevInput').value = '';
-                        document.getElementById('assignTypeInput').value = 'Household';
-                        document.getElementById('assignNameInput').value = '';
-                        document.getElementById('assignEmailInput').value = '';
-                        document.getElementById('assignPassInput').value = '';
-                        document.getElementById('assignRadioTech').value = '';
-                        document.getElementById('assignRadioChannel').value = '';
-                        document.getElementById('assignRadioRate').value = '';
-                        document.getElementById('assignUsesRepeater').value = 'Yes';
-                        document.getElementById('assignDeployDate').value = '';
-                        document.getElementById('linkCustomerBox').style.display = "none";
-                    });
-                }).catch((error) => {
-                    alert("❌ Error: " + error.message);
-                });
+                    await database.ref('Devices/' + devId + '/customerInfo').update(updates);
+                    await customAlert("✅ Success! " + devId + " configuration saved and linked to " + uid);
+                    
+                    document.getElementById('assignUidInput').value = '';
+                    document.getElementById('assignDevInput').value = '';
+                    document.getElementById('assignTypeInput').value = 'Household';
+                    document.getElementById('assignNameInput').value = '';
+                    document.getElementById('assignEmailInput').value = '';
+                    document.getElementById('assignPassInput').value = '';
+                    document.getElementById('assignRadioTech').value = '';
+                    document.getElementById('assignRadioChannel').value = '';
+                    document.getElementById('assignRadioRate').value = '';
+                    document.getElementById('assignUsesRepeater').value = 'Yes';
+                    document.getElementById('assignDeployDate').value = '';
+                    document.getElementById('linkCustomerBox').style.display = "none";
+                } catch(error) {
+                    await customAlert("❌ Error: " + error.message);
+                }
             } else {
-                alert("Please enter at least a UID and a Device ID.");
+                await customAlert("Please enter at least a UID and a Device ID.");
             }
         }
 
+        // --- STREAMING_CHUNK: Integrating Telemetry Listeners... ---
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
@@ -2285,6 +2339,7 @@
                 updateRadioUI();
             });
 
+            // UPDATED: Relaxed the heartbeat timeout to 35 seconds to prevent dropout flashes
             heartbeatTimer = setInterval(() => {
                 if(Date.now() - lastHeartbeatTime > 35000) { 
                     const user = firebase.auth().currentUser;
@@ -2449,31 +2504,25 @@
             });
         }
 
-        // --- 3-LAYER SECURITY PUMP TRIGGER ---
-        function togglePump() {
-            if(!currentDeviceId) {
-                return;
-            }
+        async function togglePump() {
+            if(!currentDeviceId) return;
 
             if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
-                alert("❌ Network Offline: Cannot send command right now.");
+                await customAlert("❌ Network Offline: Cannot send command right now.");
                 return;
             }
 
             const currentUser = firebase.auth().currentUser;
             if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
-                // LAYER 1: Immediate Warning
-                if(!confirm("⚠️ LAYER 1: WARNING!\n\nYou are about to manually override the automated pump system. Proceed?")) return;
+                if(!await customConfirm("⚠️ LAYER 1: WARNING!\n\nYou are about to manually override the automated pump system. Proceed?")) return;
                 
-                // LAYER 2: Admin PIN Required
-                const pin = prompt("🔒 LAYER 2: MASTER CONTROL SECURITY\n\nEnter Admin PIN to authorize pump control:");
+                const pin = await customPrompt("🔒 LAYER 2: MASTER CONTROL SECURITY\n\nEnter Admin PIN to authorize pump control:", true);
                 if (pin !== window.adminPin) {
-                    alert("❌ Access Denied: Incorrect Security PIN.");
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
                     return;
                 }
                 
-                // LAYER 3: Final Affirmative Check
-                if(!confirm("🛑 LAYER 3: FINAL CONFIRMATION\n\nAre you absolutely sure you want to execute this hardware command?")) return;
+                if(!await customConfirm("🛑 LAYER 3: FINAL CONFIRMATION\n\nAre you absolutely sure you want to execute this hardware command?")) return;
             }
             
             const desiredState = !currentPumpState;
@@ -2488,9 +2537,9 @@
 
             if(pumpCommandTimeout) clearTimeout(pumpCommandTimeout);
             
-            pumpCommandTimeout = setTimeout(() => {
+            pumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
-                    alert("⏳ Network Connection Lost!\n\nYour pending command was wiped to prevent a delayed ghost trigger. The dashboard will now reload.");
+                    await customAlert("⏳ Network Connection Lost!\n\nYour pending command was wiped to prevent a delayed ghost trigger. The dashboard will now reload.");
                     window.location.reload();
                     return;
                 }
@@ -2508,28 +2557,28 @@
                     btn.innerText = "TURN\nON";
                 }
                 
-                alert("⏳ Command Timed Out!\n\nThe device did not respond within 6 seconds. The command was cancelled for safety. Please try again.");
+                await customAlert("⏳ Command Timed Out!\n\nThe device did not respond within 6 seconds. The command was cancelled for safety. Please try again.");
             }, 6000); 
         }
 
-        function triggerOTA() {
+        async function triggerOTA() {
             if(!currentDeviceId) {
-                alert("You must connect to a device first!");
+                await customAlert("You must connect to a device first!");
                 return;
             }
             
             const fileUrl = document.getElementById('otaUrlInput').value.trim();
             
             if(!fileUrl) {
-                alert("Please paste the .bin download link first!");
+                await customAlert("Please paste the .bin download link first!");
                 return;
             }
             
-            if(confirm("WARNING: Are you absolutely sure you want to push a firmware update to " + currentDeviceId + "?")) {
+            if(await customConfirm("WARNING: Are you absolutely sure you want to push a firmware update to " + currentDeviceId + "?")) {
                 pendingOtaDevice = currentDeviceId; 
                 database.ref('/Devices/' + currentDeviceId + '/control/otaUrl').set(fileUrl);
                 database.ref('/Devices/' + currentDeviceId + '/control/otaTrigger').set(true);
-                alert("OTA Upload Started! Keep this page open.");
+                await customAlert("OTA Upload Started! Keep this page open.");
             }
         }
     </script>
