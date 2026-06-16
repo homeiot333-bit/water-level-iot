@@ -993,7 +993,7 @@
                     <button class="btn-login" style="background:rgba(0, 210, 255, 0.8); color:#fff; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
                     <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
-                    <!-- NEW: Admin PIN Update Button -->
+                    <!-- Admin PIN Update Button -->
                     <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
 
                     <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px);">
@@ -1772,7 +1772,7 @@
                 let isDead = false;
 
                 if(globalDeviceState[devId]) {
-                    if (Date.now() - globalDeviceState[devId].lastTime > 15000) { 
+                    if (Date.now() - globalDeviceState[devId].lastTime > 35000) { 
                         isDead = true;
                     }
                 }
@@ -2286,7 +2286,7 @@
             });
 
             heartbeatTimer = setInterval(() => {
-                if(Date.now() - lastHeartbeatTime > 15000) { 
+                if(Date.now() - lastHeartbeatTime > 35000) { 
                     const user = firebase.auth().currentUser;
                     if(user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com")) {
                         document.getElementById('offlineOverlay').style.display = 'none';
