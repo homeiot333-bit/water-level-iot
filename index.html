@@ -803,10 +803,19 @@
             <h3 id="topBarTitle" style="margin:0; color:#fff; text-align:left; flex:1;">
                 Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>
             </h3>
+            
             <div style="display:flex; align-items:center; gap: 15px;">
                 <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
-                <button class="logout-btn" id="settingsBtn" style="background:#00d2ff; color:#000; display:none;" onclick="toggleCustomerSettings()">⚙️ Settings</button>
-                <button class="logout-btn" id="changePassBtn" style="background:#feca57; color:#000; display:none;" onclick="changeCustomerPassword()">🔑 Password</button>
+                
+                <!-- NEW: Customer Top Bar 3-Dot Menu -->
+                <div id="customerMenuContainer" style="position:relative; display:none;">
+                    <div class="menu-dots" style="position:static; margin-left:5px;" onclick="toggleCustomerTopMenu()" title="Account Options">⋮</div>
+                    <div id="customerTopMenuDropdown" style="display:none; position:absolute; right:0; top:30px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
+                        <div style="color:#fff; font-size:13px; cursor:pointer; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="toggleCustomerSettings()">⚙️ Device Settings</div>
+                        <div style="color:#fff; font-size:13px; cursor:pointer; padding:8px 0;" onclick="changeCustomerPassword()">🔑 Change Password</div>
+                    </div>
+                </div>
+
                 <button class="logout-btn" onclick="logoutUser()">Logout</button>
             </div>
         </div>
@@ -824,26 +833,62 @@
             
             <div class="dash-col-left" id="mainDashboardView" style="display:none;">
                 
+                <!-- NEW: CUSTOMER DEVICE SETTINGS PANEL (4 WIFI SLOTS) -->
                 <div id="customerSettingsBox" style="display:none; width:100%; text-align: left; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; border: 1px dashed #00d2ff; margin-bottom: 20px;">
                     <h3 style="color: #00d2ff; margin-top:0;">⚙️ Device Configuration</h3>
-                    <p style="font-size:12px; color:#aaa; margin-top:0;">Update your tank dimensions or connect the device to a new WiFi network.</p>
+                    <p style="font-size:12px; color:#aaa; margin-top:0;">Update your tank dimensions or configure up to 4 backup WiFi networks.</p>
                     
-                    <label style="color:#ccc; font-size:12px;">Tank Empty Depth (cm):</label>
-                    <input type="number" id="custEmptyInput" class="input-box" placeholder="e.g., 150">
-                    
-                    <label style="color:#ccc; font-size:12px;">Tank Full Clearance (cm):</label>
-                    <input type="number" id="custFullInput" class="input-box" placeholder="e.g., 15">
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label style="color:#ccc; font-size:12px;">Tank Empty Depth (cm):</label>
+                            <input type="number" id="custEmptyInput" class="input-box" placeholder="e.g., 150">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="color:#ccc; font-size:12px;">Full Clearance (cm):</label>
+                            <input type="number" id="custFullInput" class="input-box" placeholder="e.g., 15">
+                        </div>
+                    </div>
                     
                     <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
                     
-                    <label style="color:#ccc; font-size:12px;">New WiFi Network Name (SSID):</label>
-                    <input type="text" id="custWifiSSID" class="input-box" placeholder="Your Home WiFi Name">
+                    <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">📶 WiFi Mesh Networks (Slots 1-4)</h4>
+                    <p style="font-size:11px; color:#aaa; margin-top:0;">Current network names are shown below. Enter a new Name and Password to overwrite a slot. Passwords are hidden for security.</p>
                     
-                    <label style="color:#ccc; font-size:12px;">New WiFi Password:</label>
-                    <input type="text" id="custWifiPass" class="input-box" placeholder="Your Home WiFi Password">
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 1 (Primary):</strong> <span id="cust_slot1_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="text" id="custWifiPass_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 2 (Backup):</strong> <span id="cust_slot2_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="text" id="custWifiPass_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 3 (Backup):</strong> <span id="cust_slot3_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="text" id="custWifiPass_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 4 (Backup):</strong> <span id="cust_slot4_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="text" id="custWifiPass_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                            </div>
+                        </div>
+                    </div>
                     
                     <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="saveCustomerSettings()">Save Settings to Device</button>
                 </div>
+                <!-- END INJECTION -->
+
                 <div class="card">
                     <span id="connStatus" class="status-badge">ONLINE</span>
                     <div id="customerMenuDots" class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data" style="display:none; top: 15px; right: 20px;">⋮</div>
@@ -1002,31 +1047,60 @@
                                 <button class="btn-login" style="background:rgba(46, 213, 115, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('full')">Set as Full (100%)</button>
                             </div>
 
+                            <!-- INJECTION: ADMIN MANUAL OVERRIDE (WITH 3-DOT MENU) -->
                             <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
-                            <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">⚙️ Manual Override & Network Config</h4>
-                            
-                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                                <div style="flex:1; min-width:140px;">
-                                    <label style="color:#aaa; font-size:11px;">Empty Tank Depth (cm)</label>
-                                    <input type="number" id="adminEmptyInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 150">
-                                </div>
-                                <div style="flex:1; min-width:140px;">
-                                    <label style="color:#aaa; font-size:11px;">Full Clearance (cm)</label>
-                                    <input type="number" id="adminFullInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 15">
-                                </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
+                                <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">⚙️ Manual Override & Network Config</h4>
+                                <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none; margin-top:-10px;" onclick="toggleAdminOverrideBox()" title="Manual Config">⋮</span>
                             </div>
-                            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:5px;">
-                                <div style="flex:1; min-width:140px;">
-                                    <label style="color:#aaa; font-size:11px;">New WiFi SSID</label>
-                                    <input type="text" id="adminWifiSSID" class="input-box" style="padding:8px; margin:5px 0;" placeholder="Network Name">
+
+                            <div id="adminOverrideBox" style="display:none; width:100%;">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="color:#aaa; font-size:11px;">Empty Tank Depth (cm)</label>
+                                        <input type="number" id="adminEmptyInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 150">
+                                    </div>
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="color:#aaa; font-size:11px;">Full Clearance (cm)</label>
+                                        <input type="number" id="adminFullInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 15">
+                                    </div>
                                 </div>
-                                <div style="flex:1; min-width:140px;">
-                                    <label style="color:#aaa; font-size:11px;">New WiFi Password</label>
-                                    <input type="text" id="adminWifiPass" class="input-box" style="padding:8px; margin:5px 0;" placeholder="Password">
+
+                                <p style="font-size:11px; color:#aaa; margin-top:10px; margin-bottom:5px;">Update WiFi Slots (Passwords are hidden from telemetry for security)</p>
+                                
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 1:</strong> <span id="admin_slot1_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="text" id="adminWifiPass_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                    </div>
                                 </div>
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 2:</strong> <span id="admin_slot2_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="text" id="adminWifiPass_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                    </div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 3:</strong> <span id="admin_slot3_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="text" id="adminWifiPass_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                    </div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 4:</strong> <span id="admin_slot4_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="text" id="adminWifiPass_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                    </div>
+                                </div>
+
+                                <button class="btn-login" style="background:#00d2ff; color:#000; font-size:13px; padding:10px; margin-top:10px;" onclick="saveAdminManualSettings()">Push Manual Settings</button>
                             </div>
-                            <button class="btn-login" style="background:#00d2ff; color:#000; font-size:13px; padding:10px; margin-top:10px;" onclick="saveAdminManualSettings()">Push Manual Settings</button>
-                            </div>
+                            <!-- END INJECTION -->
+                        </div>
                         
                         <div class="terminals-wrapper">
                             <div class="terminal-column" style="flex: 1.5;">
@@ -1091,6 +1165,11 @@
 
                         <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
                     </div>
+
+                    <!-- NEW: GLOBAL DEVICE DELETE -->
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                    <button class="btn-danger" style="background:rgba(255, 71, 87, 0.4); border:1px solid #ff4757; margin-top:0px;" onclick="deleteDeviceProfile()">🗑️ Permanently Delete Device Data</button>
+                    
                 </div>
             </div>
 
@@ -1207,10 +1286,20 @@
             }
         }
 
-        // --- NEW: TOGGLE CUSTOMER SETTINGS ---
+        function toggleCustomerTopMenu() {
+            const menu = document.getElementById('customerTopMenuDropdown');
+            menu.style.display = (menu.style.display === "none") ? "block" : "none";
+        }
+
+        function toggleAdminOverrideBox() {
+            const box = document.getElementById('adminOverrideBox');
+            box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+        }
+
         function toggleCustomerSettings() {
             const box = document.getElementById('customerSettingsBox');
             box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+            document.getElementById('customerTopMenuDropdown').style.display = 'none';
             
             if (box.style.display === 'block') {
                 const emptyEl = document.getElementById('adminTxtEmptyDist');
@@ -1279,6 +1368,7 @@
         }
 
         function changeCustomerPassword() {
+            document.getElementById('customerTopMenuDropdown').style.display = 'none';
             let currentPass = prompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:");
             if(!currentPass) return;
             
@@ -1295,8 +1385,9 @@
                 user.updatePassword(newPass).then(() => {
                     if(currentDeviceId) {
                         database.ref('/Devices/' + currentDeviceId + '/customerInfo/password').set(newPass);
+                        database.ref('/Devices/' + currentDeviceId + '/control/updatePortalPass').set(newPass);
                     }
-                    alert("✅ Password changed successfully!\nYour new login password is: " + newPass);
+                    alert("✅ Password changed successfully!\nYour new login password is: " + newPass + "\n\nThis will also be updated on the device setup portal.");
                 }).catch(err => alert("❌ Error updating password: " + err.message));
             }).catch(err => alert("❌ Verification failed. Incorrect current password."));
         }
@@ -1338,8 +1429,7 @@
                     document.getElementById('customerMarquee').style.display = 'none';
                     document.getElementById('customerMenuDots').style.display = 'none';
                     document.getElementById('advancedSection').style.display = 'none';
-                    document.getElementById('changePassBtn').style.display = 'none';
-                    document.getElementById('settingsBtn').style.display = 'none';
+                    document.getElementById('customerMenuContainer').style.display = 'none';
                     
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
@@ -1351,8 +1441,7 @@
                     
                     document.getElementById('customerMarquee').style.display = 'block';
                     document.getElementById('customerMenuDots').style.display = 'block';
-                    document.getElementById('changePassBtn').style.display = 'inline-block';
-                    document.getElementById('settingsBtn').style.display = 'inline-block';
+                    document.getElementById('customerMenuContainer').style.display = 'inline-block';
                     
                     document.getElementById('adminCommandCenter').style.display = 'none';
                     document.getElementById('mainDashboardView').style.display = 'flex';
@@ -1390,6 +1479,7 @@
                     database.ref('/Devices/' + currentDeviceId + '/state').off();
                     database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
+                    database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -1690,6 +1780,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/state').off();
                 database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                 database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
+                database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
             }
 
             if (heartbeatTimer) {
@@ -1788,8 +1879,6 @@
             
             const emptyVal = parseFloat(document.getElementById('custEmptyInput').value);
             const fullVal = parseFloat(document.getElementById('custFullInput').value);
-            const wifiSSID = document.getElementById('custWifiSSID').value.trim();
-            const wifiPass = document.getElementById('custWifiPass').value;
             
             let updates = false;
             let willReboot = false;
@@ -1803,15 +1892,17 @@
                 updates = true;
             }
             
-            if(wifiSSID !== "") {
-                database.ref('/Devices/' + currentDeviceId + '/control/setWifiSSID').set(wifiSSID);
-                updates = true;
-                willReboot = true;
-            }
-            if(wifiPass !== "") {
-                database.ref('/Devices/' + currentDeviceId + '/control/setWifiPass').set(wifiPass);
-                updates = true;
-                willReboot = true;
+            for(let i=1; i<=4; i++) {
+                let ssid = document.getElementById('custWifiSSID_'+i).value.trim();
+                let pass = document.getElementById('custWifiPass_'+i).value;
+                if(ssid !== "") {
+                    database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
+                    updates = true; willReboot = true;
+                }
+                if(pass !== "") {
+                    database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
+                    updates = true; willReboot = true;
+                }
             }
             
             if(updates) {
@@ -1819,8 +1910,10 @@
                 if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi. It may take a minute to come back online.";
                 alert(msg);
                 document.getElementById('customerSettingsBox').style.display = 'none';
-                document.getElementById('custWifiSSID').value = "";
-                document.getElementById('custWifiPass').value = "";
+                for(let i=1; i<=4; i++) {
+                    document.getElementById('custWifiSSID_'+i).value = "";
+                    document.getElementById('custWifiPass_'+i).value = "";
+                }
             } else {
                 alert("No valid changes detected.");
             }
@@ -1832,8 +1925,6 @@
             
             const emptyVal = parseFloat(document.getElementById('adminEmptyInput').value);
             const fullVal = parseFloat(document.getElementById('adminFullInput').value);
-            const wifiSSID = document.getElementById('adminWifiSSID').value.trim();
-            const wifiPass = document.getElementById('adminWifiPass').value;
             
             let updates = false;
             let willReboot = false;
@@ -1847,15 +1938,17 @@
                 updates = true;
             }
             
-            if(wifiSSID !== "") {
-                database.ref('/Devices/' + currentDeviceId + '/control/setWifiSSID').set(wifiSSID);
-                updates = true;
-                willReboot = true;
-            }
-            if(wifiPass !== "") {
-                database.ref('/Devices/' + currentDeviceId + '/control/setWifiPass').set(wifiPass);
-                updates = true;
-                willReboot = true;
+            for(let i=1; i<=4; i++) {
+                let ssid = document.getElementById('adminWifiSSID_'+i).value.trim();
+                let pass = document.getElementById('adminWifiPass_'+i).value;
+                if(ssid !== "") {
+                    database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
+                    updates = true; willReboot = true;
+                }
+                if(pass !== "") {
+                    database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
+                    updates = true; willReboot = true;
+                }
             }
             
             if(updates) {
@@ -1864,10 +1957,31 @@
                 alert(msg);
                 document.getElementById('adminEmptyInput').value = "";
                 document.getElementById('adminFullInput').value = "";
-                document.getElementById('adminWifiSSID').value = "";
-                document.getElementById('adminWifiPass').value = "";
+                for(let i=1; i<=4; i++) {
+                    document.getElementById('adminWifiSSID_'+i).value = "";
+                    document.getElementById('adminWifiPass_'+i).value = "";
+                }
             } else {
                 alert("No valid changes detected.");
+            }
+        }
+
+        // --- NEW: DELETE DEVICE DATABASE PROFILE ---
+        function deleteDeviceProfile() {
+            if(!currentDeviceId) return;
+            
+            const pin = prompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to permanently erase " + currentDeviceId + " from the database:");
+            if(pin !== "3943") {
+                alert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+            
+            if(confirm("Are you ABSOLUTELY sure? This will delete all telemetry, customer info, and logs for " + currentDeviceId + ". This action cannot be undone!")) {
+                database.ref('/Devices/' + currentDeviceId).remove().then(() => {
+                    database.ref('/AdminInbox/' + currentDeviceId).remove();
+                    alert("🗑️ Device Profile Permanently Deleted.");
+                    window.location.reload();
+                });
             }
         }
 
@@ -1955,6 +2069,22 @@
 
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
+
+            // --- FETCH WIFI MESH SLOTS FROM ESP32 ---
+            database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
+                const slots = snapshot.val();
+                if(slots) {
+                    if(document.getElementById('cust_slot1_name')) document.getElementById('cust_slot1_name').innerText = slots.slot1 || "Empty";
+                    if(document.getElementById('cust_slot2_name')) document.getElementById('cust_slot2_name').innerText = slots.slot2 || "Empty";
+                    if(document.getElementById('cust_slot3_name')) document.getElementById('cust_slot3_name').innerText = slots.slot3 || "Empty";
+                    if(document.getElementById('cust_slot4_name')) document.getElementById('cust_slot4_name').innerText = slots.slot4 || "Empty";
+                    
+                    if(document.getElementById('admin_slot1_name')) document.getElementById('admin_slot1_name').innerText = slots.slot1 || "Empty";
+                    if(document.getElementById('admin_slot2_name')) document.getElementById('admin_slot2_name').innerText = slots.slot2 || "Empty";
+                    if(document.getElementById('admin_slot3_name')) document.getElementById('admin_slot3_name').innerText = slots.slot3 || "Empty";
+                    if(document.getElementById('admin_slot4_name')) document.getElementById('admin_slot4_name').innerText = slots.slot4 || "Empty";
+                }
+            });
 
             database.ref(basePath + '/customerInfo').on('value', (snapshot) => {
                 const info = snapshot.val();
