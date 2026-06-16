@@ -597,6 +597,7 @@
             border-radius: 6px; 
             font-size: 13px;
             border: 1px solid rgba(255,255,255,0.05);
+            position: relative; /* REQUIRED FOR THE FLOATING MENU TO ATTACH TO */
         }
 
         .inbox-card span { 
@@ -753,7 +754,7 @@
 </head>
 <body>
 
-    <!-- NEW: INBOX FLOATING MENU -->
+    <!-- NEW: FLOATING INBOX 3-DOT MENU -->
     <div id="inboxFloatingMenu" style="display:none; position:fixed; background:rgba(20, 25, 35, 0.98); border:1px solid #00d2ff; border-radius:8px; padding:5px; z-index:10000; box-shadow: 0 10px 30px rgba(0,0,0,0.9); min-width: 160px;">
         <div style="color:#7bed9f; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('connect')">🟢 Connect Device</div>
         <div style="color:#feca57; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('remove')">🧹 Remove Alert</div>
@@ -814,7 +815,7 @@
             <div style="display:flex; align-items:center; gap: 15px;">
                 <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
                 
-                <!-- NEW: Customer Top Bar 3-Dot Menu -->
+                <!-- CUSTOMER 3-DOT MENU (Hidden by default from Admin) -->
                 <div id="customerMenuContainer" style="position:relative; display:none;">
                     <div class="menu-dots" style="position:static; margin-left:5px;" onclick="toggleCustomerTopMenu()" title="Account Options">⋮</div>
                     <div id="customerTopMenuDropdown" style="display:none; position:absolute; right:0; top:30px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
@@ -840,7 +841,7 @@
             
             <div class="dash-col-left" id="mainDashboardView" style="display:none;">
                 
-                <!-- NEW: CUSTOMER DEVICE SETTINGS PANEL (4 WIFI SLOTS) -->
+                <!-- CUSTOMER DEVICE SETTINGS PANEL -->
                 <div id="customerSettingsBox" style="display:none; width:100%; text-align: left; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; border: 1px dashed #00d2ff; margin-bottom: 20px;">
                     <h3 style="color: #00d2ff; margin-top:0;">⚙️ Device Configuration</h3>
                     <p style="font-size:12px; color:#aaa; margin-top:0;">Update your tank dimensions or configure up to 4 backup WiFi networks.</p>
@@ -866,35 +867,34 @@
                             <strong style="color:#00d2ff; font-size:12px;">Slot 1 (Primary):</strong> <span id="cust_slot1_name" style="color:#fff; font-size:12px;">Scanning...</span>
                             <div style="display:flex; gap:10px; margin-top:8px;">
                                 <input type="text" id="custWifiSSID_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                <input type="text" id="custWifiPass_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                <input type="password" id="custWifiPass_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                             </div>
                         </div>
                         <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
                             <strong style="color:#00d2ff; font-size:12px;">Slot 2 (Backup):</strong> <span id="cust_slot2_name" style="color:#fff; font-size:12px;">Scanning...</span>
                             <div style="display:flex; gap:10px; margin-top:8px;">
                                 <input type="text" id="custWifiSSID_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                <input type="text" id="custWifiPass_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                <input type="password" id="custWifiPass_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                             </div>
                         </div>
                         <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
                             <strong style="color:#00d2ff; font-size:12px;">Slot 3 (Backup):</strong> <span id="cust_slot3_name" style="color:#fff; font-size:12px;">Scanning...</span>
                             <div style="display:flex; gap:10px; margin-top:8px;">
                                 <input type="text" id="custWifiSSID_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                <input type="text" id="custWifiPass_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                <input type="password" id="custWifiPass_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                             </div>
                         </div>
                         <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
                             <strong style="color:#00d2ff; font-size:12px;">Slot 4 (Backup):</strong> <span id="cust_slot4_name" style="color:#fff; font-size:12px;">Scanning...</span>
                             <div style="display:flex; gap:10px; margin-top:8px;">
                                 <input type="text" id="custWifiSSID_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                <input type="text" id="custWifiPass_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                <input type="password" id="custWifiPass_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                             </div>
                         </div>
                     </div>
                     
                     <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="saveCustomerSettings()">Save Settings to Device</button>
                 </div>
-                <!-- END INJECTION -->
 
                 <div class="card">
                     <span id="connStatus" class="status-badge">ONLINE</span>
@@ -991,7 +991,6 @@
                     <h2>👑 Master Command Center</h2>
 
                     <button class="btn-login" style="background:rgba(0, 210, 255, 0.8); color:#fff; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
-                    
                     <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
                     <!-- NEW: Admin PIN Update Button -->
@@ -1057,7 +1056,7 @@
                                 <button class="btn-login" style="background:rgba(46, 213, 115, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('full')">Set as Full (100%)</button>
                             </div>
 
-                            <!-- INJECTION: ADMIN MANUAL OVERRIDE (WITH 3-DOT MENU) -->
+                            <!-- ADMIN MANUAL OVERRIDE (WITH 3-DOT MENU) -->
                             <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
                             <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
                                 <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">⚙️ Manual Override & Network Config</h4>
@@ -1082,34 +1081,33 @@
                                     <strong style="color:#00d2ff; font-size:11px;">Slot 1:</strong> <span id="admin_slot1_name" style="color:#fff; font-size:11px;">--</span>
                                     <div style="display:flex; gap:5px; margin-top:5px;">
                                         <input type="text" id="adminWifiSSID_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                        <input type="text" id="adminWifiPass_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                        <input type="password" id="adminWifiPass_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
                                 <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
                                     <strong style="color:#00d2ff; font-size:11px;">Slot 2:</strong> <span id="admin_slot2_name" style="color:#fff; font-size:11px;">--</span>
                                     <div style="display:flex; gap:5px; margin-top:5px;">
                                         <input type="text" id="adminWifiSSID_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                        <input type="text" id="adminWifiPass_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                        <input type="password" id="adminWifiPass_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
                                 <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
                                     <strong style="color:#00d2ff; font-size:11px;">Slot 3:</strong> <span id="admin_slot3_name" style="color:#fff; font-size:11px;">--</span>
                                     <div style="display:flex; gap:5px; margin-top:5px;">
                                         <input type="text" id="adminWifiSSID_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                        <input type="text" id="adminWifiPass_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                        <input type="password" id="adminWifiPass_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
                                 <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
                                     <strong style="color:#00d2ff; font-size:11px;">Slot 4:</strong> <span id="admin_slot4_name" style="color:#fff; font-size:11px;">--</span>
                                     <div style="display:flex; gap:5px; margin-top:5px;">
                                         <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                        <input type="text" id="adminWifiPass_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
 
                                 <button class="btn-login" style="background:#00d2ff; color:#000; font-size:13px; padding:10px; margin-top:10px;" onclick="saveAdminManualSettings()">Push Manual Settings</button>
                             </div>
-                            <!-- END INJECTION -->
                         </div>
                         
                         <div class="terminals-wrapper">
@@ -1175,6 +1173,10 @@
 
                         <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
                     </div>
+
+                    <!-- GLOBAL DEVICE DELETE -->
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                    <button class="btn-danger" style="background:rgba(255, 71, 87, 0.4); border:1px solid #ff4757; margin-top:0px;" onclick="deleteDeviceProfile()">🗑️ Permanently Delete Device Data</button>
                     
                 </div>
             </div>
@@ -1261,11 +1263,11 @@
         window.deviceTopology = null; 
         window.latestRawDistance = null; 
 
-        // NEW: Close floating menu on outside click
+        // Close floating menus on outside click
         window.addEventListener('click', function(e) {
-            const menu = document.getElementById('inboxFloatingMenu');
-            if (menu && menu.style.display === 'block') {
-                menu.style.display = 'none';
+            const inboxMenu = document.getElementById('inboxFloatingMenu');
+            if (inboxMenu && inboxMenu.style.display === 'block') {
+                inboxMenu.style.display = 'none';
                 isInboxMenuOpen = false;
             }
         });
@@ -1411,6 +1413,23 @@
             }).catch(err => alert("❌ Verification failed. Incorrect current password."));
         }
 
+        // --- ADMIN PIN CHANGER ---
+        function changeMasterPin() {
+            let current = prompt("🔒 VERIFICATION\n\nEnter Current Master PIN:");
+            if (current !== window.adminPin) {
+                alert("❌ Access Denied: Incorrect PIN.");
+                return;
+            }
+            let newPin = prompt("🔑 NEW PIN\n\nEnter new Master PIN (Minimum 4 characters):");
+            if (newPin && newPin.length >= 4) {
+                database.ref('/AdminConfig/MasterPIN').set(newPin);
+                window.adminPin = newPin;
+                alert("✅ Master PIN updated successfully.");
+            } else {
+                alert("❌ Update failed. PIN must be at least 4 characters.");
+            }
+        }
+
         function loginUser() {
             const email = document.getElementById('emailInput').value.trim();
             const pass = document.getElementById('passwordInput').value;
@@ -1448,8 +1467,7 @@
                     document.getElementById('customerMarquee').style.display = 'none';
                     document.getElementById('customerMenuDots').style.display = 'none';
                     document.getElementById('advancedSection').style.display = 'none';
-                    document.getElementById('changePassBtn').style.display = 'none';
-                    document.getElementById('settingsBtn').style.display = 'none';
+                    document.getElementById('customerMenuContainer').style.display = 'none';
                     
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
@@ -1661,8 +1679,64 @@
             });
         }
 
+        // --- INBOX FLOATING MENU ACTIONS ---
+        function openInboxMenu(devId, event) {
+            event.stopPropagation();
+            selectedInboxDevId = devId;
+            isInboxMenuOpen = true;
+            const menu = document.getElementById('inboxFloatingMenu');
+            menu.style.display = 'block';
+            menu.style.left = (event.clientX - 160) + 'px'; 
+            menu.style.top = event.clientY + 'px';
+        }
+
+        function handleInboxAction(action) {
+            if(!selectedInboxDevId) return;
+            
+            if (action === 'connect') {
+                document.getElementById('sideInboxPanel').classList.remove('open');
+                processAdminConnectionDirect(selectedInboxDevId);
+            } else if (action === 'remove') {
+                const pin = prompt("🔒 SECURITY\n\nEnter Admin PIN to clear this alert:");
+                if (pin !== window.adminPin) {
+                    alert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
+                database.ref('/AdminInbox/' + selectedInboxDevId).remove();
+            } else if (action === 'delete') {
+                const pin = prompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to erase " + selectedInboxDevId + ":");
+                if (pin !== window.adminPin) {
+                    alert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
+                if(confirm("Are you ABSOLUTELY sure? This will delete telemetry, config, and alerts. Cannot be undone!")) {
+                    database.ref('/Devices/' + selectedInboxDevId).remove().then(() => {
+                        database.ref('/AdminInbox/' + selectedInboxDevId).remove();
+                        alert("🗑️ Device Profile Permanently Deleted.");
+                        if(currentDeviceId === selectedInboxDevId) {
+                            window.location.reload();
+                        }
+                    });
+                }
+            }
+            document.getElementById('inboxFloatingMenu').style.display = 'none';
+            isInboxMenuOpen = false;
+        }
+
+        function processAdminConnectionDirect(devId) {
+            document.getElementById('connStatus').innerText = "VERIFYING...";
+            database.ref('Devices/' + devId).once('value').then((snapshot) => {
+                if(snapshot.exists()) {
+                    executeConnection(devId);
+                } else {
+                    alert("❌ Error: Device ID '" + devId + "' does not exist.");
+                    document.getElementById('connStatus').innerText = "ONLINE";
+                }
+            });
+        }
+
         function renderAdminInbox() {
-            if (isInboxMenuOpen) return; // Prevent overwriting the menu while interacting
+            if (isInboxMenuOpen) return; 
             const inboxDiv = document.getElementById('adminInbox');
             if(!inboxDiv) return; 
 
@@ -1677,16 +1751,12 @@
             let currentConnectedDeviceFaultMessage = null; 
 
             for (const devId in adminInboxData) {
-                if (!globalDeviceState[devId]) {
-                    continue;
-                }
+                if (!globalDeviceState[devId]) continue;
 
                 let devType = globalDeviceState[devId].deviceType || "Unknown";
                 let assignedNameStrRaw = globalDeviceState[devId].assignedName || "";
                 
-                if (filter !== "All" && devType !== filter) {
-                    continue; 
-                }
+                if (filter !== "All" && devType !== filter) continue; 
 
                 let devIdLower = devId.toLowerCase();
                 let nameLower = assignedNameStrRaw.toLowerCase();
@@ -1711,13 +1781,11 @@
                     color = "#ff4757"; 
                     displayStatus = "❌ OFFLINE";
                     displayMsg = "Machine is unresponsive.";
-                    
                     if (devId === currentDeviceId) {
                         currentConnectedDeviceFaultMessage = `Machine [${devId}] went completely Offline. Power supply or connection lost Momently.`;
                     }
                 } else if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
                     color = "#ff4757";
-                    
                     if (devId === currentDeviceId) {
                         currentConnectedDeviceFaultMessage = `[${devId}] ${displayStatus}: ${displayMsg}`;
                     }
@@ -1729,7 +1797,7 @@
 
                 let formattedName = assignedNameStrRaw ? `(${assignedNameStrRaw})` : "";
 
-                htmlStr += `<div class="inbox-card" style="border-left: 4px solid ${color}; position: relative;">
+                htmlStr += `<div class="inbox-card" style="border-left: 4px solid ${color}; position:relative;">
                     <div style="position:absolute; top:8px; right:10px; cursor:pointer; font-size:18px; color:#00d2ff; font-weight:bold; user-select:none;" onclick="openInboxMenu('${devId}', event)" title="Device Options">⋮</div>
                     <strong style="color:${color}">${devId} <span style="color:#fff;">${formattedName}</span></strong> <span style="font-size:10px; color:#aaa;">[${devType}]</span> - <span style="font-weight:bold; color:white;">${displayStatus}</span>
                     <span style="display:block; margin-top:4px; color:#ccc; width: 90%;">${displayMsg}</span>
@@ -1900,7 +1968,7 @@
             startListeners();
         }
 
-        // --- NEW: SAVE CUSTOMER MANUAL SETTINGS ---
+        // --- CUSTOMER PROTECTED UPDATE ---
         function saveCustomerSettings() {
             if(!currentDeviceId) return;
             
@@ -1956,7 +2024,6 @@
             });
         }
 
-        // --- NEW: SAVE ADMIN MANUAL SETTINGS ---
         function saveAdminManualSettings() {
             if(!currentDeviceId) return;
             
@@ -2003,76 +2070,23 @@
             }
         }
 
-        // --- NEW: ADMIN PIN CHANGER AND GLOBAL INBOX MENU LOGIC ---
-        function changeMasterPin() {
-            let current = prompt("🔒 VERIFICATION\n\nEnter Current Master PIN:");
-            if (current !== window.adminPin) {
-                alert("❌ Access Denied: Incorrect PIN.");
+        // --- GLOBAL DELETE ---
+        function deleteDeviceProfile() {
+            if(!currentDeviceId) return;
+            
+            const pin = prompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to permanently erase " + currentDeviceId + " from the database:");
+            if(pin !== window.adminPin) {
+                alert("❌ Access Denied: Incorrect Security PIN.");
                 return;
             }
-            let newPin = prompt("🔑 NEW PIN\n\nEnter new Master PIN (Minimum 4 characters):");
-            if (newPin && newPin.length >= 4) {
-                database.ref('/AdminConfig/MasterPIN').set(newPin);
-                window.adminPin = newPin;
-                alert("✅ Master PIN updated successfully.");
-            } else {
-                alert("❌ Update failed. PIN must be at least 4 characters.");
-            }
-        }
-
-        function openInboxMenu(devId, event) {
-            event.stopPropagation();
-            selectedInboxDevId = devId;
-            isInboxMenuOpen = true;
-            const menu = document.getElementById('inboxFloatingMenu');
-            menu.style.display = 'block';
-            menu.style.left = (event.clientX - 160) + 'px'; 
-            menu.style.top = event.clientY + 'px';
-        }
-
-        function handleInboxAction(action) {
-            if(!selectedInboxDevId) return;
             
-            if (action === 'connect') {
-                document.getElementById('sideInboxPanel').classList.remove('open');
-                processAdminConnectionDirect(selectedInboxDevId);
-            } else if (action === 'remove') {
-                const pin = prompt("🔒 SECURITY\n\nEnter Admin PIN to clear this alert:");
-                if (pin !== window.adminPin) {
-                    alert("❌ Access Denied: Incorrect Security PIN.");
-                    return;
-                }
-                database.ref('/AdminInbox/' + selectedInboxDevId).remove();
-            } else if (action === 'delete') {
-                const pin = prompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to erase " + selectedInboxDevId + ":");
-                if (pin !== window.adminPin) {
-                    alert("❌ Access Denied: Incorrect Security PIN.");
-                    return;
-                }
-                if(confirm("Are you ABSOLUTELY sure? This will delete telemetry, config, and alerts. Cannot be undone!")) {
-                    database.ref('/Devices/' + selectedInboxDevId).remove().then(() => {
-                        database.ref('/AdminInbox/' + selectedInboxDevId).remove();
-                        alert("🗑️ Device Profile Permanently Deleted.");
-                        if(currentDeviceId === selectedInboxDevId) {
-                            window.location.reload();
-                        }
-                    });
-                }
+            if(confirm("Are you ABSOLUTELY sure? This will delete all telemetry, customer info, and logs for " + currentDeviceId + ". This action cannot be undone!")) {
+                database.ref('/Devices/' + currentDeviceId).remove().then(() => {
+                    database.ref('/AdminInbox/' + currentDeviceId).remove();
+                    alert("🗑️ Device Profile Permanently Deleted.");
+                    window.location.reload();
+                });
             }
-            document.getElementById('inboxFloatingMenu').style.display = 'none';
-            isInboxMenuOpen = false;
-        }
-
-        function processAdminConnectionDirect(devId) {
-            document.getElementById('connStatus').innerText = "VERIFYING...";
-            database.ref('Devices/' + devId).once('value').then((snapshot) => {
-                if(snapshot.exists()) {
-                    executeConnection(devId);
-                } else {
-                    alert("❌ Error: Device ID '" + devId + "' does not exist.");
-                    document.getElementById('connStatus').innerText = "ONLINE";
-                }
-            });
         }
 
         function calibrateTank(type) {
@@ -2160,7 +2174,6 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            // --- FETCH WIFI MESH SLOTS FROM ESP32 ---
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
                 const slots = snapshot.val();
                 if(slots) {
@@ -2436,6 +2449,7 @@
             });
         }
 
+        // --- 3-LAYER SECURITY PUMP TRIGGER ---
         function togglePump() {
             if(!currentDeviceId) {
                 return;
