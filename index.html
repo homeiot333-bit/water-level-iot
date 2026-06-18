@@ -1007,6 +1007,12 @@
                                 <span id="txtSignalCustomer" class="stat-value" style="color:#7bed9f;">N/A</span>
                             </div>
                         </div>
+                        
+                        <!-- NEW: Hardware Diagnostics for Customer -->
+                        <div style="margin-top: 15px; width: 100%; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                            <span style="color:#feca57; font-size:13px; font-weight:bold; margin-bottom:5px; display:block;">⚙️ System Hardware Logs:</span>
+                            <div id="customerHwTerminalPanel" style="background: rgba(0,0,0,0.8); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap; height: 80px; overflow-y:auto;">Awaiting Cloud Sync...</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1041,9 +1047,58 @@
                                 <h3 style="color: #fff; font-size: 15px; margin:0; text-align:left;">Live Diagnostics: <span id="termDevId"></span></h3>
                                 
                                 <div style="display:flex; gap:12px; align-items:center;">
+                                    <button class="btn-login" style="background:rgba(254, 202, 87, 0.8); color:#000; font-size:11px; padding:4px 8px; margin:0; width:auto;" onclick="toggleAdminEditConfig()">✏️ Edit Config</button>
                                     <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.15); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
                                     <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:20px; user-select:none;" onclick="toggleCredBox()" title="View Credentials">⋮</span>
                                 </div>
+                            </div>
+
+                            <!-- NEW: Inline Edit Configuration Box -->
+                            <div id="adminEditConfigBox" style="display:none; background:rgba(0,0,0,0.6); padding:15px; border:1px solid #feca57; border-radius:8px; margin-top:10px; text-align:left;">
+                                <h4 style="color:#feca57; margin-top:0; font-size:13px;">✏️ Edit Device Configuration</h4>
+                                <p style="font-size:11px; color:#aaa; margin-top:0;">Update deployed dates, assigned names, and hardware settings for this auto-provisioned machine.</p>
+                                
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="font-size:11px; color:#aaa;">Assigned Name</label>
+                                        <input type="text" id="editNameInput" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
+                                    </div>
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="font-size:11px; color:#aaa;">Device Type</label>
+                                        <select id="editTypeInput" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
+                                            <option value="Household">Household</option>
+                                            <option value="Commercial">Commercial</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="font-size:11px; color:#aaa;">Deployed Date</label>
+                                        <input type="date" id="editDeployDate" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
+                                    </div>
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="font-size:11px; color:#aaa;">Network Topology</label>
+                                        <select id="editUsesRepeater" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
+                                            <option value="No">Direct Link Only</option>
+                                            <option value="Yes">Uses Middleman Repeater</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                                    <div style="flex:1; min-width:90px;">
+                                        <label style="font-size:11px; color:#aaa;">Radio Module</label>
+                                        <input type="text" id="editRadioTech" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="nRF24L01">
+                                    </div>
+                                    <div style="flex:1; min-width:90px;">
+                                        <label style="font-size:11px; color:#aaa;">Channel</label>
+                                        <input type="text" id="editRadioChannel" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="125">
+                                    </div>
+                                    <div style="flex:1; min-width:90px;">
+                                        <label style="font-size:11px; color:#aaa;">Data Rate</label>
+                                        <input type="text" id="editRadioRate" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="250 KBPS">
+                                    </div>
+                                </div>
+                                <button class="btn-login" style="background:#2ed573; color:#000; padding:8px; font-size:13px; margin-top:5px;" onclick="saveEditedConfig()">Save Changes to Database</button>
                             </div>
 
                             <div id="credentialsBox" style="display:none; margin-top:10px; padding:12px; background:rgba(0,0,0,0.6); border:1px dashed #7bed9f; border-radius:6px; font-size:13px; color:#ccc; text-align: left;">
@@ -1379,6 +1434,12 @@
             box.style.display = (box.style.display === 'none') ? 'block' : 'none';
         }
 
+        // NEW: Toggle Edit Config Box
+        function toggleAdminEditConfig() {
+            const box = document.getElementById('adminEditConfigBox');
+            box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+        }
+
         function toggleCustomerSettings() {
             const box = document.getElementById('customerSettingsBox');
             box.style.display = (box.style.display === 'none') ? 'block' : 'none';
@@ -1408,48 +1469,48 @@
             if(mode === "email") {
                 input.placeholder = "e.g., customer@gmail.com";
             } else {
-                input.placeholder = "e.g., a4e1 (MAC)";
-            }
-            document.getElementById('searchMenuDropdown').style.display = "none";
-        }
-
-        async function toggleCredBox() {
-            const box = document.getElementById('credentialsBox');
-            
-            if (box.style.display === "none") {
-                const currentUser = firebase.auth().currentUser;
-                if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
-                    const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Admin PIN to view credentials:\n(Default is 3943)", true);
-                    if (pin !== window.adminPin) {
-                        await customAlert("❌ Access Denied: Incorrect Security PIN.");
-                        return;
-                    }
-                }
-                box.style.display = "block";
-            } else {
-                box.style.display = "none";
+                alert("No valid changes detected.");
             }
         }
 
-        function toggleLinkCustomerBox() {
-            const box = document.getElementById('linkCustomerBox');
-            box.style.display = (box.style.display === "none") ? "block" : "none";
+        // --- NEW: Save Edited Config for Auto-Provisioned Devices ---
+        function saveEditedConfig() {
+            if(!currentDeviceId) return;
+
+            const name = document.getElementById('editNameInput').value.trim();
+            const type = document.getElementById('editTypeInput').value;
+            const deployDate = document.getElementById('editDeployDate').value;
+            const usesRepeater = document.getElementById('editUsesRepeater').value;
+            const radioTech = document.getElementById('editRadioTech').value.trim();
+            const radioChannel = document.getElementById('editRadioChannel').value.trim();
+            const radioRate = document.getElementById('editRadioRate').value.trim();
+
+            const pin = prompt("🔒 SECURITY VERIFICATION\n\nEnter Admin PIN to modify device configuration:");
+            if (pin !== window.adminPin) {
+                alert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+
+            const updates = {
+                deviceType: type,
+                assignedName: name,
+                deployDate: deployDate,
+                usesRepeater: usesRepeater,
+                radioTech: radioTech,
+                radioChannel: radioChannel,
+                radioRate: radioRate
+            };
+
+            database.ref('Devices/' + currentDeviceId + '/customerInfo').update(updates).then(() => {
+                alert("✅ Device Configuration successfully updated!");
+                document.getElementById('adminEditConfigBox').style.display = 'none';
+            }).catch((error) => {
+                alert("❌ Error: " + error.message);
+            });
         }
 
-        function toggleHwPanel() {
-            const box = document.getElementById('hwTerminalPanel');
-            box.style.display = (box.style.display === "none") ? "block" : "none";
-        }
-
-        function togglePasswordVisibility() {
-            const passInput = document.getElementById("passwordInput");
-            passInput.type = (passInput.type === "password") ? "text" : "password";
-        }
-
-        // --- STREAMING_CHUNK: Replacing Blocking Prompts with Async Security Layer... ---
-        async function changeCustomerPassword() {
-            document.getElementById('customerTopMenuDropdown').style.display = 'none';
-            let currentPass = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:", true);
+        // --- GLOBAL DELETE ---
+        function deleteDeviceProfile() {
             if(!currentPass) return;
             
             let newPass = await customPrompt("🔑 NEW PASSWORD\n\nEnter your NEW password (must be at least 6 characters):", true);
@@ -2255,6 +2316,15 @@
                         document.getElementById('assignedNameDisplay').innerText = "";
                     }
 
+                    // NEW: Pre-fill the Admin Edit Configuration Box automatically
+                    if(document.getElementById('editNameInput')) document.getElementById('editNameInput').value = info.assignedName || "";
+                    if(document.getElementById('editTypeInput')) document.getElementById('editTypeInput').value = info.deviceType || "Household";
+                    if(document.getElementById('editDeployDate')) document.getElementById('editDeployDate').value = info.deployDate || "";
+                    if(document.getElementById('editUsesRepeater')) document.getElementById('editUsesRepeater').value = info.usesRepeater || "No";
+                    if(document.getElementById('editRadioTech')) document.getElementById('editRadioTech').value = info.radioTech || "nRF24L01";
+                    if(document.getElementById('editRadioChannel')) document.getElementById('editRadioChannel').value = info.radioChannel || "125";
+                    if(document.getElementById('editRadioRate')) document.getElementById('editRadioRate').value = info.radioRate || "250 KBPS";
+
                     if(info.email) {
                         fetchLinkedDevices(info.email);
                     } else {
@@ -2446,6 +2516,10 @@
                     if(data.hardwareLog) {
                         const hwBox = document.getElementById('hwTerminalPanel');
                         if (hwBox) hwBox.innerText = data.hardwareLog;
+
+                        // NEW: Sync logs to Customer Hardware Diagnostics Panel
+                        const custHwBox = document.getElementById('customerHwTerminalPanel');
+                        if (custHwBox) custHwBox.innerText = data.hardwareLog;
                     }
                 }
             });
