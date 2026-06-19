@@ -167,6 +167,9 @@ void saveParamsCallback() {
   p.end();
 
   Serial.println(F("[SETUP] Tank Distances and Mesh Array successfully saved. Executing Hard Reboot..."));
+  
+  // --- BUG FIX: DESTROY GHOST WIFI MEMORY ---
+  WiFi.disconnect(true, true); 
   delay(1000);
   ESP.restart(); 
 }
@@ -261,8 +264,11 @@ void triggerCommsSafetyShutdown(int faultType) {
   }
 }
 
-// --- STREAMING_CHUNK: Rewriting the Firebase Engine to fix the SSL Traffic Jam ---
 void firebaseSyncTask(void *pvParameters) {
+  // --- CRITICAL BUG FIX: ERASE GHOST MEMORY BEFORE CONNECTING ---
+  WiFi.disconnect(true, true); 
+  delay(100);
+
   WiFi.mode(WIFI_STA);
 
   esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11B);
@@ -345,20 +351,10 @@ void firebaseSyncTask(void *pvParameters) {
 
   Firebase.begin(&config, &auth);
 
+  unsigned long lastFirebaseSync = 0;
   String basePath = "/Devices/" + String(custom_dev_id);
-  bool autoIdentityPushed = false; 
-
-  // --- NEW: Asynchronous Staggered Polling Variables ---
-  unsigned long lastTelemetrySync = 0;
-  unsigned long lastTriggerPoll = 0;
-  unsigned long lastSlowPoll = 0;
-  int slowPollState = 0;
-  bool lastFaultState = false;
-  String lastEventSent = "";
-  bool needsNetworkReboot = false;
 
   while(1) {
-    // --- Connection Guard ---
     if (WiFi.status() != WL_CONNECTED && apCount > 0) {
         logEvent("[WIFI] Connection lost! Scanning 4 Equal Mesh Array Nodes...");
         WiFi.disconnect(); 
@@ -370,11 +366,14 @@ void firebaseSyncTask(void *pvParameters) {
                 if (currentApIndex >= apCount) currentApIndex = 0;
                 continue;
             }
+            
             logEvent("[WIFI] Evaluating Hub Connection at Node: " + apList[currentApIndex].ssid);
             WiFi.begin(apList[currentApIndex].ssid.c_str(), apList[currentApIndex].pass.c_str());
             
             unsigned long startAttempt = millis();
-            while(WiFi.status() != WL_CONNECTED && millis() - startAttempt < 8000) { vTaskDelay(500 / portTICK_PERIOD_MS); }
+            while(WiFi.status() != WL_CONNECTED && millis() - startAttempt < 8000) {
+                vTaskDelay(500 / portTICK_PERIOD_MS); 
+            }
             
             if (WiFi.status() == WL_CONNECTED) {
                 logEvent("[WIFI] Reconnected successfully to Node: " + WiFi.SSID());
@@ -389,248 +388,258 @@ void firebaseSyncTask(void *pvParameters) {
         }
     }
 
-    // --- STAGGERED CLOUD ENGINE ---
-    // By using "else if", the ESP32 only executes ONE network request per loop.
-    // This absolutely guarantees that the processor never chokes or crashes!
-    if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
-        unsigned long currentMillis = millis();
+    if (WiFi.status() == WL_CONNECTED && Firebase.ready() && millis() - lastFirebaseSync > 1500) {
+      lastFirebaseSync = millis();
+      heartbeatCounter++;
 
-        // 1. FAST LANE: TELEMETRY UPLOAD (Every 2 Seconds)
-        if (currentMillis - lastTelemetrySync > 2000) {
-            lastTelemetrySync = currentMillis;
-            heartbeatCounter++;
+      String safe_latestSystemLog;
+      String safe_latestNanoLog;
+      String safe_latestHardwareLog;
+      String safe_currentSignalLabel;
+      String safe_lastSystemEvent;
 
-            if (!autoIdentityPushed) {
-                if (!Firebase.RTDB.getString(&fbdo, basePath + "/customerInfo/email")) {
-                    Firebase.RTDB.setString(&fbdo, basePath + "/customerInfo/email", auto_gen_email);
-                    Firebase.RTDB.setString(&fbdo, basePath + "/customerInfo/password", auto_gen_pass);
-                    Firebase.RTDB.setString(&fbdo, basePath + "/customerInfo/assignedName", global_cust_name);
-                    Firebase.RTDB.setBool(&fbdo, basePath + "/customerInfo/accountCreated", false);
-                } else {
-                    Firebase.RTDB.setString(&fbdo, basePath + "/customerInfo/assignedName", global_cust_name);
-                }
-                autoIdentityPushed = true;
-            }
+      if (coreMutex != NULL) xSemaphoreTakeRecursive(coreMutex, portMAX_DELAY);
+      safe_latestSystemLog = latestSystemLog;
+      safe_latestNanoLog = latestNanoLog;
+      safe_latestHardwareLog = latestHardwareLog;
+      safe_currentSignalLabel = currentSignalLabel;
+      safe_lastSystemEvent = lastSystemEvent;
+      if (coreMutex != NULL) xSemaphoreGiveRecursive(coreMutex);
 
-            String safe_latestSystemLog;
-            String safe_latestNanoLog;
-            String safe_latestHardwareLog;
-            String safe_currentSignalLabel;
-            String safe_lastSystemEvent;
+      FirebaseJson json;
+      json.set("deviceStatus/heartbeat", heartbeatCounter);
+      json.set("deviceStatus/radioTech", "nrf24l01 (mini)"); 
+      json.set("deviceStatus/radioChannel", 125); 
+      json.set("deviceStatus/radioDataRate", "250 KBPS");
+      json.set("telemetry/waterPercent", currentWaterPercent);
+      json.set("telemetry/waterCm", currentWaterCm);
+      json.set("telemetry/sensor1Cm", currentS1Cm);
+      json.set("telemetry/sensor2Cm", currentS2Cm);
+      json.set("telemetry/signalStrength", safe_currentSignalLabel);
+      json.set("telemetry/estDistance", currentEstDistance);
+      json.set("telemetry/bucketEmptyHeight", bucket_empty_distance);
+      json.set("telemetry/bucketFullHeight", bucket_full_distance);
+      json.set("telemetry/log", safe_latestSystemLog);
+      json.set("telemetry/nanoLog", safe_latestNanoLog); 
+      json.set("telemetry/hardwareLog", safe_latestHardwareLog);
+      
+      json.set("state/fault", commsFaultActive);
+      json.set("state/pumpActive", pumpActive);
+      json.set("state/automationBypassed", automationBypassed);
+      Firebase.RTDB.updateNode(&fbdo, basePath, &json);
 
-            if (coreMutex != NULL) xSemaphoreTakeRecursive(coreMutex, portMAX_DELAY);
-            safe_latestSystemLog = latestSystemLog;
-            safe_latestNanoLog = latestNanoLog;
-            safe_latestHardwareLog = latestHardwareLog;
-            safe_currentSignalLabel = currentSignalLabel;
-            safe_lastSystemEvent = lastSystemEvent;
-            if (coreMutex != NULL) xSemaphoreGiveRecursive(coreMutex);
+      String inboxPath = "/AdminInbox/" + String(custom_dev_id);
+      FirebaseJson inboxJson;
+      if (commsFaultActive || safe_lastSystemEvent.indexOf("ERROR") != -1) {
+          inboxJson.set("status", "⚠️ FAULT DETECTED");
+          inboxJson.set("message", safe_lastSystemEvent);
+      } else if (safe_lastSystemEvent.indexOf("[OTA]") != -1) {
+          inboxJson.set("status", "🔄 OTA ACTIVITY");
+          inboxJson.set("message", safe_lastSystemEvent);
+      } else {
+          inboxJson.set("status", "✅ ONLINE");
+          inboxJson.set("message", "System is running normally.");
+      }
+      Firebase.RTDB.updateNode(&fbdo, inboxPath, &inboxJson);
 
-            FirebaseJson json;
-            json.set("deviceStatus/heartbeat", heartbeatCounter);
-            json.set("deviceStatus/radioTech", "nrf24l01 (mini)"); 
-            json.set("deviceStatus/radioChannel", 125); 
-            json.set("deviceStatus/radioDataRate", "250 KBPS");
-            
-            json.set("networkSlots/slot1", w1_ssid);
-            json.set("networkSlots/slot2", w2_ssid);
-            json.set("networkSlots/slot3", w3_ssid);
-            json.set("networkSlots/slot4", w4_ssid);
+      // =========================================================================
+      // --- NEW FIX: CLOUD CONFIGURATION OVERRIDE LISTENER (WIFI & SETTINGS) ---
+      // =========================================================================
+      bool configNeedsReboot = false;
+      Preferences pEdit;
+      
+      // 1. Check for Tank Distance Calibrations
+      if (Firebase.RTDB.getFloat(&fbdo, basePath + "/control/setEmptyDepth")) {
+          float newEmpty = fbdo.floatData();
+          if(newEmpty > 1.0) {
+              pEdit.begin("water-cfg", false);
+              pEdit.putFloat("empty_dist", newEmpty);
+              pEdit.end();
+              bucket_empty_distance = newEmpty;
+              logEvent("[CLOUD UPDATE] -> Empty Depth set to " + String(newEmpty) + "cm");
+          }
+          Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setEmptyDepth");
+      }
+      
+      if (Firebase.RTDB.getFloat(&fbdo, basePath + "/control/setFullDepth")) {
+          float newFull = fbdo.floatData();
+          if(newFull >= 1.0) {
+              pEdit.begin("water-cfg", false);
+              pEdit.putFloat("full_dist", newFull);
+              pEdit.end();
+              bucket_full_distance = newFull;
+              logEvent("[CLOUD UPDATE] -> Full Clearance set to " + String(newFull) + "cm");
+          }
+          Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setFullDepth");
+      }
 
-            json.set("telemetry/waterPercent", currentWaterPercent);
-            json.set("telemetry/waterCm", currentWaterCm);
-            json.set("telemetry/sensor1Cm", currentS1Cm);
-            json.set("telemetry/sensor2Cm", currentS2Cm);
-            json.set("telemetry/signalStrength", safe_currentSignalLabel);
-            json.set("telemetry/estDistance", currentEstDistance);
-            json.set("telemetry/bucketEmptyHeight", bucket_empty_distance);
-            json.set("telemetry/bucketFullHeight", bucket_full_distance);
-            json.set("telemetry/log", safe_latestSystemLog);
-            json.set("telemetry/nanoLog", safe_latestNanoLog); 
-            json.set("telemetry/hardwareLog", safe_latestHardwareLog);
-            
-            json.set("state/fault", commsFaultActive);
-            json.set("state/pumpActive", pumpActive);
-            json.set("state/automationBypassed", automationBypassed);
-            Firebase.RTDB.updateNode(&fbdo, basePath, &json);
+      // 2. Check for Password Updates from Website
+      if (Firebase.RTDB.getString(&fbdo, basePath + "/control/updatePortalPass")) {
+          String newPortalPass = fbdo.stringData(); 
+          newPortalPass.trim();
+          if (newPortalPass.length() > 0) {
+              pEdit.begin("water-cfg", false); 
+              pEdit.putString("portal_pass", newPortalPass); 
+              pEdit.end();
+              logEvent("[SECURITY] -> Captive Portal Password synced from Cloud.");
+          }
+          Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/updatePortalPass");
+      }
 
-            // BANDWIDTH SAVER: Only push Admin Inbox warnings if they actually changed!
-            if (commsFaultActive != lastFaultState || safe_lastSystemEvent != lastEventSent) {
-                String inboxPath = "/AdminInbox/" + String(custom_dev_id);
-                FirebaseJson inboxJson;
-                if (commsFaultActive || safe_lastSystemEvent.indexOf("ERROR") != -1) {
-                    inboxJson.set("status", "⚠️ FAULT DETECTED");
-                    inboxJson.set("message", safe_lastSystemEvent);
-                } else if (safe_lastSystemEvent.indexOf("[OTA]") != -1) {
-                    inboxJson.set("status", "🔄 OTA ACTIVITY");
-                    inboxJson.set("message", safe_lastSystemEvent);
-                } else {
-                    inboxJson.set("status", "✅ ONLINE");
-                    inboxJson.set("message", "System is running normally.");
-                }
-                Firebase.RTDB.updateNode(&fbdo, inboxPath, &inboxJson);
-                lastFaultState = commsFaultActive;
-                lastEventSent = safe_lastSystemEvent;
-            }
-        }
-        
-        // 2. FAST LANE: PUMP TRIGGER CHECK (Every 1.5 Seconds)
-        else if (currentMillis - lastTriggerPoll > 1500) {
-            lastTriggerPoll = currentMillis;
-            if (Firebase.RTDB.getInt(&fbdo, basePath + "/control/triggerId")) {
-                int incomingTrigger = fbdo.intData();
-                if (!initialCloudSyncComplete || lastTriggerId == -1) {
-                    lastTriggerId = incomingTrigger;
-                    initialCloudSyncComplete = true;
-                } else if (incomingTrigger != lastTriggerId) {
-                    lastTriggerId = incomingTrigger;
-                    if (Firebase.RTDB.getBool(&fbdo, basePath + "/control/forceState")) {
-                        webCommandTarget = fbdo.boolData();
-                        webCommandPending = true; 
-                    }
-                }
-            }
-        }
-        
-        // 3. SLOW LANE: BACKGROUND CONFIG STATE MACHINE (Every 1.5 Seconds)
-        else if (currentMillis - lastSlowPoll > 1500) {
-            lastSlowPoll = currentMillis;
-            
-            switch(slowPollState) {
-                case 0:
-                    if (Firebase.RTDB.getFloat(&fbdo, basePath + "/control/setEmptyDepth")) {
-                        float newEmpty = fbdo.floatData();
-                        if (newEmpty > 1.0 && newEmpty != bucket_empty_distance) {
-                            bucket_empty_distance = newEmpty;
-                            Preferences p; p.begin("water-cfg", false); p.putFloat("empty_dist", newEmpty); p.end();
-                            logEvent("[CALIBRATION] -> Empty Tank Depth updated to " + String(newEmpty) + "cm via Cloud.");
-                        }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setEmptyDepth");
-                    }
-                    break;
-                case 1:
-                    if (Firebase.RTDB.getFloat(&fbdo, basePath + "/control/setFullDepth")) {
-                        float newFull = fbdo.floatData();
-                        if (newFull > 1.0 && newFull != bucket_full_distance) {
-                            bucket_full_distance = newFull;
-                            Preferences p; p.begin("water-cfg", false); p.putFloat("full_dist", newFull); p.end();
-                            logEvent("[CALIBRATION] -> Full Tank Clearance updated to " + String(newFull) + "cm via Cloud.");
-                        }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setFullDepth");
-                    }
-                    break;
-                case 2:
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/updatePortalPass")) {
-                        String newPortalPass = fbdo.stringData(); newPortalPass.trim();
-                        if (newPortalPass.length() > 0) {
-                            Preferences p; p.begin("water-cfg", false); p.putString("portal_pass", newPortalPass); p.end();
-                            logEvent("[SECURITY] -> Captive Portal Password synced from Cloud.");
-                        }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/updatePortalPass");
-                    }
-                    break;
-                case 3:
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/setWifiSlot1_SSID")) {
-                        String nSSID = fbdo.stringData(); nSSID.trim();
-                        if(nSSID.length()>0) { Preferences p; p.begin("water-cfg", false); p.putString("w1_ssid", nSSID); w1_ssid = nSSID; p.end(); logEvent("[NETWORK] -> Slot 1 SSID updated."); needsNetworkReboot = true; }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setWifiSlot1_SSID");
-                    }
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/setWifiSlot1_Pass")) {
-                        String nPass = fbdo.stringData(); nPass.trim();
-                        if(nPass.length()>0) { Preferences p; p.begin("water-cfg", false); p.putString("w1_pass", nPass); w1_pass = nPass; p.end(); logEvent("[NETWORK] -> Slot 1 Password updated."); needsNetworkReboot = true; }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setWifiSlot1_Pass");
-                    }
-                    break;
-                case 4:
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/setWifiSlot2_SSID")) {
-                        String nSSID = fbdo.stringData(); nSSID.trim();
-                        if(nSSID.length()>0) { Preferences p; p.begin("water-cfg", false); p.putString("b1_ssid", nSSID); w2_ssid = nSSID; p.end(); logEvent("[NETWORK] -> Slot 2 SSID updated."); needsNetworkReboot = true; }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setWifiSlot2_SSID");
-                    }
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/setWifiSlot2_Pass")) {
-                        String nPass = fbdo.stringData(); nPass.trim();
-                        if(nPass.length()>0) { Preferences p; p.begin("water-cfg", false); p.putString("b1_pass", nPass); w2_pass = nPass; p.end(); logEvent("[NETWORK] -> Slot 2 Password updated."); needsNetworkReboot = true; }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setWifiSlot2_Pass");
-                    }
-                    break;
-                case 5:
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/setWifiSlot3_SSID")) {
-                        String nSSID = fbdo.stringData(); nSSID.trim();
-                        if(nSSID.length()>0) { Preferences p; p.begin("water-cfg", false); p.putString("b2_ssid", nSSID); w3_ssid = nSSID; p.end(); logEvent("[NETWORK] -> Slot 3 SSID updated."); needsNetworkReboot = true; }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setWifiSlot3_SSID");
-                    }
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/setWifiSlot3_Pass")) {
-                        String nPass = fbdo.stringData(); nPass.trim();
-                        if(nPass.length()>0) { Preferences p; p.begin("water-cfg", false); p.putString("b2_pass", nPass); w3_pass = nPass; p.end(); logEvent("[NETWORK] -> Slot 3 Password updated."); needsNetworkReboot = true; }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setWifiSlot3_Pass");
-                    }
-                    break;
-                case 6:
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/setWifiSlot4_SSID")) {
-                        String nSSID = fbdo.stringData(); nSSID.trim();
-                        if(nSSID.length()>0) { Preferences p; p.begin("water-cfg", false); p.putString("b3_ssid", nSSID); w4_ssid = nSSID; p.end(); logEvent("[NETWORK] -> Slot 4 SSID updated."); needsNetworkReboot = true; }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setWifiSlot4_SSID");
-                    }
-                    if (Firebase.RTDB.getString(&fbdo, basePath + "/control/setWifiSlot4_Pass")) {
-                        String nPass = fbdo.stringData(); nPass.trim();
-                        if(nPass.length()>0) { Preferences p; p.begin("water-cfg", false); p.putString("b3_pass", nPass); w4_pass = nPass; p.end(); logEvent("[NETWORK] -> Slot 4 Password updated."); needsNetworkReboot = true; }
-                        Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/setWifiSlot4_Pass");
-                    }
-                    break;
-                case 7:
-                    if (Firebase.RTDB.getBool(&fbdo, basePath + "/control/otaTrigger")) {
-                        if (fbdo.boolData() == true) {
-                            String downloadUrl = fbdo.stringData(); downloadUrl.trim(); 
-                            otaInProgress = true; digitalWrite(relay_pump, RELAY_OFF); digitalWrite(led_relay_status, HIGH); pumpActive = false;
-                            logEvent("[OTA] Freeing memory for GitHub connection...");
-                            Firebase.RTDB.setString(&fbdo, basePath + "/telemetry/log", "[OTA] Contacting GitHub...");
-                            delay(1000); Firebase.RTDB.setBool(&fbdo, basePath + "/control/otaTrigger", false); fbdo.clear(); delay(500);
-                            WiFiClientSecure client; client.setInsecure(); client.setTimeout(20000); 
-                            HTTPClient http; http.setTimeout(20000); http.begin(client, downloadUrl);
-                            http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); http.setUserAgent("ESP32-WaterSystem-OTA"); 
-                            int httpCode = http.GET(); Firebase.begin(&config, &auth);
-                            unsigned long waitStart = millis(); while (!Firebase.ready() && millis() - waitStart < 8000) { delay(250); }
-                            if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY || httpCode == 302 || httpCode == 301) {
-                                int contentLength = http.getSize(); bool canBegin = Update.begin(contentLength);
-                                if (canBegin) {
-                                    WiFiClient& tcp = http.getStream(); size_t written = Update.writeStream(tcp);
-                                    if (written == contentLength) {
-                                        Update.end();
-                                        FirebaseJson successInbox; successInbox.set("status", "⭐ OTA SUCCESS"); successInbox.set("message", "New firmware downloaded and installed. Rebooting!");
-                                        Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &successInbox);
-                                        delay(3000); ESP.restart();
-                                    } else {
-                                        FirebaseJson errInbox; errInbox.set("status", "❌ OTA ERROR"); errInbox.set("message", "Download interrupted or file corrupted.");
-                                        Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
-                                        delay(3000); ESP.restart(); 
-                                    }
-                                } else {
-                                    FirebaseJson errInbox; errInbox.set("status", "❌ OTA ERROR"); errInbox.set("message", "Not enough free memory on ESP32 to install.");
-                                    Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
-                                    delay(3000); ESP.restart();
-                                }
-                            } else {
-                                FirebaseJson errInbox; errInbox.set("status", "❌ OTA ERROR"); errInbox.set("message", "Bad Link! GitHub rejected it. HTTP Code: " + String(httpCode));
-                                Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
-                                delay(3000); ESP.restart(); 
-                            }
-                            http.end();
-                        }
-                    }
-                    break;
-            }
-            
-            if (needsNetworkReboot) {
-                logEvent("[NETWORK] Credentials changed! Rebooting in 3 seconds to apply...");
-                delay(3000);
-                ESP.restart();
-            }
+      // 3. Check for WiFi Mesh Slot Overrides from the Website
+      for(int i = 1; i <= 4; i++) {
+          String ssidPath = basePath + "/control/setWifiSlot" + String(i) + "_SSID";
+          String passPath = basePath + "/control/setWifiSlot" + String(i) + "_Pass";
+          
+          bool slotChanged = false;
+          String nSsid = "";
+          String nPass = "";
+          
+          if (Firebase.RTDB.getString(&fbdo, ssidPath)) {
+              nSsid = fbdo.stringData();
+              slotChanged = true;
+              Firebase.RTDB.deleteNode(&fbdo, ssidPath);
+          }
+          if (Firebase.RTDB.getString(&fbdo, passPath)) {
+              nPass = fbdo.stringData();
+              slotChanged = true;
+              Firebase.RTDB.deleteNode(&fbdo, passPath);
+          }
+          
+          if (slotChanged) {
+              pEdit.begin("water-cfg", false);
+              if (nSsid.length() > 0) {
+                  if(i==1) pEdit.putString("w1_ssid", nSsid);
+                  if(i==2) pEdit.putString("b1_ssid", nSsid);
+                  if(i==3) pEdit.putString("b2_ssid", nSsid);
+                  if(i==4) pEdit.putString("b3_ssid", nSsid);
+              }
+              if (nPass.length() > 0) {
+                  if(i==1) pEdit.putString("w1_pass", nPass);
+                  if(i==2) pEdit.putString("b1_pass", nPass);
+                  if(i==3) pEdit.putString("b2_pass", nPass);
+                  if(i==4) pEdit.putString("b3_pass", nPass);
+              }
+              pEdit.end();
+              logEvent("[CLOUD UPDATE] -> WiFi Slot " + String(i) + " updated via Dashboard.");
+              configNeedsReboot = true;
+          }
+      }
 
-            slowPollState++;
-            if(slowPollState > 7) slowPollState = 0;
-        }
+      // 4. Push active Mesh Slots up to Dashboard so user can see them
+      FirebaseJson slotsJson;
+      pEdit.begin("water-cfg", true);
+      slotsJson.set("slot1", pEdit.getString("w1_ssid", "Empty"));
+      slotsJson.set("slot2", pEdit.getString("b1_ssid", "Empty"));
+      slotsJson.set("slot3", pEdit.getString("b2_ssid", "Empty"));
+      slotsJson.set("slot4", pEdit.getString("b3_ssid", "Empty"));
+      pEdit.end();
+      Firebase.RTDB.updateNode(&fbdo, basePath + "/networkSlots", &slotsJson);
+
+      // 5. Execute Reboot if Network Changed
+      if (configNeedsReboot) {
+          logEvent("[SYSTEM] -> Rebooting to apply new WiFi credentials...");
+          Firebase.RTDB.setString(&fbdo, basePath + "/telemetry/log", "[SYSTEM] Rebooting to apply new WiFi...");
+          delay(2000);
+          WiFi.disconnect(true, true); // Erase old ghost memory immediately before reboot
+          ESP.restart();
+      }
+      // =========================================================================
+
+      if (Firebase.RTDB.getInt(&fbdo, basePath + "/control/triggerId")) {
+          int incomingTrigger = fbdo.intData();
+          
+          if (!initialCloudSyncComplete || lastTriggerId == -1) {
+              lastTriggerId = incomingTrigger;
+              initialCloudSyncComplete = true;
+          } else if (incomingTrigger != lastTriggerId) {
+              lastTriggerId = incomingTrigger;
+              if (Firebase.RTDB.getBool(&fbdo, basePath + "/control/forceState")) {
+                  webCommandTarget = fbdo.boolData();
+                  webCommandPending = true; 
+              }
+          }
+      }
+
+      if (Firebase.RTDB.getBool(&fbdo, basePath + "/control/otaTrigger")) {
+          if (fbdo.boolData() == true) {
+              String downloadUrl = fbdo.stringData();
+              downloadUrl.trim(); 
+              
+              otaInProgress = true; 
+              digitalWrite(relay_pump, RELAY_OFF); 
+              digitalWrite(led_relay_status, HIGH); 
+              pumpActive = false;
+              
+              logEvent("[OTA] Freeing memory for GitHub connection...");
+              Firebase.RTDB.setString(&fbdo, basePath + "/telemetry/log", "[OTA] Contacting GitHub...");
+              delay(1000); 
+              
+              Firebase.RTDB.setBool(&fbdo, basePath + "/control/otaTrigger", false); 
+              fbdo.clear(); 
+              delay(500);
+              
+              WiFiClientSecure client;
+              client.setInsecure(); 
+              client.setTimeout(20000); 
+              
+              HTTPClient http;
+              http.setTimeout(20000); 
+              http.begin(client, downloadUrl);
+              http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); 
+              http.setUserAgent("ESP32-WaterSystem-OTA"); 
+              
+              int httpCode = http.GET();
+              
+              Firebase.begin(&config, &auth);
+              unsigned long waitStart = millis();
+              while (!Firebase.ready() && millis() - waitStart < 8000) {
+                  delay(250);
+              }
+              
+              if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY || httpCode == 302 || httpCode == 301) {
+                  int contentLength = http.getSize();
+                  bool canBegin = Update.begin(contentLength);
+                  if (canBegin) {
+                      WiFiClient& tcp = http.getStream();
+                      size_t written = Update.writeStream(tcp);
+                      if (written == contentLength) {
+                          Update.end();
+                          
+                          FirebaseJson successInbox;
+                          successInbox.set("status", "⭐ OTA SUCCESS");
+                          successInbox.set("message", "New firmware downloaded and installed. Rebooting!");
+                          Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &successInbox);
+                          delay(3000); 
+                          ESP.restart();
+                      } else {
+                          FirebaseJson errInbox;
+                          errInbox.set("status", "❌ OTA ERROR");
+                          errInbox.set("message", "Download interrupted or file corrupted.");
+                          Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
+                          delay(3000); 
+                          ESP.restart(); 
+                      }
+                  } else {
+                      FirebaseJson errInbox;
+                      errInbox.set("status", "❌ OTA ERROR");
+                      errInbox.set("message", "Not enough free memory on ESP32 to install.");
+                      Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
+                      delay(3000); 
+                      ESP.restart();
+                  }
+              } else {
+                  FirebaseJson errInbox;
+                  errInbox.set("status", "❌ OTA ERROR");
+                  errInbox.set("message", "Bad Link! GitHub rejected it. HTTP Code: " + String(httpCode));
+                  Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
+                  delay(3000); 
+                  ESP.restart(); 
+              }
+              http.end();
+          }
+      }
     }
-    // Very gentle tick allows FreeRTOS to manage background WiFi perfectly
     vTaskDelay(50 / portTICK_PERIOD_MS); 
   }
 }
@@ -659,16 +668,15 @@ void setup() {
   digitalWrite(led_75_100, LOW);
   digitalWrite(buzzer_pin, LOW); 
 
+  // --- CRITICAL BUG FIX: ERASE GHOST MEMORY DURING BOOT SEQUENCE ---
   WiFi.mode(WIFI_STA); 
-  WiFi.begin(); 
+  WiFi.disconnect(true, true); // Erase NVS memory before proceeding!
   delay(100);
 
   String mac = WiFi.macAddress();
   mac.replace(":", "");
   mac.toLowerCase(); 
   mac.toCharArray(custom_dev_id, 20);
-
-  WiFi.disconnect(); 
 
   String shortCode = mac.substring(mac.length() - 4);
   auto_gen_email = shortCode + "@water.com";
@@ -779,7 +787,7 @@ void setup() {
     radio.setPALevel(RF24_PA_HIGH);     
     radio.setDataRate(RF24_250KBPS);     
     radio.setCRCLength(RF24_CRC_16);   
-    radio.startListening();           
+    radio.startListening();            
     radio.flush_rx();                  
     logEvent("[SYSTEM STATUS] -> Radio Online. Power Level MAX.");
   }
