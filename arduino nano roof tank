@@ -1,0 +1,157 @@
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+#include <printf.h> // Required for diagnostic printing
+
+// --- STRICT ARDUINO NANO PIN ASSIGNMENTS ---
+// Hardware SPI: MOSI = 11, MISO = 12, SCK = 13
+#define CE_PIN 9
+#define CSN_PIN 10
+
+// Sensor 1
+#define TRIG_1 2
+#define ECHO_1 3
+
+// Sensor 2
+#define TRIG_2 5
+#define ECHO_2 6
+
+RF24 radio(CE_PIN, CSN_PIN);
+const byte address[6] = "WTR01";
+
+// 32-BYTE PERFECT FIT STRUCTURE (Matches Middleman and ESP32 Hub perfectly)
+struct __attribute__((packed)) AdvancedPayload {
+  float verifiedDistance;
+  float raw1;
+  float raw2;
+  uint32_t packetId;
+  char nanoLog[13];       // Shrunk to 13 to make immediate room for booleans
+  bool tankRadioOk;       // NEW: Tells the system if this transmitter chip is alive
+  bool middlemanRadioOk;  // NEW: Slot allocation for the repeater node
+  bool espRadioOk;        // NEW: Slot allocation for the primary hub
+};
+AdvancedPayload sendPackage;
+
+uint32_t packetCounter = 0;
+
+void setup() {
+  Serial.begin(115200);
+  printf_begin(); 
+  delay(1000); 
+  
+  pinMode(TRIG_1, OUTPUT);
+  pinMode(ECHO_1, INPUT);
+  pinMode(TRIG_2, OUTPUT);
+  pinMode(ECHO_2, INPUT);
+
+  Serial.println(F("\n========================================"));
+  Serial.println(F("Initializing Arduino Nano Transmitter..."));
+
+  if (!radio.begin()) {
+    Serial.println(F("CRITICAL ERROR: nRF24L01 Hardware Missing or Wired Incorrectly!"));
+    while (1) {
+      delay(1000); // Prevents Watchdog Crash
+    } 
+  }
+  
+  radio.setChannel(125);
+  radio.setAutoAck(true);
+  
+  // --- CRITICAL DISTANCE & COMPATIBILITY BOOSTERS ---
+  // Max out hardware retries to punch through walls (Matches Middleman)
+  radio.setRetries(15, 15); 
+  
+  // Set power amplifier to MAX (Ensure 5V Adapter board + Capacitor is used!)
+  radio.setPALevel(RF24_PA_MAX);
+  
+  // Hardcode exactly 32 bytes to prevent 8-bit to 32-bit padding corruption
+  radio.disableDynamicPayloads();
+  radio.setPayloadSize(32);
+  
+  radio.setDataRate(RF24_250KBPS);
+  radio.setCRCLength(RF24_CRC_16);
+  
+  radio.openWritingPipe(address);
+  
+  // Flush lingering garbage from boot
+  radio.flush_tx();
+  radio.flush_rx();
+  
+  radio.stopListening(); 
+  
+  Serial.println(F("Radio Online. Broadcasting on Channel 125 at MAX Power."));
+  Serial.println(F("--- HARDWARE DIAGNOSTICS ---"));
+  radio.printDetails(); 
+  Serial.println(F("========================================"));
+}
+
+float getDistance(int trig, int echo) {
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  
+  long duration = pulseIn(echo, HIGH, 30000); 
+  if (duration == 0) return -1.0;
+  
+  return (duration * 0.0343) / 2.0;
+}
+
+void loop() {
+  float d1 = getDistance(TRIG_1, ECHO_1);
+  delay(200); 
+  float d2 = getDistance(TRIG_2, ECHO_2);
+
+  sendPackage.raw1 = d1;
+  sendPackage.raw2 = d2;
+  
+  memset(sendPackage.nanoLog, 0, sizeof(sendPackage.nanoLog));
+
+  // Strings optimized to be under 12 characters to maintain strict data boundaries
+  if (d1 > 0 && d2 > 0) {
+    sendPackage.verifiedDistance = (d1 + d2) / 2.0;
+    strncpy(sendPackage.nanoLog, "Sensors OK", 12); 
+  } else if (d1 > 0) {
+    sendPackage.verifiedDistance = d1;
+    strncpy(sendPackage.nanoLog, "S2 Dead (S1)", 12); 
+  } else if (d2 > 0) {
+    sendPackage.verifiedDistance = d2;
+    strncpy(sendPackage.nanoLog, "S1 Dead (S2)", 12); 
+  } else {
+    sendPackage.verifiedDistance = -1.0; 
+    strncpy(sendPackage.nanoLog, "Crit Blind", 12); 
+  }
+  sendPackage.nanoLog[12] = '\0'; // Strict string truncation enforcement
+
+  packetCounter++;
+  sendPackage.packetId = packetCounter;
+
+  // Inject local hardware diagnostics before broadcasting
+  sendPackage.tankRadioOk = radio.isChipConnected();
+  sendPackage.middlemanRadioOk = false; // Middleman will overwrite this when received
+  sendPackage.espRadioOk = false;        // ESP32 will verify its own state internally
+
+  // Power rail stabilization: Gives the capacitors 10ms to fully recharge 
+  // after the ultrasonic sensors fired, ensuring the radio gets a full burst of power.
+  delay(10);
+
+  // Force strict 32-byte write to match Middleman and ESP32 logic perfectly
+  bool success = radio.write(&sendPackage, 32);
+  
+  // ALWAYS print the sensor data first, no matter what
+  Serial.print(F("[TX] Pkt: ")); Serial.print(packetCounter);
+  Serial.print(F(" | S1: ")); Serial.print(sendPackage.raw1, 1);
+  Serial.print(F("cm | S2: ")); Serial.print(sendPackage.raw2, 1);
+  Serial.print(F("cm | Final: ")); Serial.print(sendPackage.verifiedDistance, 1);
+  Serial.print(F("cm | Log: ")); Serial.print(sendPackage.nanoLog);
+  
+  // Then append the success or fail status at the end of the line
+  if (success) {
+    Serial.println(F(" -> [DELIVERED]"));
+  } else {
+    Serial.println(F(" -> [FAILED] - Receiver Offline"));
+  }
+
+  delay(1000); 
+}
