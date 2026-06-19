@@ -16,7 +16,7 @@ const unsigned long timeoutDuration = 2000;
 unsigned long lastTankBlinkTime = 0;
 bool tankLedState = false;
 
-// Tracks if the radio chip crashed due to a power brownout
+// Tracks if the radio chip crashed due to a power brownout   
 bool wasHardwareFaulty = false; 
 
 // 32-BYTE PERFECT FIT STRUCTURE
