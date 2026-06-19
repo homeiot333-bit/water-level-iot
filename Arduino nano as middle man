@@ -71,7 +71,11 @@ bool initializeRadio() {
 void setup() {
   Serial.begin(115200);
   
-  delay(2000); 
+  // --- CRITICAL EXTERNAL POWER FIX ---
+  // Wall adapters take a moment to reach a stable 5 Volts.
+  // We force the Nano to wait 3 full seconds to let the power supply 
+  // stabilize and fill the 100uF capacitor before turning on the radio!
+  delay(3000); 
   
   Serial.println(F("\n\n======================================="));
   Serial.println(F("[REPEATER] Initializing Arduino Nano Middleman..."));
