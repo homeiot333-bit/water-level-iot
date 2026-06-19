@@ -1,0 +1,202 @@
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+// Removed ESP8266WiFi.h because Nano does not have WiFi (Saves memory!)
+
+// --- STRICT ARDUINO NANO PIN ASSIGNMENTS ---
+// Hardware SPI pins (11, 12, 13) are handled automatically by the SPI library
+#define CE_PIN 9  
+#define CSN_PIN 10
+
+// --- EXTERNAL DIAGNOSTIC LED PIN ASSIGNMENTS ---
+#define TANK_LED 4          // Steady blink when Roof Tank is Offline
+#define HUB_LINK_LED 5      // Replaces onboard LED. 3-Blink sequence when Online
+
+// Initialize radio
+RF24 radio(CE_PIN, CSN_PIN);
+const byte address[6] = "WTR01";
+
+unsigned long lastTankPacketTime = 0;
+const unsigned long timeoutDuration = 2000; 
+unsigned long lastTankBlinkTime = 0;
+bool tankLedState = false;
+
+bool wasHardwareFaulty = true; 
+unsigned long lastRadioInitAttempt = 0;
+uint32_t lastKnownPacketId = 0; 
+
+// 32-BYTE PERFECT FIT STRUCTURE 
+// Matches both the ESP32 (32-bit) and Arduino Nano (8-bit) perfectly
+struct __attribute__((packed)) AdvancedPayload {
+  float verifiedDistance;
+  float raw1;
+  float raw2;
+  uint32_t packetId;
+  char nanoLog[13]; 
+  bool tankRadioOk;
+  bool middlemanRadioOk;
+  bool espRadioOk;
+};
+AdvancedPayload relayPackage;
+
+bool initializeRadio() {
+  if (radio.begin()) {
+    // EXACT MIRROR OF ESP32 HUB CONFIGURATION
+    radio.setChannel(125);   
+    radio.setAutoAck(true);  // CRITICAL FIX: Matches ESP32 and Roof Tank
+    
+    // --- MASSIVE DISTANCE BOOSTERS ---
+    radio.setRetries(15, 15); 
+    radio.setPALevel(RF24_PA_HIGH); 
+    
+    // Hardcode exact 32 bytes to prevent 8-bit to 32-bit padding corruption
+    radio.disableDynamicPayloads(); 
+    radio.setPayloadSize(32); 
+    
+    radio.setDataRate(RF24_250KBPS);     
+    radio.setCRCLength(RF24_CRC_16); 
+    
+    radio.openReadingPipe(1, address);
+    radio.openWritingPipe(address);
+    
+    radio.flush_rx();
+    radio.flush_tx();
+    radio.startListening();
+    
+    return true;
+  }
+  return false;
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  delay(2000); 
+  
+  Serial.println(F("\n\n======================================="));
+  Serial.println(F("[REPEATER] Initializing Arduino Nano Middleman..."));
+  Serial.println(F("======================================="));
+
+  pinMode(TANK_LED, OUTPUT);
+  pinMode(HUB_LINK_LED, OUTPUT);
+  
+  digitalWrite(TANK_LED, LOW); 
+  digitalWrite(HUB_LINK_LED, LOW); 
+
+  if (initializeRadio()) {
+      Serial.println(F("[SUCCESS] -> Auto-Healing Relay Active."));
+      wasHardwareFaulty = false;
+  } else {
+      Serial.println(F("[ERROR] -> Check SPI wiring (CE to 9, CSN to 10)!"));
+  }
+  
+  // Initialize slightly in the past to prevent instant false positive
+  lastTankPacketTime = millis() - 5000; 
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+  bool isRadioHardwareHealthy = radio.isChipConnected();
+
+  // 1. AUTO-HEALING WATCHDOG
+  if (!isRadioHardwareHealthy) {
+    if (!wasHardwareFaulty) {
+        Serial.println(F("[ERROR] -> Radio disconnected! Powering down SPI to recover..."));
+        wasHardwareFaulty = true;
+        lastRadioInitAttempt = currentMillis; 
+    }
+    
+    if (currentMillis - lastRadioInitAttempt >= 3000) {
+        lastRadioInitAttempt = currentMillis;
+        if (initializeRadio()) {
+            Serial.println(F("[SUCCESS] -> Radio recovered from power crash. Memory Reloaded!"));
+            wasHardwareFaulty = false;
+        }
+    }
+  } 
+  else {
+    // 2. READ PROCESS
+    if (!wasHardwareFaulty && radio.available()) {
+      radio.read(&relayPackage, 32); 
+      
+      // THE ANTI-STATIC GARBAGE TRAP
+      if (relayPackage.packetId == 0 || relayPackage.packetId > 10000000 || relayPackage.verifiedDistance < 0 || relayPackage.verifiedDistance > 5000) {
+         radio.flush_rx(); 
+         return; 
+      }
+      
+      // SMART DUPLICATE FILTER
+      // Only filters duplicates if they arrive within 500ms
+      if (relayPackage.packetId == lastKnownPacketId && (currentMillis - lastTankPacketTime < 500)) {
+          radio.flush_rx();
+          return;
+      }
+      
+      lastKnownPacketId = relayPackage.packetId;
+      lastTankPacketTime = currentMillis; 
+      digitalWrite(TANK_LED, LOW); 
+
+      relayPackage.middlemanRadioOk = true;
+
+      strncpy(relayPackage.nanoLog, "Via Repeater", 12);
+      relayPackage.nanoLog[12] = '\0'; 
+
+      Serial.print(F("[RELAY] Captured Packet ID: ")); 
+      Serial.print(relayPackage.packetId);
+      Serial.print(F(" | Dist: "));
+      Serial.print(relayPackage.verifiedDistance);
+      Serial.println(F("cm | HW: OK"));
+
+      radio.stopListening();
+      
+      // Wait exactly 45ms to avoid airwave collisions with Roof Tank
+      delay(45); 
+
+      radio.flush_tx();  
+      
+      radio.write(&relayPackage, 32);
+      
+      Serial.println(F("        -> Packet successfully boosted to ESP32 Hub."));
+
+      // MUST flush RX *before* startListening to prevent deleting incoming data
+      radio.flush_rx();
+      radio.startListening();
+    }
+  }
+
+  // 3. DIAGNOSTIC LEDS
+  bool isTankOnline = (currentMillis - lastTankPacketTime <= timeoutDuration);
+  
+  if (isTankOnline) {
+      // Tank is ONLINE: Do the 3-Blink Sequence on Pin 5 every 2 seconds
+      int cycle = currentMillis % 2000;
+      
+      if (cycle < 100) digitalWrite(HUB_LINK_LED, HIGH);        // Blink 1 ON
+      else if (cycle < 200) digitalWrite(HUB_LINK_LED, LOW);    // OFF
+      else if (cycle < 300) digitalWrite(HUB_LINK_LED, HIGH);   // Blink 2 ON
+      else if (cycle < 400) digitalWrite(HUB_LINK_LED, LOW);    // OFF
+      else if (cycle < 500) digitalWrite(HUB_LINK_LED, HIGH);   // Blink 3 ON
+      else digitalWrite(HUB_LINK_LED, LOW);                     // OFF for remainder of 2 seconds
+
+      // Ensure External Tank Offline LED is OFF
+      digitalWrite(TANK_LED, LOW);
+  } else {
+      // Tank is OFFLINE: 3-Blink LED stays OFF, Tank D4 LED blinks steadily
+      digitalWrite(HUB_LINK_LED, LOW); 
+      
+      if (currentMillis - lastTankBlinkTime >= 500) {
+          lastTankBlinkTime = currentMillis;
+          tankLedState = !tankLedState;
+          digitalWrite(TANK_LED, tankLedState ? HIGH : LOW);
+      }
+  }
+
+  // 4. HEARTBEAT DIAGNOSTIC
+  static unsigned long lastHeartbeatPrint = 0;
+  if (currentMillis - lastHeartbeatPrint >= 5000) {
+      lastHeartbeatPrint = currentMillis;
+      if (isRadioHardwareHealthy && !wasHardwareFaulty) {
+          Serial.println(F("[SYSTEM] Middleman actively scanning channel 125 for Roof Tank..."));
+      }
+  }
+}
