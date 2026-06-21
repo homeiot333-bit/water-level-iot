@@ -742,7 +742,7 @@ void setup() {
       p_empty = new WiFiManagerParameter("empty", "Tank Depth (Empty) cm", emptyStr, 10);
       p_full = new WiFiManagerParameter("full", "Full Water Level cm", fullStr, 10);
 
-      WiFiManagerParameter custom_credits_html("<div class='brand-header'><img src='https://i.ibb.co/d00mGVcx/AKS.png' class='brand-logo-left'><span>This system is developed by <strong>ANISH</strong></span></div>");
+      WiFiManagerParameter custom_credits_html("<div class='brand-header'><img src='https://i.ibb.co/3yfSPzYd/Whats-App-Image-2026-06-21-at-10-09-09-PM.jpg' class='brand-logo-left'><span>This system is developed by <strong>ANISH</strong></span></div>");
 
       wm.addParameter(&custom_credits_html);
       wm.addParameter(&custom_info_html); 
