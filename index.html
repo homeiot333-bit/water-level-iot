@@ -769,7 +769,6 @@
 <body>
 
 
-    <!-- CUSTOM SECURITY MODAL INJECTION -->
     <div id="customModalOverlay">
         <div id="customModalBox">
             <h3 id="customModalTitle"></h3>
@@ -782,7 +781,6 @@
         </div>
     </div>
 
-    <!-- FLOATING INBOX 3-DOT MENU -->
     <div id="inboxFloatingMenu" style="display:none; position:fixed; background:rgba(20, 25, 35, 0.98); border:1px solid #00d2ff; border-radius:8px; padding:5px; z-index:10000; box-shadow: 0 10px 30px rgba(0,0,0,0.9); min-width: 160px;">
         <div style="color:#7bed9f; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('connect')">🟢 Connect Device</div>
         <div style="color:#feca57; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('remove')">🧹 Remove Alert</div>
@@ -843,7 +841,6 @@
             <div style="display:flex; align-items:center; gap: 15px;">
                 <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
                 
-                <!-- CUSTOMER 3-DOT MENU (Hidden by default from Admin) -->
                 <div id="customerMenuContainer" style="position:relative; display:none;">
                     <div class="menu-dots" style="position:static; margin-left:5px;" onclick="toggleCustomerTopMenu()" title="Account Options">⋮</div>
                     <div id="customerTopMenuDropdown" style="display:none; position:absolute; right:0; top:30px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
@@ -861,7 +858,7 @@
         </div>
 
         <div class="developer-credit-top">
-            <img src="https://ibb.co/MD8PJ65S" class="brand-logo-left" alt="AKS Logo">
+            <img src="https://i.ibb.co/3yfSPzYd/Whats-App-Image-2026-06-21-at-10-09-09-PM.jpg" class="brand-logo-left" alt="AKS Logo">
             <span id="creditText">This system is developed by <strong>ANISH.</strong></span>
         </div>
 
@@ -869,7 +866,6 @@
             
             <div class="dash-col-left" id="mainDashboardView" style="display:none;">
                 
-                <!-- CUSTOMER DEVICE SETTINGS PANEL -->
                 <div id="customerSettingsBox" style="display:none; width:100%; text-align: left; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; border: 1px dashed #00d2ff; margin-bottom: 20px;">
                     <h3 style="color: #00d2ff; margin-top:0;">⚙️ Device Configuration</h3>
                     <p style="font-size:12px; color:#aaa; margin-top:0;">Update your tank dimensions or configure up to 4 backup WiFi networks.</p>
@@ -1008,7 +1004,6 @@
                             </div>
                         </div>
                         
-                        <!-- Hardware Diagnostics for Customer -->
                         <div style="margin-top: 15px; width: 100%; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
                             <span style="color:#feca57; font-size:13px; font-weight:bold; margin-bottom:5px; display:block;">⚙️ System Hardware Logs:</span>
                             <div id="customerHwTerminalPanel" style="background: rgba(0,0,0,0.8); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap; height: 80px; overflow-y:auto;">Awaiting Cloud Sync...</div>
@@ -1028,7 +1023,6 @@
                     
                     <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
-                    <!-- Admin PIN Update Button -->
                     <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
 
                     <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px);">
@@ -1053,7 +1047,6 @@
                                 </div>
                             </div>
 
-                            <!-- Inline Edit Configuration Box -->
                             <div id="adminEditConfigBox" style="display:none; background:rgba(0,0,0,0.6); padding:15px; border:1px solid #feca57; border-radius:8px; margin-top:10px; text-align:left;">
                                 <h4 style="color:#feca57; margin-top:0; font-size:13px;">✏️ Edit Device Configuration</h4>
                                 <p style="font-size:11px; color:#aaa; margin-top:0;">Update deployed dates, assigned names, and hardware settings for this auto-provisioned machine.</p>
@@ -1140,7 +1133,6 @@
                                 <button class="btn-login" style="background:rgba(46, 213, 115, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('full')">Set as Full (100%)</button>
                             </div>
 
-                            <!-- ADMIN MANUAL OVERRIDE (WITH 3-DOT MENU) -->
                             <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
                             <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
                                 <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">⚙️ Manual Override & Network Config</h4>
@@ -1258,7 +1250,6 @@
                         <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
                     </div>
 
-                    <!-- GLOBAL DEVICE DELETE -->
                     <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
                     <button class="btn-danger" style="background:rgba(255, 71, 87, 0.4); border:1px solid #ff4757; margin-top:0px;" onclick="deleteDeviceProfile()">🗑️ Permanently Delete Device Data</button>
                     
