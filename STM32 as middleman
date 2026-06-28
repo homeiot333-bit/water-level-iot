@@ -1,0 +1,230 @@
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+
+// --- STRICT STM32 PIN ASSIGNMENTS ---
+// Hardware SPI on STM32F103 (Blue Pill): 
+// SCK = PA5, MISO = PA6, MOSI = PA7
+#define CE_PIN PA3  
+#define CSN_PIN PA4
+
+// --- EXTERNAL DIAGNOSTIC LED PIN ASSIGNMENTS ---
+#define TANK_LED PB0        // Steady blink when Roof Tank is Offline
+#define HUB_LINK_LED PC13   // 3-Blink sequence when Online (Uses BluePill Onboard LED!)
+
+// Initialize radio
+RF24 radio(CE_PIN, CSN_PIN);
+const byte address[6] = "WTR01";
+
+unsigned long lastTankPacketTime = 0;
+const unsigned long timeoutDuration = 2000; 
+unsigned long lastTankBlinkTime = 0;
+bool tankLedState = false;
+
+bool wasHardwareFaulty = true; 
+unsigned long lastRadioInitAttempt = 0;
+uint32_t lastKnownPacketId = 0; 
+
+// 32-BYTE PERFECT FIT STRUCTURE 
+// Matches both the ESP32 (32-bit) and Roof Tank precisely
+struct __attribute__((packed)) AdvancedPayload {
+  float verifiedDistance;
+  float raw1;
+  float raw2;
+  uint32_t packetId;
+  char nanoLog[13]; 
+  bool tankRadioOk;
+  bool middlemanRadioOk;
+  bool espRadioOk;
+};
+AdvancedPayload relayPackage;
+
+bool initializeRadio() {
+  Serial.println(F("[HW CHECK] Booting SPI Bus on PA5(SCK), PA6(MISO), PA7(MOSI)..."));
+  
+  if (radio.begin()) {
+    Serial.println(F("[HW CHECK] SPI Bus OK. CE(PA3) and CSN(PA4) are responding."));
+    
+    // EXACT MIRROR OF ESP32 HUB CONFIGURATION
+    radio.setChannel(125);   
+    radio.setAutoAck(true);  
+    
+    // --- MASSIVE DISTANCE BOOSTERS ---
+    radio.setRetries(15, 15); 
+    
+    // UPDATED: MAX POWER FOR MAXIMUM RANGE PENETRATION
+    radio.setPALevel(RF24_PA_MAX); 
+    
+    radio.disableDynamicPayloads(); 
+    radio.setPayloadSize(32); 
+    
+    radio.setDataRate(RF24_250KBPS);     
+    radio.setCRCLength(RF24_CRC_16); 
+    
+    radio.openReadingPipe(1, address);
+    radio.openWritingPipe(address);
+    
+    radio.flush_rx();
+    radio.flush_tx();
+    radio.startListening();
+    
+    Serial.println(F("[SYS] Radio configured: CH:125, 250KBPS, 32-Byte Payload, PA_MAX."));
+    return true;
+  }
+  
+  Serial.println(F("[HW ERROR] nRF24 Chip NOT responding!"));
+  Serial.println(F(" -> Check 3.3V power to the radio."));
+  Serial.println(F(" -> Check if CE is securely on PA3 and CSN on PA4."));
+  Serial.println(F(" -> Check MISO(PA6) and MOSI(PA7) are not swapped."));
+  return false;
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  delay(2000); 
+  
+  Serial.println(F("\n\n======================================="));
+  Serial.println(F("[REPEATER] Initializing STM32 ARM Cortex Middleman..."));
+  Serial.println(F("======================================="));
+
+  pinMode(TANK_LED, OUTPUT);
+  pinMode(HUB_LINK_LED, OUTPUT);
+  
+  digitalWrite(TANK_LED, LOW); 
+  digitalWrite(HUB_LINK_LED, HIGH); // STM32 PC13 LED is active LOW. HIGH turns it off.
+
+  if (initializeRadio()) {
+      Serial.println(F("[SUCCESS] -> Auto-Healing Relay Active. Listening for Roof Tank..."));
+      wasHardwareFaulty = false;
+  } else {
+      Serial.println(F("[FATAL] -> SPI INITIALIZATION FAILED. HALTING UNTIL FIXED."));
+  }
+  
+  // Initialize slightly in the past to prevent instant false positive
+  lastTankPacketTime = millis() - 5000; 
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+  bool isRadioHardwareHealthy = radio.isChipConnected();
+
+  // 1. AUTO-HEALING WATCHDOG
+  if (!isRadioHardwareHealthy) {
+    if (!wasHardwareFaulty) {
+        Serial.println(F("======================================="));
+        Serial.println(F("[HW FAULT] -> RADIO CHIP SUDDENLY DISCONNECTED IN MID-OPERATION!"));
+        Serial.println(F(" -> Possible loose wire on CE/CSN."));
+        Serial.println(F(" -> Possible voltage drop on 3.3V line. Powering down SPI..."));
+        Serial.println(F("======================================="));
+        wasHardwareFaulty = true;
+        lastRadioInitAttempt = currentMillis; 
+    }
+    
+    if (currentMillis - lastRadioInitAttempt >= 3000) {
+        lastRadioInitAttempt = currentMillis;
+        Serial.println(F("[RECOVERY] Attempting to reboot SPI bus..."));
+        if (initializeRadio()) {
+            Serial.println(F("[SUCCESS] -> Radio recovered from power crash. Memory Reloaded!"));
+            wasHardwareFaulty = false;
+        }
+    }
+  } 
+  else {
+    // 2. READ PROCESS
+    if (!wasHardwareFaulty && radio.available()) {
+      radio.read(&relayPackage, 32); 
+      
+      // THE ANTI-STATIC GARBAGE TRAP
+      if (relayPackage.packetId == 0 || relayPackage.packetId > 10000000 || relayPackage.verifiedDistance < 0 || relayPackage.verifiedDistance > 5000) {
+         Serial.println(F("[WARNING] Caught floating static garbage in the air. Discarding."));
+         radio.flush_rx(); 
+         return; 
+      }
+      
+      // SMART DUPLICATE FILTER
+      if (relayPackage.packetId == lastKnownPacketId && (currentMillis - lastTankPacketTime < 500)) {
+          Serial.println(F("[FILTER] Duplicate Echo packet caught. Discarding."));
+          radio.flush_rx();
+          return;
+      }
+      
+      lastKnownPacketId = relayPackage.packetId;
+      lastTankPacketTime = currentMillis; 
+      digitalWrite(TANK_LED, LOW); 
+
+      relayPackage.middlemanRadioOk = true;
+      strncpy(relayPackage.nanoLog, "Via Repeater", 12);
+      relayPackage.nanoLog[12] = '\0'; 
+
+      Serial.println(F("---------------------------------------"));
+      Serial.print(F("[RX SUCCESS] Air Payload Received from Roof Tank! ID: ")); 
+      Serial.println(relayPackage.packetId);
+      Serial.print(F(" -> S1 Data: ")); Serial.print(relayPackage.raw1); Serial.println(F(" cm"));
+      Serial.print(F(" -> S2 Data: ")); Serial.print(relayPackage.raw2); Serial.println(F(" cm"));
+      Serial.print(F(" -> Final Math Output: ")); Serial.print(relayPackage.verifiedDistance); Serial.println(F(" cm"));
+
+      radio.stopListening();
+      
+      // Wait exactly 45ms to avoid airwave collisions with Roof Tank
+      delay(45); 
+
+      radio.flush_tx();  
+      
+      Serial.println(F("[TX ATTEMPT] Shifting SPI to Write Mode. Blasting to ESP32 Hub..."));
+      bool success = radio.write(&relayPackage, 32);
+      
+      if (success) {
+         Serial.println(F("[TX SUCCESS] -> Packet boosted & ACK received from ESP32 Hub."));
+      } else {
+         Serial.println(F("[TX FAILED] -> ESP32 Hub did not respond (ACK Missing). Check Hub power."));
+      }
+      Serial.println(F("---------------------------------------"));
+
+      // MUST flush RX *before* startListening to prevent deleting incoming data
+      radio.flush_rx();
+      radio.startListening();
+    }
+  }
+
+  // 3. DIAGNOSTIC LEDS
+  bool isTankOnline = (currentMillis - lastTankPacketTime <= timeoutDuration);
+  
+  if (isTankOnline) {
+      // Tank is ONLINE: Do the 3-Blink Sequence on PC13 every 2 seconds
+      int cycle = currentMillis % 2000;
+      
+      // Note: PC13 is Active LOW on the BluePill (LOW = Light ON)
+      if (cycle < 100) digitalWrite(HUB_LINK_LED, LOW);         // Blink 1 ON
+      else if (cycle < 200) digitalWrite(HUB_LINK_LED, HIGH);   // OFF
+      else if (cycle < 300) digitalWrite(HUB_LINK_LED, LOW);    // Blink 2 ON
+      else if (cycle < 400) digitalWrite(HUB_LINK_LED, HIGH);   // OFF
+      else if (cycle < 500) digitalWrite(HUB_LINK_LED, LOW);    // Blink 3 ON
+      else digitalWrite(HUB_LINK_LED, HIGH);                    // OFF for remainder of 2 seconds
+
+      // Ensure External Tank Offline LED is OFF
+      digitalWrite(TANK_LED, LOW);
+  } else {
+      // Tank is OFFLINE: 3-Blink LED stays OFF, External PB0 LED blinks steadily
+      digitalWrite(HUB_LINK_LED, HIGH); 
+      
+      if (currentMillis - lastTankBlinkTime >= 500) {
+          lastTankBlinkTime = currentMillis;
+          tankLedState = !tankLedState;
+          digitalWrite(TANK_LED, tankLedState ? HIGH : LOW);
+      }
+  }
+
+  // 4. HEARTBEAT DIAGNOSTIC
+  static unsigned long lastHeartbeatPrint = 0;
+  if (currentMillis - lastHeartbeatPrint >= 10000) {
+      lastHeartbeatPrint = currentMillis;
+      if (isRadioHardwareHealthy && !wasHardwareFaulty) {
+          if (!isTankOnline) {
+             Serial.println(F("[SYS ALARM] Warning: Roof Tank is OFFLINE. Scanning channel 125..."));
+          } else {
+             Serial.println(F("[SYS OK] Middleman idle. Line clear. Awaiting next packet..."));
+          }
+      }
+  }
+}
