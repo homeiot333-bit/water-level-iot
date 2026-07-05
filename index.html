@@ -2020,7 +2020,12 @@
         function updatePumpButtonUI() {
             const btn = document.getElementById('pumpToggleBtn');
             const tankModel = document.getElementById('waterTankModel'); 
+            
+            // Re-enable touches and clear lock UI
+            btn.style.pointerEvents = "auto";
+            btn.style.cursor = "pointer";
             btn.style.opacity = "1"; 
+            
             if(currentPumpState) {
                 btn.className = "btn-round btn-off";
                 btn.innerText = "TURN\nOFF";
@@ -2487,7 +2492,9 @@
                     if (currentPumpState !== ctrl.forceState) {
                         const btn = document.getElementById('pumpToggleBtn');
                         btn.innerText = "WAIT...";
-                        btn.className = ctrl.forceState ? "btn-round btn-on" : "btn-round btn-off";
+                        // --- UI LOCK APPLIED GLOBALLY ---
+                        btn.style.pointerEvents = "none";
+                        btn.style.cursor = "not-allowed";
                         btn.style.opacity = "0.6";
 
                         if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
@@ -2641,6 +2648,15 @@
         async function togglePump() {
             if(!currentDeviceId) return;
 
+            const btn = document.getElementById('pumpToggleBtn');
+            
+            // --- TOUCH LOCK ENABLED ---
+            // If the user's screen is currently in the "WAIT..." state, 
+            // the button becomes physically unresponsive to their finger.
+            // This prevents UI glitching while retaining backend atomic multi-user support.
+            if (btn.innerText.includes("WAIT")) return; 
+            // --------------------------
+
             if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
                 await customAlert("❌ Network Offline: Cannot send command right now.");
                 return;
@@ -2660,20 +2676,18 @@
             }
             
             let desiredState;
-            const btn = document.getElementById('pumpToggleBtn');
-            
             if (btn.innerText.includes("TURN\nON")) {
                 desiredState = true;
             } else if (btn.innerText.includes("TURN\nOFF")) {
                 desiredState = false;
-            } else if (btn.innerText.includes("WAIT")) {
-                desiredState = !lastCommandedState; 
             } else {
                 return; 
             }
 
+            // INSTANT UI TOUCH BARRIER
             btn.innerText = "WAIT...";
-            btn.className = desiredState ? "btn-round btn-on" : "btn-round btn-off";
+            btn.style.pointerEvents = "none";
+            btn.style.cursor = "not-allowed";
             btn.style.opacity = "0.6";
             
             const newTrigger = Date.now(); 
