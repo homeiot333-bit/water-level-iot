@@ -1,0 +1,161 @@
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+#include <printf.h> // Required for diagnostic printing
+
+// --- STRICT SPREADSHEET PIN ASSIGNMENTS (ESP8266) ---
+// Hardware SPI: MOSI = D7, MISO = D6, SCK = D5
+#define CE_PIN D4   // GPIO 2
+#define CSN_PIN D8  // GPIO 15
+
+// Sensor 1
+#define TRIG_1 D0   // GPIO 16
+#define ECHO_1 D1   // GPIO 5
+
+// Sensor 2
+#define TRIG_2 D3   // GPIO 0
+#define ECHO_2 D2   // GPIO 4
+
+RF24 radio(CE_PIN, CSN_PIN);
+const byte address[6] = "WTR01";
+
+// 32-BYTE PERFECT FIT STRUCTURE (Matches Middleman and ESP32 Hub perfectly)
+struct __attribute__((packed)) AdvancedPayload {
+  float verifiedDistance;
+  float raw1;
+  float raw2;
+  uint32_t packetId;
+  char nanoLog[13];       // Shrunk to 13 to make immediate room for booleans
+  bool tankRadioOk;       // Tells the system if this transmitter chip is alive
+  bool middlemanRadioOk;  // Slot allocation for the repeater node
+  bool espRadioOk;        // Slot allocation for the primary hub
+};
+AdvancedPayload sendPackage;
+
+uint32_t packetCounter = 0;
+
+// --- GENTLE RADIO HEALER FUNCTION ---
+bool initializeRadio() {
+  if (radio.begin()) {
+    radio.setChannel(125);
+    radio.setAutoAck(true);
+    radio.setRetries(15, 15); // Voltage recovery timing
+    radio.openWritingPipe(address);
+    radio.setPALevel(RF24_PA_HIGH); // Prevents power sag deafness
+    radio.setDataRate(RF24_250KBPS);
+    radio.setCRCLength(RF24_CRC_16);
+    radio.stopListening(); 
+    return true;
+  }
+  return false;
+}
+// -----------------------------------------
+
+void setup() {
+  Serial.begin(115200);
+  printf_begin(); 
+  delay(1000); 
+  
+  pinMode(TRIG_1, OUTPUT);
+  pinMode(ECHO_1, INPUT);
+  pinMode(TRIG_2, OUTPUT);
+  pinMode(ECHO_2, INPUT);
+
+  Serial.println(F("\n========================================"));
+  Serial.println(F("Initializing ESP8266 Transmitter..."));
+
+  if (!initializeRadio()) {
+    Serial.println(F("CRITICAL ERROR: nRF24L01 Hardware Missing or Wired Incorrectly!"));
+    while (1) {
+      delay(1000); // Prevents ESP8266 Watchdog Crash
+    } 
+  }
+  
+  Serial.println(F("Radio Online. Broadcasting on Channel 125."));
+  Serial.println(F("--- HARDWARE DIAGNOSTICS ---"));
+  radio.printDetails(); 
+  Serial.println(F("========================================"));
+}
+
+float getDistance(int trig, int echo) {
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  
+  long duration = pulseIn(echo, HIGH, 30000); 
+  if (duration == 0) return -1.0;
+  
+  return (duration * 0.0343) / 2.0;
+}
+
+void loop() {
+  // --- PROFESSIONAL HARDWARE ZOMBIE CHECK ---
+  // Only runs if the physical chip crashes, ignores lost ACKs entirely
+  if (!radio.isChipConnected()) {
+    Serial.println(F("\n========================================"));
+    Serial.println(F("[CRITICAL FAULT] -> Radio Chip Disconnected or Frozen!"));
+    Serial.println(F("[AUTO-HEAL] -> Performing a gentle Radio Reboot..."));
+    Serial.println(F("========================================"));
+    
+    initializeRadio();       
+    radio.flush_tx();        
+    delay(10);
+    return; // Skip the rest of the loop until the radio is alive again
+  }
+  // ------------------------------------------
+
+  float d1 = getDistance(TRIG_1, ECHO_1);
+  delay(200); 
+  float d2 = getDistance(TRIG_2, ECHO_2);
+
+  sendPackage.raw1 = d1;
+  sendPackage.raw2 = d2;
+  
+  memset(sendPackage.nanoLog, 0, sizeof(sendPackage.nanoLog));
+
+  // Strings optimized to be under 12 characters to maintain strict data boundaries
+  if (d1 > 0 && d2 > 0) {
+    sendPackage.verifiedDistance = (d1 + d2) / 2.0;
+    strncpy(sendPackage.nanoLog, "Sensors OK", 12); 
+  } else if (d1 > 0) {
+    sendPackage.verifiedDistance = d1;
+    strncpy(sendPackage.nanoLog, "S2 Dead (S1)", 12); 
+  } else if (d2 > 0) {
+    sendPackage.verifiedDistance = d2;
+    strncpy(sendPackage.nanoLog, "S1 Dead (S2)", 12); 
+  } else {
+    sendPackage.verifiedDistance = -1.0; 
+    strncpy(sendPackage.nanoLog, "Crit Blind", 12); 
+  }
+  sendPackage.nanoLog[12] = '\0'; // Strict string truncation enforcement
+
+  packetCounter++;
+  sendPackage.packetId = packetCounter;
+
+  // Inject local hardware diagnostics before broadcasting
+  sendPackage.tankRadioOk = true;        // We know it is true because we checked at the top of the loop
+  sendPackage.middlemanRadioOk = false;  // Middleman will overwrite this when received
+  sendPackage.espRadioOk = false;        // ESP32 will verify its own state internally
+
+  bool success = radio.write(&sendPackage, sizeof(sendPackage));
+  
+  // ALWAYS print the sensor data first, no matter what
+  Serial.print(F("[TX] Pkt: ")); Serial.print(packetCounter);
+  Serial.print(F(" | S1: ")); Serial.print(sendPackage.raw1, 1);
+  Serial.print(F("cm | S2: ")); Serial.print(sendPackage.raw2, 1);
+  Serial.print(F("cm | Final: ")); Serial.print(sendPackage.verifiedDistance, 1);
+  Serial.print(F("cm | Log: ")); Serial.print(sendPackage.nanoLog);
+  
+  // Then append the success or fail status at the end of the line
+  if (success) {
+    Serial.println(F(" -> [DELIVERED]"));
+  } else {
+    Serial.println(F(" -> [FAILED] - Receiver Offline or ACK Lost"));
+    // Just clear the throat and move on, no resetting required!
+    radio.flush_tx();
+  }
+
+  delay(1000); 
+}
