@@ -768,7 +768,6 @@
 </head>
 <body>
 
-
     <div id="customModalOverlay">
         <div id="customModalBox">
             <h3 id="customModalTitle"></h3>
@@ -1327,6 +1326,9 @@
         let localDailyUsage = 0;
         let hasShownPopup = false;
         let pumpCommandTimeout = null; 
+        
+        // --- NEW GLOBAL VARIABLE FOR OPTIMISTIC UI ---
+        let targetPumpState = null; 
 
         window.manualRadioTech = null;
         window.manualRadioChan = null;
@@ -2026,6 +2028,14 @@
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
             
+            // --- CLEAN UP OPTIMISTIC UI STATE ---
+            if(pumpCommandTimeout) {
+                clearTimeout(pumpCommandTimeout);
+                pumpCommandTimeout = null;
+            }
+            targetPumpState = null; 
+            // ------------------------------------
+            
             currentDeviceId = devId;
 
             espLogHistory = [];
@@ -2579,20 +2589,30 @@
                     const btn = document.getElementById('pumpToggleBtn');
                     const tankModel = document.getElementById('waterTankModel'); 
                     
+                    // --- OPTIMISTIC UI: SYNC LISTENER ---
+                    // If we are waiting for a fast click to process, we ignore old data.
+                    // We only clear the timeout when the ESP32 actual state catches up to our target.
                     if(pumpCommandTimeout) {
-                        clearTimeout(pumpCommandTimeout);
-                        pumpCommandTimeout = null;
-                        btn.style.opacity = "1"; 
+                        if(currentPumpState === targetPumpState) {
+                            clearTimeout(pumpCommandTimeout);
+                            pumpCommandTimeout = null;
+                            targetPumpState = null;
+                        } else {
+                            return; // Still waiting for the ESP32 to catch up, don't revert UI yet
+                        }
                     }
+                    // -------------------------------------
                     
-                    if(currentPumpState) {
-                        btn.className = "btn-round btn-off";
-                        btn.innerText = "TURN\nOFF";
-                        if(tankModel) tankModel.classList.add('pump-active'); 
-                    } else {
-                        btn.className = "btn-round btn-on";
-                        btn.innerText = "TURN\nON";
-                        if(tankModel) tankModel.classList.remove('pump-active'); 
+                    if(!pumpCommandTimeout) {
+                        if(currentPumpState) {
+                            btn.className = "btn-round btn-off";
+                            btn.innerText = "TURN\nOFF";
+                            if(tankModel) tankModel.classList.add('pump-active'); 
+                        } else {
+                            btn.className = "btn-round btn-on";
+                            btn.innerText = "TURN\nON";
+                            if(tankModel) tankModel.classList.remove('pump-active'); 
+                        }
                     }
                 }
             });
@@ -2619,23 +2639,44 @@
                 if(!await customConfirm("🛑 LAYER 3: FINAL CONFIRMATION\n\nAre you absolutely sure you want to execute this hardware command?")) return;
             }
             
-            const desiredState = !currentPumpState;
+            // --- OPTIMISTIC UI: INSTANT CALCULATION ---
+            // If the user is spamming the button, flip based on the target, not the old state
+            let desiredState;
+            if (targetPumpState !== null) {
+                desiredState = !targetPumpState;
+            } else {
+                desiredState = !currentPumpState;
+            }
+            
+            targetPumpState = desiredState;
             const newTrigger = Math.floor(Math.random() * 1000000) + 1; 
             
-            // --- NEW FIX: ATOMIC DATABASE UPDATE ---
-            // Bundles both commands into one unbreakable package so it never drops
+            // --- OPTIMISTIC UI: INSTANT VISUALS ---
+            // The button changes immediately. No "WAIT...", no lock. Buttery smooth.
+            const btn = document.getElementById('pumpToggleBtn');
+            const tankModel = document.getElementById('waterTankModel');
+            
+            if(desiredState) {
+                btn.className = "btn-round btn-off";
+                btn.innerText = "TURN\nOFF";
+                if(tankModel) tankModel.classList.add('pump-active');
+            } else {
+                btn.className = "btn-round btn-on";
+                btn.innerText = "TURN\nON";
+                if(tankModel) tankModel.classList.remove('pump-active');
+            }
+            // --------------------------------------
+
+            // --- ATOMIC DATABASE UPDATE ---
             database.ref('/Devices/' + currentDeviceId + '/control').update({
                 forceState: desiredState,
                 triggerId: newTrigger
             });
-            // ---------------------------------------
+            // ------------------------------
             
-            const btn = document.getElementById('pumpToggleBtn');
-            btn.innerText = "WAIT...";
-            btn.style.opacity = "0.6"; 
-
             if(pumpCommandTimeout) clearTimeout(pumpCommandTimeout);
             
+            // --- THE 7-SECOND SAFETY NET ---
             pumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
                     await customAlert("⏳ Network Connection Lost!\n\nYour pending command was wiped to prevent a delayed ghost trigger. The dashboard will now reload.");
@@ -2643,26 +2684,31 @@
                     return;
                 }
 
+                // If 7 seconds pass and the ESP32 still hasn't updated its state, we abort and revert
                 const revertTrigger = Math.floor(Math.random() * 1000000) + 1; 
                 
-                // --- NEW FIX: ATOMIC DATABASE UPDATE (REVERT) ---
                 database.ref('/Devices/' + currentDeviceId + '/control').update({
-                    forceState: currentPumpState,
+                    forceState: currentPumpState, 
                     triggerId: revertTrigger
                 });
-                // ------------------------------------------------
                 
-                btn.style.opacity = "1";
+                pumpCommandTimeout = null;
+                targetPumpState = null;
+                
+                // Snap the UI back to reality
                 if(currentPumpState) {
                     btn.className = "btn-round btn-off";
                     btn.innerText = "TURN\nOFF";
+                    if(tankModel) tankModel.classList.add('pump-active');
                 } else {
                     btn.className = "btn-round btn-on";
                     btn.innerText = "TURN\nON";
+                    if(tankModel) tankModel.classList.remove('pump-active');
                 }
                 
-                await customAlert("⏳ Command Timed Out!\n\nThe device did not respond within 6 seconds. The command was cancelled for safety. Please try again.");
-            }, 6000); 
+                await customAlert("⏳ Command Timed Out!\n\nThe device did not respond within 7 seconds. The command was cancelled for safety. Please try again.");
+            }, 7000); 
+            // -------------------------------
         }
 
         async function triggerOTA() {
