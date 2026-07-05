@@ -2583,7 +2583,7 @@
                     const btn = document.getElementById('pumpToggleBtn');
                     const tankModel = document.getElementById('waterTankModel'); 
                     
-                    // THE HARDWARE TRUTH OVERRIDE
+                    // --- THE HARDWARE TRUTH OVERRIDE ---
                     // The absolute microsecond the ESP32 updates its hardware state and broadcasts it
                     // to the internet, we intercept it here and clear the lock. This proves to the website
                     // that the command was successfully handled, preventing the false 7-second timeout.
@@ -2635,17 +2635,18 @@
             btn.innerText = "WAIT...";
             btn.style.opacity = "0.6"; 
 
-            // THE ATOMIC UPDATE
+            // --- THE ATOMIC UPDATE ---
             // Bundles both commands into a single, unbreakable upload package.
             // Even if 5 people click exactly at once, it will queue perfectly.
             database.ref('/Devices/' + currentDeviceId + '/control').update({
                 forceState: desiredState,
                 triggerId: newTrigger
             });
+            // -------------------------
             
             if(pumpCommandTimeout) clearTimeout(pumpCommandTimeout);
             
-            // THE 7-SECOND SAFETY NET
+            // --- THE 7-SECOND SAFETY NET ---
             pumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
                     await customAlert("⏳ Network Connection Lost!\n\nYour pending command was wiped to prevent a delayed ghost trigger. The dashboard will now reload.");
