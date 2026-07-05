@@ -1,0 +1,2730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Water IoT Secure Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app-check.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(rgba(10, 15, 25, 0.85), rgba(15, 20, 30, 0.95)), 
+                        url('https://images.unsplash.com/photo-1518314916381-77a37c2a49ae?q=80&w=2000&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin: 0; 
+            padding: 15px; 
+            min-height: 100vh; 
+            box-sizing: border-box;
+            overflow-x: hidden; 
+        }
+        
+        .card { 
+            background: rgba(20, 25, 35, 0.6); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 20px; 
+            border-radius: 15px; 
+            width: 100%; 
+            margin-bottom: 20px; 
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            position: relative; 
+            box-sizing: border-box;
+        }
+        
+        h2, h3 { 
+            text-align: left; 
+            margin-top: 0; 
+            color: #00d2ff; 
+        }
+        
+        .menu-dots {
+            position: absolute; 
+            top: 15px; 
+            right: 20px; 
+            font-size: 24px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            color: #00d2ff; 
+            user-select: none;
+            transition: 0.3s;
+            z-index: 50;
+        }
+
+        .menu-dots:hover { 
+            color: #fff; 
+            text-shadow: 0 0 10px #00d2ff; 
+        }
+
+        .error-banner {
+            background: rgba(255, 71, 87, 0.95); 
+            border: 2px solid #ff4757;
+            color: white; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 20px;
+            font-weight: bold; 
+            text-align: center; 
+            display: none; 
+            width: 100%;
+            max-width: 500px; 
+            box-sizing: border-box; 
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
+            font-size: 14px;
+        }
+        
+        #loginScreen { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 75vh; 
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .input-box { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border: none; 
+            font-size: 16px; 
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.9);
+            color: #111;
+        }
+
+        select.input-box, input[type="date"].input-box {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #111;
+        }
+
+        .btn-login { 
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: #fff; 
+            font-weight: bold; 
+            width: 100%; 
+            padding: 12px; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 18px; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            margin-top: 5px;
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.2);
+        }
+
+        .btn-login:hover { 
+            background: linear-gradient(90deg, #3a7bd5, #00d2ff); 
+            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.4);
+        }
+        
+        .top-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            width: 100%; 
+            max-width: 1100px; 
+            margin-bottom: 15px;
+        }
+
+        .logout-btn { 
+            background: rgba(255, 71, 87, 0.8); 
+            color: white; 
+            border: 1px solid rgba(255, 71, 87, 0.5);
+            padding: 8px 15px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: #ff4757;
+        }
+
+        #dashboardScreen { 
+            display: none; 
+            width: 100%; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+
+        .dashboard-grid {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            max-width: 1100px;
+            gap: 25px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap; 
+        }
+
+        .dash-col-left {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 320px;
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .dash-col-right {
+            display: flex;
+            flex-direction: column;
+            flex: 1.5;
+            min-width: 320px;
+            max-width: 850px; 
+            width: 100%;
+        }
+
+        #offlineOverlay {
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(10, 15, 25, 0.95); 
+            z-index: 9999; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            color: #ff4757; 
+            text-align: center;
+            font-size: 28px; 
+            font-weight: bold; 
+            padding: 20px; 
+            box-sizing: border-box;
+        }
+
+        .system-wrapper {
+            display: flex;
+            align-items: flex-start; 
+            justify-content: center;
+            margin: 20px auto;
+            position: relative;
+            padding-left: 10px; 
+        }
+
+        .motor-assembly {
+            position: relative;
+            margin-top: 69px; 
+            display: flex;
+            align-items: center;
+            margin-right: -4px; 
+            z-index: 10;
+        }
+
+        .motor-box {
+            width: 45px;
+            height: 35px;
+            background: linear-gradient(135deg, #2c3e50, #1a252f);
+            border: 2px solid #00d2ff;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.2);
+            z-index: 11;
+        }
+
+        .motor-fan {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px dashed #555;
+            transition: 0.3s;
+        }
+
+        .pump-active .motor-fan {
+            border-color: #00d2ff;
+            animation: motorSpin 0.15s linear infinite;
+        }
+
+        @keyframes motorSpin { 100% { transform: rotate(360deg); } }
+
+        .motor-pipe-ext {
+            width: 25px;
+            height: 12px;
+            background: linear-gradient(to bottom, #999, #555);
+            border-top: 2px solid #ccc;
+            border-bottom: 2px solid #333;
+            z-index: 10;
+        }
+
+        .tank-wrapper {
+            position: relative;
+            width: 220px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 5px;
+        }
+
+        .tank-lid-handle {
+            width: 24px;
+            height: 10px;
+            border: 4px solid rgba(255,255,255,0.8);
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            z-index: 5;
+            margin-bottom: -3px;
+        }
+
+        .tank-lid {
+            width: 75px;
+            height: 16px;
+            background: linear-gradient(to right, rgba(150,150,150,0.9) 0%, #fff 50%, rgba(150,150,150,0.9) 100%);
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.8);
+            z-index: 4;
+            margin-bottom: -8px; 
+            box-sizing: border-box;
+        }
+
+        .tank-top-ellipse {
+            width: 100%;
+            height: 45px; 
+            background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.2) 80%, rgba(0,0,0,0.85) 100%);
+            border: 4px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            z-index: 3;
+            margin-bottom: -23px; 
+            box-sizing: border-box;
+            box-shadow: inset 0 -5px 15px rgba(0,0,0,0.6);
+        }
+
+        .tank-body {
+            width: 100%;
+            height: 280px; 
+            border: 4px solid rgba(255,255,255,0.8);
+            border-top: none; 
+            border-radius: 0 0 50% 50% / 0 0 22px 22px; 
+            position: relative;
+            background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.2) 80%, rgba(0,0,0,0.85) 100%);
+            overflow: hidden;
+            box-shadow: 0 15px 25px rgba(0, 210, 255, 0.2);
+            z-index: 1;
+            box-sizing: border-box;
+        }
+
+        .tank-body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 35px,
+                rgba(255,255,255,0.2) 35px,
+                rgba(255,255,255,0.2) 39px
+            );
+            pointer-events: none;
+            z-index: 8; 
+        }
+
+        .tank-pipe-int {
+            position: absolute;
+            left: 0;
+            top: 10%; 
+            width: 35px; 
+            height: 12px;
+            background: linear-gradient(to bottom, #999, #555);
+            border-top: 2px solid #ccc;
+            border-bottom: 2px solid #333;
+            border-right: 2px solid #444;
+            border-radius: 0 4px 4px 0;
+            z-index: 10;
+        }
+
+        .waterfall {
+            position: absolute;
+            left: 24px; 
+            top: calc(10% + 12px); 
+            width: 16px; 
+            height: calc(90% - 12px); 
+            background: transparent;
+            z-index: 4; 
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .pump-active .waterfall::before {
+            content: "";
+            position: absolute;
+            top: -100%;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, 0.95) 0%,
+                rgba(220, 245, 255, 0.8) 15%,
+                rgba(255, 255, 255, 0.9) 30%,
+                rgba(173, 216, 230, 0.7) 45%,
+                rgba(255, 255, 255, 0.95) 60%
+            );
+            background-size: 100% 40px;
+            animation: waterfallCascade 0.2s linear infinite;
+            filter: blur(1.5px); 
+        }
+
+        @keyframes waterfallCascade {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50%); }
+        }
+
+        .water-fill { 
+            position: absolute; 
+            bottom: 0; 
+            width: 100%; 
+            background: linear-gradient(to top, #005c97, #00d2ff); 
+            transition: height 1s ease-in-out; 
+            z-index: 5;
+        }
+
+        .water-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.7) 100%);
+            z-index: 7;
+            pointer-events: none;
+        }
+
+        .wave {
+            position: absolute;
+            top: -16px;
+            left: 0;
+            width: 200%;
+            height: 22px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 88.7'%3E%3Cpath d='M0,40 C100,80 200,0 300,40 C400,80 500,0 600,40 C700,80 800,0 800,40 L800,88.7 L0,88.7 Z' fill='%2300d2ff'/%3E%3C/svg%3E") repeat-x;
+            background-size: 50% 100%;
+            animation: waveAnimation 3s linear infinite;
+            z-index: 6;
+        }
+
+        @keyframes waveAnimation {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .dynamic-splash {
+            position: absolute;
+            top: -10px;
+            left: 15px; 
+            width: 34px;
+            height: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            opacity: 0;
+            z-index: 10;
+            filter: blur(2.5px); 
+        }
+
+        .pump-active .dynamic-splash {
+            animation: splashAnim 0.35s ease-out infinite;
+        }
+
+        @keyframes splashAnim {
+            0% { transform: scale(0.4) translateY(0); opacity: 1; }
+            50% { transform: scale(1.6) translateY(-6px); opacity: 0.9; }
+            100% { transform: scale(2.8) translateY(2px); opacity: 0; }
+        }
+
+        .water-text { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 26px; 
+            font-weight: bold; 
+            text-shadow: 2px 2px 8px black; 
+            z-index: 30; 
+        }
+        
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 12px; 
+            margin-top: 15px; 
+            width: 100%;
+        }
+
+        .stat-box { 
+            background: rgba(0,0,0,0.4); 
+            padding: 12px; 
+            border-radius: 8px; 
+            text-align: center; 
+            font-size: 13px; 
+            color: #ddd;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .stat-value { 
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #00d2ff; 
+            display: block; 
+            margin-top: 5px; 
+        }
+        
+        .btn-container { 
+            display: flex; 
+            justify-content: center; 
+            padding: 15px 0; 
+        }
+
+        .btn-round { 
+            width: 140px; 
+            height: 140px; 
+            border-radius: 50%; 
+            font-size: 18px; 
+            font-weight: bold; 
+            border: 4px solid rgba(255,255,255,0.15); 
+            cursor: pointer; 
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            transition: all 0.3s; 
+            text-shadow: 1px 1px 3px black;
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        .btn-round:active { 
+            transform: scale(0.95); 
+        }
+
+        .btn-off { 
+            background: radial-gradient(circle, #ff6b81, #d63031); 
+        } 
+
+        .btn-on { 
+            background: radial-gradient(circle, #7bed9f, #2ed573); 
+        } 
+        
+        .terminals-wrapper { 
+            display: flex; 
+            gap: 10px; 
+            width: 100%; 
+            margin-top: 10px; 
+        }
+
+        .terminal-column { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            width: 100%; 
+            min-width: 0;
+        }
+
+        .log-box { 
+            background: rgba(0,0,0,0.7); 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: monospace; 
+            font-size: 11px; 
+            height: 120px; 
+            overflow-y: auto; 
+            color: #00ff00;
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            word-break: break-all;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .log-nano { 
+            color: #00d2ff; 
+        }
+        
+        .status-badge { 
+            padding: 5px 10px; 
+            border-radius: 15px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            background: rgba(46, 213, 115, 0.9); 
+            color: white; 
+            display: inline-block;
+            margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(46, 213, 115, 0.4);
+        }
+        
+        .btn-danger { 
+            background: rgba(255, 71, 87, 0.9); 
+            color: white; 
+            border: 1px solid rgba(255, 71, 87, 0.5);
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-danger:hover { 
+            background: #ff4757; 
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
+        }
+
+        .inbox-container {
+            max-height: 250px; 
+            overflow-y: auto; 
+            width: 100%; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 8px; 
+            padding: 10px; 
+            box-sizing: border-box; 
+            background: rgba(0,0,0,0.4);
+            margin-top: 10px;
+        }
+
+        .inbox-card {
+            background: rgba(0,0,0,0.6); 
+            padding: 12px; 
+            margin-bottom: 8px; 
+            border-radius: 6px; 
+            font-size: 13px;
+            border: 1px solid rgba(255,255,255,0.05);
+            position: relative; 
+        }
+
+        .inbox-card span { 
+            color: #ccc; 
+            display: block; 
+            margin-top: 4px; 
+        }
+
+        .developer-credit-top {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            gap: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .brand-logo-left {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        
+        .developer-credit-top span {
+            flex-grow: 1;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #eee;
+        }
+
+        .developer-credit-top strong {
+            font-weight: 900;
+            font-size: 17px;
+            display: inline-block;
+            color: #00d2ff;
+        }
+
+        #sideInboxPanel {
+            position: fixed;
+            top: 0;
+            right: -360px;
+            width: 350px;
+            max-width: 85vw;
+            height: 100vh;
+            background: rgba(15, 20, 25, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(254, 202, 87, 0.5);
+            z-index: 1000;
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+        }
+        
+        #sideInboxPanel.open {
+            right: 0;
+        }
+        
+        .close-inbox-btn {
+            align-self: flex-end;
+            font-size: 24px;
+            color: #ff4757;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 15px;
+            user-select: none;
+            transition: 0.3s;
+        }
+        
+        .close-inbox-btn:hover {
+            color: #ff6b81;
+            transform: scale(1.1);
+        }
+
+        .green-marquee-container {
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+            white-space: nowrap;
+            margin-bottom: 15px;
+            background: rgba(46, 213, 115, 0.15); 
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(46, 213, 115, 0.3);
+            box-sizing: border-box;
+        }
+
+        .green-marquee-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll-left 13s linear infinite;
+            color: #7bed9f; 
+            font-weight: bold;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes scroll-left {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+
+        .usage-popup {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 20, 35, 0.95);
+            border: 2px solid #00d2ff;
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.3);
+            font-weight: 500;
+            font-size: 15px;
+            z-index: 9999;
+            transition: bottom 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+        
+        .usage-popup.show {
+            bottom: 30px;
+        }
+
+        #customModalOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 15, 25, 0.9); z-index: 100000;
+            align-items: center; justify-content: center; backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        #customModalBox {
+            background: rgba(20, 25, 35, 0.95); border: 2px solid #00d2ff;
+            border-radius: 12px; padding: 25px; width: 90%; max-width: 400px;
+            box-shadow: 0 15px 40px rgba(0,210,255,0.3); text-align: center;
+        }
+        #customModalTitle { color: #feca57; margin-top: 0; font-size: 18px; margin-bottom: 15px; }
+        #customModalText { color: #fff; font-size: 14px; margin-bottom: 20px; white-space: pre-wrap; line-height: 1.4; }
+
+        @media (max-width: 600px) {
+            .terminals-wrapper { 
+                flex-direction: column; 
+                gap: 15px; 
+            }
+            .stats-grid { 
+                grid-template-columns: 1fr; 
+            }
+            .log-box { 
+                font-size: 11px; 
+                padding: 10px; 
+                height: 100px; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="customModalOverlay">
+        <div id="customModalBox">
+            <h3 id="customModalTitle"></h3>
+            <p id="customModalText"></p>
+            <input type="text" id="customModalInput" class="input-box" style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="customModalCancel" class="btn-login" style="background: rgba(255,71,87,0.8); color: white; padding: 10px; flex: 1;">Cancel</button>
+                <button id="customModalConfirm" class="btn-login" style="background: #2ed573; color: black; padding: 10px; flex: 1;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="inboxFloatingMenu" style="display:none; position:fixed; background:rgba(20, 25, 35, 0.98); border:1px solid #00d2ff; border-radius:8px; padding:5px; z-index:10000; box-shadow: 0 10px 30px rgba(0,0,0,0.9); min-width: 160px;">
+        <div style="color:#7bed9f; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('connect')">🟢 Connect Device</div>
+        <div style="color:#feca57; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('remove')">🧹 Remove Alert</div>
+        <div style="color:#ff4757; font-size:13px; font-weight:bold; cursor:pointer; padding:10px;" onclick="handleInboxAction('delete')">🗑️ Delete Device</div>
+    </div>
+
+    <div id="usageSmsPopup" class="usage-popup">💧 Today's Water Usage: --%</div>
+
+    <div id="sideInboxPanel">
+        <div class="close-inbox-btn" onclick="toggleInboxPanel()">✕</div>
+        <h3 style="color: #feca57; margin-top:0; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom:10px; text-align: left;">Global Alerts Inbox</h3>
+        
+        <input type="text" id="inboxSearchInput" class="input-box" placeholder="🔍 Search Name or Device ID..." onkeyup="renderAdminInbox()" style="margin-bottom:15px; background:rgba(255,255,255,0.1); color:white; border:1px solid rgba(255,255,255,0.3);">
+
+        <div style="display:flex; gap:10px; margin-bottom:15px; font-size:13px; color:#fff; justify-content: center;">
+            <label><input type="radio" name="inboxFilter" value="All" checked onchange="renderAdminInbox()"> All</label>
+            <label><input type="radio" name="inboxFilter" value="Household" onchange="renderAdminInbox()"> Household</label>
+            <label><input type="radio" name="inboxFilter" value="Commercial" onchange="renderAdminInbox()"> Commercial</label>
+        </div>
+
+        <div id="adminInbox" class="inbox-container" style="border:none; background:transparent; max-height:none; flex:1; margin-top:0; padding:0;">
+            <div style="text-align:left; color:#ccc; font-size:13px;">Scanning database...</div>
+        </div>
+    </div>
+
+    <div id="criticalErrorBanner" class="error-banner"></div>
+
+    <div id="offlineOverlay">
+        ⚠️<br><br>Machine is currently Offline
+    </div>
+
+    <div id="loginScreen" class="card" style="max-width: 400px;">
+        <h2 style="text-align: center;">🔒 Security Gateway</h2>
+        <div id="connIndicator" style="text-align:center; font-size:12px; color:#aaa;">
+            Checking server connection...
+        </div>
+        
+        <input type="email" id="emailInput" class="input-box" placeholder="Email" />
+        <input type="password" id="passwordInput" class="input-box" placeholder="Password" />
+        
+        <div style="width: 100%; display: flex; align-items: center; justify-content: flex-start; margin-top: -5px; margin-bottom: 15px;">
+            <input type="checkbox" id="showPassCheckbox" onclick="togglePasswordVisibility()" style="margin-right: 8px; cursor: pointer;">
+            <label for="showPassCheckbox" style="font-size: 13px; color: #ccc; cursor: pointer; user-select: none;">Show password</label>
+        </div>
+        
+        <button class="btn-login" onclick="loginUser()">LOGIN</button>
+        
+        <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
+    </div>
+
+    <div id="dashboardScreen">
+        
+        <div class="top-bar">
+            <h3 id="topBarTitle" style="margin:0; color:#fff; text-align:left; flex:1;">
+                Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>
+            </h3>
+            
+            <div style="display:flex; align-items:center; gap: 15px;">
+                <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
+                
+                <div id="customerMenuContainer" style="position:relative; display:none;">
+                    <div class="menu-dots" style="position:static; margin-left:5px;" onclick="toggleCustomerTopMenu()" title="Account Options">⋮</div>
+                    <div id="customerTopMenuDropdown" style="display:none; position:absolute; right:0; top:30px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
+                        <div style="color:#fff; font-size:13px; cursor:pointer; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="toggleCustomerSettings()">⚙️ Device Settings</div>
+                        <div style="color:#fff; font-size:13px; cursor:pointer; padding:8px 0;" onclick="changeCustomerPassword()">🔑 Change Password</div>
+                    </div>
+                </div>
+
+                <button class="logout-btn" onclick="logoutUser()">Logout</button>
+            </div>
+        </div>
+
+        <div id="customerMarquee" class="green-marquee-container" style="display:none;">
+            <div class="green-marquee-text">Thank you for using Anish's device.</div>
+        </div>
+
+        <div class="developer-credit-top">
+            <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" class="brand-logo-left" alt="AKS Logo">
+            <span id="creditText">This system is developed by <strong>ANISH.</strong></span>
+        </div>
+
+        <div class="dashboard-grid">
+            
+            <div class="dash-col-left" id="mainDashboardView" style="display:none;">
+                
+                <div id="customerSettingsBox" style="display:none; width:100%; text-align: left; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; border: 1px dashed #00d2ff; margin-bottom: 20px;">
+                    <h3 style="color: #00d2ff; margin-top:0;">⚙️ Device Configuration</h3>
+                    <p style="font-size:12px; color:#aaa; margin-top:0;">Update your tank dimensions or configure up to 4 backup WiFi networks.</p>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label style="color:#ccc; font-size:12px;">Tank Empty Depth (cm):</label>
+                            <input type="number" id="custEmptyInput" class="input-box" placeholder="e.g., 150">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="color:#ccc; font-size:12px;">Full Clearance (cm):</label>
+                            <input type="number" id="custFullInput" class="input-box" placeholder="e.g., 15">
+                        </div>
+                    </div>
+                    
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+                    
+                    <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">📶 WiFi Mesh Networks (Slots 1-4)</h4>
+                    <p style="font-size:11px; color:#aaa; margin-top:0;">Current network names are shown below. Enter a new Name and Password to overwrite a slot. Passwords are hidden for security.</p>
+                    
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 1 (Primary):</strong> <span id="cust_slot1_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="password" id="custWifiPass_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 2 (Backup):</strong> <span id="cust_slot2_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="password" id="custWifiPass_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 3 (Backup):</strong> <span id="cust_slot3_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="password" id="custWifiPass_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                            </div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 4 (Backup):</strong> <span id="cust_slot4_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="password" id="custWifiPass_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="saveCustomerSettings()">Save Settings to Device</button>
+                </div>
+
+                <div class="card">
+                    <span id="connStatus" class="status-badge">ONLINE</span>
+                    <div id="customerMenuDots" class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data" style="display:none; top: 15px; right: 20px;">⋮</div>
+                    
+                    <div style="clear:both;"></div>
+                    
+                    <div id="waterTankModel" class="system-wrapper">
+                        <div class="motor-assembly">
+                            <div class="motor-box">
+                                <div class="motor-fan"></div>
+                            </div>
+                            <div class="motor-pipe-ext"></div>
+                        </div>
+                        
+                        <div class="tank-wrapper">
+                            <div class="tank-lid-handle"></div>
+                            <div class="tank-lid"></div>
+                            <div class="tank-top-ellipse"></div> <div class="tank-body">
+                                <div class="tank-pipe-int"></div>
+                                
+                                <div class="waterfall"></div>
+                                
+                                <div id="waterLevelFill" class="water-fill" style="height: 0%;">
+                                    <div class="wave"></div>
+                                    <div class="dynamic-splash"></div> </div>
+                                
+                                <div id="waterLevelText" class="water-text">--%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top:10px; color:#ccc; font-size: 14px;">
+                        Manual Bypass Status: <span id="txtBypass" style="color:#ffa502; font-weight:bold;">--</span>
+                    </div>
+                </div>
+
+                <div class="card" id="pumpControlCard">
+                    <h3 style="text-align: left;">Pump Control</h3>
+                    <div class="btn-container">
+                        <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
+                    </div>
+                </div>
+
+                <div class="card" id="usageTrackerCard">
+                    <h3 style="text-align: left; margin-bottom: 15px;">💧 Daily Usage Tracker</h3>
+                    <div style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 210, 255, 0.2); text-align: center;">
+                        <div>
+                            <span style="color:#aaa; font-size: 13px;">Consumed Today</span><br>
+                            <strong id="dailyUsageText" style="font-size: 32px; color: #00d2ff;">0.0%</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
+                    <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                </div>
+
+                <div id="advancedSection" style="display:none; width:100%;">
+                    <div class="card" style="width:100%;">
+                        <h3>Engineering Data</h3>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                Average Gap
+                                <span id="txtFinalCm" class="stat-value">-- cm</span>
+                            </div>
+                            <div class="stat-box">
+                                Sensor 1 (Raw)
+                                <span id="txtS1" class="stat-value">-- cm</span>
+                            </div>
+                            <div class="stat-box">
+                                Sensor 2 (Raw)
+                                <span id="txtS2" class="stat-value">-- cm</span>
+                            </div>
+                            <div class="stat-box">
+                                Est. Distance
+                                <span id="txtDistanceCustomer" class="stat-value" style="color:#feca57;">-- m</span>
+                            </div>
+                            <div class="stat-box">
+                                Signal Quality
+                                <span id="txtSignalCustomer" class="stat-value" style="color:#7bed9f;">N/A</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; width: 100%; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                            <span style="color:#feca57; font-size:13px; font-weight:bold; margin-bottom:5px; display:block;">⚙️ System Hardware Logs:</span>
+                            <div id="customerHwTerminalPanel" style="background: rgba(0,0,0,0.8); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap; height: 80px; overflow-y:auto;">Awaiting Cloud Sync...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-col-right" id="adminCommandCenter" style="display:none;">
+                <div class="card" style="width:100%; border: 2px solid rgba(0, 210, 255, 0.5); position: relative;">
+                    
+                    <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options" style="top: 20px; right: 20px;">⋮</div>
+                    
+                    <h2>👑 Master Command Center</h2>
+
+                    <button class="btn-login" style="background:rgba(0, 210, 255, 0.8); color:#fff; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
+                    
+                    <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
+
+                    <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
+
+                    <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px);">
+                        <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
+                        <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
+                    </div>
+
+                    <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., a4e1 (MAC)">
+                    <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
+                    
+                    <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
+                        <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                        
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <h3 style="color: #fff; font-size: 15px; margin:0; text-align:left;">Live Diagnostics: <span id="termDevId"></span></h3>
+                                
+                                <div style="display:flex; gap:12px; align-items:center;">
+                                    <button class="btn-login" style="background:rgba(254, 202, 87, 0.8); color:#000; font-size:11px; padding:4px 8px; margin:0; width:auto;" onclick="toggleAdminEditConfig()">✏️ Edit Config</button>
+                                    <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.15); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                                    <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:20px; user-select:none;" onclick="toggleCredBox()" title="View Credentials">⋮</span>
+                                </div>
+                            </div>
+
+                            <div id="adminEditConfigBox" style="display:none; background:rgba(0,0,0,0.6); padding:15px; border:1px solid #feca57; border-radius:8px; margin-top:10px; text-align:left;">
+                                <h4 style="color:#feca57; margin-top:0; font-size:13px;">✏️ Edit Device Configuration</h4>
+                                <p style="font-size:11px; color:#aaa; margin-top:0;">Update deployed dates, assigned names, and hardware settings for this auto-provisioned machine.</p>
+                                
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="font-size:11px; color:#aaa;">Assigned Name</label>
+                                        <input type="text" id="editNameInput" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
+                                    </div>
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="font-size:11px; color:#aaa;">Device Type</label>
+                                        <select id="editTypeInput" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
+                                            <option value="Household">Household</option>
+                                            <option value="Commercial">Commercial</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="font-size:11px; color:#aaa;">Deployed Date</label>
+                                        <input type="date" id="editDeployDate" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
+                                    </div>
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="font-size:11px; color:#aaa;">Network Topology</label>
+                                        <select id="editUsesRepeater" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
+                                            <option value="No">Direct Link Only</option>
+                                            <option value="Yes">Uses Middleman Repeater</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                                    <div style="flex:1; min-width:90px;">
+                                        <label style="font-size:11px; color:#aaa;">Radio Module</label>
+                                        <input type="text" id="editRadioTech" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="nRF24L01">
+                                    </div>
+                                    <div style="flex:1; min-width:90px;">
+                                        <label style="font-size:11px; color:#aaa;">Channel</label>
+                                        <input type="text" id="editRadioChannel" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="125">
+                                    </div>
+                                    <div style="flex:1; min-width:90px;">
+                                        <label style="font-size:11px; color:#aaa;">Data Rate</label>
+                                        <input type="text" id="editRadioRate" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="250 KBPS">
+                                    </div>
+                                </div>
+                                <button class="btn-login" style="background:#2ed573; color:#000; padding:8px; font-size:13px; margin-top:5px;" onclick="saveEditedConfig()">Save Changes to Database</button>
+                            </div>
+
+                            <div id="credentialsBox" style="display:none; margin-top:10px; padding:12px; background:rgba(0,0,0,0.6); border:1px dashed #7bed9f; border-radius:6px; font-size:13px; color:#ccc; text-align: left;">
+                                <span style="color:#7bed9f; font-weight:bold; margin-bottom:5px; display:block;">Machine Linked To:</span>
+                                <strong>Email:</strong> <span id="credEmail" style="color:#fff;">Not saved in DB</span><br>
+                                <strong>Password:</strong> <span id="credPass" style="color:#fff;">Not saved in DB</span>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); margin-top:8px;">
+                                <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
+                                <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
+                                <span>Radio: <strong id="adminTxtRadio" style="color:#feca57;">--</strong></span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Est. Range: <strong id="adminTxtDist" style="color:#feca57;">-- m</strong></span>
+                                <span>Signal: <strong id="adminTxtSignal" style="color:#7bed9f;">N/A</strong></span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Channel: <strong id="adminTxtChannel" style="color:#00d2ff;">--</strong></span>
+                                <span>Data Rate: <strong id="adminTxtDataRate" style="color:#00d2ff;">--</strong></span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Network Config: <strong id="adminTxtTopology" style="color:#feca57;">--</strong></span>
+                                <span>Deployed: <strong id="adminTxtDeployDate" style="color:#ccc;">--</strong></span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 10px; color: #7bed9f; font-size: 15px;">📏 Remote Auto-Calibration</h3>
+                            <p style="font-size:12px; color:#aaa; margin-top:0;">Capture live sensor data to automatically configure tank heights.</p>
+                            
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.6); padding:12px; border-radius:6px; margin-bottom:15px; border:1px dashed #feca57;">
+                                <span style="font-size:13px; color:#ccc;">Live Target Distance:</span>
+                                <span id="adminLiveRawDist" style="font-size:18px; font-weight:bold; color:#feca57;">-- cm</span>
+                            </div>
+                            
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn-login" style="background:rgba(255, 71, 87, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('empty')">Set as Empty (0%)</button>
+                                <button class="btn-login" style="background:rgba(46, 213, 115, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('full')">Set as Full (100%)</button>
+                            </div>
+
+                            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
+                                <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">⚙️ Manual Override & Network Config</h4>
+                                <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none; margin-top:-10px;" onclick="toggleAdminOverrideBox()" title="Manual Config">⋮</span>
+                            </div>
+
+                            <div id="adminOverrideBox" style="display:none; width:100%;">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="color:#aaa; font-size:11px;">Empty Tank Depth (cm)</label>
+                                        <input type="number" id="adminEmptyInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 150">
+                                    </div>
+                                    <div style="flex:1; min-width:140px;">
+                                        <label style="color:#aaa; font-size:11px;">Full Clearance (cm)</label>
+                                        <input type="number" id="adminFullInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 15">
+                                    </div>
+                                </div>
+
+                                <p style="font-size:11px; color:#aaa; margin-top:10px; margin-bottom:5px;">Update WiFi Slots (Passwords are hidden from telemetry for security)</p>
+                                
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 1:</strong> <span id="admin_slot1_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                    </div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 2:</strong> <span id="admin_slot2_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                    </div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 3:</strong> <span id="admin_slot3_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                    </div>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 4:</strong> <span id="admin_slot4_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                    </div>
+                                </div>
+
+                                <button class="btn-login" style="background:#00d2ff; color:#000; font-size:13px; padding:10px; margin-top:10px;" onclick="saveAdminManualSettings()">Push Manual Settings</button>
+                            </div>
+                        </div>
+                        
+                        <div class="terminals-wrapper">
+                            <div class="terminal-column" style="flex: 1.5;">
+                                <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ESP32 (HUB)</span>
+                                <div id="logConsole" class="log-box" style="text-align:left; height: 120px;">Awaiting Core Stream...</div>
+                            </div>
+                            
+                            <div class="terminal-column" style="flex: 1.5;">
+                                <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">NANO (TANK)</span>
+                                <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left; height: 120px;">Awaiting Payload Link...</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 10px; width: 100%;">
+                            <button class="btn-login" style="background:rgba(255, 255, 255, 0.1); color:#00d2ff; border: 1px dashed #00d2ff; font-size:13px; padding:8px; margin-bottom:5px;" onclick="toggleHwPanel()">⚙️ Show Hardware Diagnostics</button>
+                            <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
+                        </div>
+
+                        <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
+                            <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                        </div>
+                    </div>
+
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
+                        <h3 style="color: #ff6b81; margin:0; text-align:left;">OTA Firmware Update</h3>
+                        <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none;" onclick="toggleLinkCustomerBox()" title="Advanced Tools">⋮</span>
+                    </div>
+                    <input type="text" id="otaUrlInput" class="input-box" value="https://raw.githubusercontent.com/homeiot333-bit/OTA-UPDATE/main/sketch_jul5a.ino.bin" placeholder="Enter OTA .bin URL" style="margin-top:15px;">
+                    <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
+
+                    <div id="linkCustomerBox" style="display:none; width:100%; text-align: left;">
+                        <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                        <h3 style="color: #7bed9f; margin-top:0; text-align:left;">Link Customer & Config Device</h3>
+                        <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
+                        <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., a4e1 (MAC)">
+                        
+                        <select id="assignTypeInput" class="input-box">
+                            <option value="Household">House Hold</option>
+                            <option value="Commercial">Commercial</option>
+                        </select>
+                        
+                        <input type="text" id="assignNameInput" class="input-box" placeholder="3. Name (Family Name / Org Name)">
+                        
+                        <input type="email" id="assignEmailInput" class="input-box" placeholder="4. Customer Email (Optional Admin Ref)">
+                        <input type="text" id="assignPassInput" class="input-box" placeholder="5. Customer Password (Optional Admin Ref)">
+                        
+                        <input type="text" id="assignRadioTech" class="input-box" placeholder="6. RF Module (Manual Override)">
+                        <input type="text" id="assignRadioChannel" class="input-box" placeholder="7. RF Channel (Manual Override)">
+                        <input type="text" id="assignRadioRate" class="input-box" placeholder="8. Data Rate (Manual Override)">
+                        
+                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">9. Network Topology:</label>
+                        <select id="assignUsesRepeater" class="input-box">
+                            <option value="Yes">Uses Middleman Repeater</option>
+                            <option value="No">Direct Link Only</option>
+                        </select>
+                        
+                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">10. Device Deployed Date:</label>
+                        <input type="date" id="assignDeployDate" class="input-box">
+
+                        <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
+                    </div>
+
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                    <button class="btn-danger" style="background:rgba(255, 71, 87, 0.4); border:1px solid #ff4757; margin-top:0px;" onclick="deleteDeviceProfile()">🗑️ Permanently Delete Device Data</button>
+                    
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function getMobileDeviceModel() {
+            let ua = navigator.userAgent;
+            let model = "Unknown Device";
+            if (/android/i.test(ua)) {
+                let match = ua.match(/Android.*?;\s([^;]+?)\sBuild/i);
+                if (match && match[1]) {
+                    model = match[1].trim(); 
+                } else {
+                    match = ua.match(/Android.*?; ([a-zA-Z0-9\- ]+)\)/i);
+                    if (match && match[1]) model = match[1].trim();
+                    else model = "Android Device";
+                }
+            } else if (/iPhone/i.test(ua)) {
+                model = "Apple iPhone";
+            } else if (/iPad/i.test(ua)) {
+                model = "Apple iPad";
+            } else if (/Mac OS/i.test(ua)) {
+                model = "Mac OS Computer";
+            } else if (/Windows/i.test(ua)) {
+                model = "Windows Computer";
+            } else if (/Linux/i.test(ua)) {
+                model = "Linux Computer";
+            }
+            return model;
+        }
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
+            authDomain: "home-water-level.firebaseapp.com",
+            databaseURL: "https://home-water-level-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "home-water-level",
+            storageBucket: "home-water-level.firebasestorage.app",
+            messagingSenderId: "637859600389",
+            appId: "1:637859600389:web:e83fd626033edc17c4246c"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryWorker");
+
+        const appCheck = firebase.appCheck();
+        appCheck.activate(
+            'YOUR_RECAPTCHA_V3_SITE_KEY_HERE', 
+            true 
+        );
+
+        window.adminPin = "3943"; // Default Fallback PIN
+        let isInboxMenuOpen = false;
+        let selectedInboxDevId = null;
+
+        let globalDeviceState = {};
+        let adminInboxData = {};
+        let pendingOtaDevice = null; 
+        let heartbeatTimer = null; 
+        let globalScannerTimer = null; 
+        let linkedDevicesRef = null;
+
+        let currentDeviceId = null;
+        let currentPumpState = false;
+        let lastHeartbeat = 0;
+        let lastHeartbeatTime = Date.now();
+
+        let espLogHistory = [];
+        let lastWaterPercent = -1;
+        let localDailyUsage = 0;
+        let hasShownPopup = false;
+        
+        let localPumpCommandTimeout = null; 
+        let lastSeenControlTrigger = null;
+        let lastCommandedState = false; 
+
+        window.manualRadioTech = null;
+        window.manualRadioChan = null;
+        window.manualRadioRate = null;
+        window.autoRadioTech = null;
+        window.autoRadioChan = null;
+        window.autoRadioRate = null;
+        window.deviceDeployDate = null; 
+        window.deviceTopology = null; 
+        window.latestRawDistance = null; 
+
+        function showModal({ title, text, type, showInput }) {
+            return new Promise((resolve) => {
+                const overlay = document.getElementById('customModalOverlay');
+                const titleEl = document.getElementById('customModalTitle');
+                const textEl = document.getElementById('customModalText');
+                const inputEl = document.getElementById('customModalInput');
+                const cancelBtn = document.getElementById('customModalCancel');
+                const confirmBtn = document.getElementById('customModalConfirm');
+
+                titleEl.innerText = title;
+                textEl.innerText = text;
+                
+                inputEl.style.display = showInput ? 'block' : 'none';
+                inputEl.type = type === 'password' ? 'password' : 'text';
+                inputEl.value = '';
+
+                cancelBtn.style.display = type === 'alert' ? 'none' : 'block';
+
+                overlay.style.display = 'flex';
+                if(showInput) inputEl.focus();
+
+                const cleanup = () => {
+                    overlay.style.display = 'none';
+                    cancelBtn.onclick = null;
+                    confirmBtn.onclick = null;
+                };
+
+                cancelBtn.onclick = () => { cleanup(); resolve(null); };
+                confirmBtn.onclick = () => { cleanup(); resolve(showInput ? inputEl.value : true); };
+            });
+        }
+
+        async function customAlert(text) {
+            await showModal({ title: "System Message", text, type: 'alert', showInput: false });
+        }
+        async function customConfirm(text) {
+            return await showModal({ title: "Action Required", text, type: 'confirm', showInput: false });
+        }
+        async function customPrompt(text, isPassword = false) {
+            return await showModal({ title: "Security Verification", text, type: isPassword ? 'password' : 'text', showInput: true });
+        }
+
+        window.addEventListener('click', function(e) {
+            const inboxMenu = document.getElementById('inboxFloatingMenu');
+            if (inboxMenu && inboxMenu.style.display === 'block') {
+                inboxMenu.style.display = 'none';
+                isInboxMenuOpen = false;
+            }
+        });
+
+        document.addEventListener("visibilitychange", function() {
+            if (document.visibilityState === 'visible') {
+                firebase.database().goOffline();
+                setTimeout(() => { 
+                    firebase.database().goOnline(); 
+                }, 500);
+            }
+        });
+
+        database.ref('.info/connected').on('value', (s) => {
+            if (s.val()) {
+                document.getElementById('connIndicator').innerText = "Server Connected";
+            } else {
+                document.getElementById('connIndicator').innerText = "Connecting to Server...";
+            }
+        });
+
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById("passwordInput");
+            if (passInput && passInput.type === "password") {
+                passInput.type = "text";
+            } else if (passInput) {
+                passInput.type = "password";
+            }
+        }
+
+        function toggleAdminPumpControl() {
+            const card = document.getElementById('pumpControlCard');
+            card.style.display = (card.style.display === 'none') ? 'block' : 'none';
+        }
+
+        function toggleAdvanced() {
+            const adv = document.getElementById('advancedSection');
+            adv.style.display = (adv.style.display === "none") ? "flex" : "none";
+        }
+
+        function toggleCustomerTopMenu() {
+            const menu = document.getElementById('customerTopMenuDropdown');
+            menu.style.display = (menu.style.display === "none") ? "block" : "none";
+        }
+
+        function toggleAdminOverrideBox() {
+            const box = document.getElementById('adminOverrideBox');
+            box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+        }
+
+        function toggleAdminEditConfig() {
+            const box = document.getElementById('adminEditConfigBox');
+            box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+        }
+
+        function toggleCustomerSettings() {
+            const box = document.getElementById('customerSettingsBox');
+            box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+            document.getElementById('customerTopMenuDropdown').style.display = 'none';
+            
+            if (box.style.display === 'block') {
+                const emptyEl = document.getElementById('adminTxtEmptyDist');
+                const fullEl = document.getElementById('adminTxtFullDist');
+                if(emptyEl && emptyEl.innerText !== '-- cm') document.getElementById('custEmptyInput').value = parseFloat(emptyEl.innerText);
+                if(fullEl && fullEl.innerText !== '-- cm') document.getElementById('custFullInput').value = parseFloat(fullEl.innerText);
+            }
+        }
+
+        function toggleInboxPanel() {
+            const panel = document.getElementById('sideInboxPanel');
+            panel.classList.toggle('open');
+        }
+
+        function toggleSearchMenu() {
+            const menu = document.getElementById('searchMenuDropdown');
+            menu.style.display = (menu.style.display === "none") ? "block" : "none";
+        }
+
+        function updateSearchPlaceholder() {
+            const mode = document.querySelector('input[name="searchMode"]:checked').value;
+            const input = document.getElementById('adminSearchInput');
+            if(mode === "email") {
+                input.placeholder = "e.g., customer@gmail.com";
+            } else {
+                input.placeholder = "e.g., a4e1 (MAC)";
+            }
+            document.getElementById('searchMenuDropdown').style.display = "none";
+        }
+
+        function toggleLinkCustomerBox() {
+            const box = document.getElementById('linkCustomerBox');
+            box.style.display = (box.style.display === "none") ? "block" : "none";
+        }
+
+        function toggleHwPanel() {
+            const box = document.getElementById('hwTerminalPanel');
+            box.style.display = (box.style.display === "none") ? "block" : "none";
+        }
+
+        async function toggleCredBox() {
+            const box = document.getElementById('credentialsBox');
+            if (box.style.display === "none") {
+                const currentUser = firebase.auth().currentUser;
+                if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                    const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Admin PIN to view credentials:", true);
+                    if (pin !== window.adminPin) {
+                        await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                        return;
+                    }
+                }
+                box.style.display = "block";
+            } else {
+                box.style.display = "none";
+            }
+        }
+
+        async function saveEditedConfig() {
+            if(!currentDeviceId) return;
+
+            const name = document.getElementById('editNameInput').value.trim();
+            const type = document.getElementById('editTypeInput').value;
+            const deployDate = document.getElementById('editDeployDate').value;
+            const usesRepeater = document.getElementById('editUsesRepeater').value;
+            const radioTech = document.getElementById('editRadioTech').value.trim();
+            const radioChannel = document.getElementById('editRadioChannel').value.trim();
+            const radioRate = document.getElementById('editRadioRate').value.trim();
+
+            const pin = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter Admin PIN to modify device configuration:", true);
+            if (pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+
+            const updates = {
+                deviceType: type,
+                assignedName: name,
+                deployDate: deployDate,
+                usesRepeater: usesRepeater,
+                radioTech: radioTech,
+                radioChannel: radioChannel,
+                radioRate: radioRate
+            };
+
+            database.ref('Devices/' + currentDeviceId + '/customerInfo').update(updates).then(async () => {
+                await customAlert("✅ Device Configuration successfully updated!");
+                document.getElementById('adminEditConfigBox').style.display = 'none';
+            }).catch(async (error) => {
+                await customAlert("❌ Error: " + error.message);
+            });
+        }
+
+        async function changeCustomerPassword() {
+            document.getElementById('customerTopMenuDropdown').style.display = 'none';
+            let currentPass = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:", true);
+            if(!currentPass) return;
+            
+            let newPass = await customPrompt("🔑 NEW PASSWORD\n\nEnter your NEW password (must be at least 6 characters):", true);
+            if(!newPass || newPass.length < 6) {
+                await customAlert("❌ Password change failed. The new password must be at least 6 characters.");
+                return;
+            }
+            
+            let user = firebase.auth().currentUser;
+            let cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
+            
+            try {
+                await user.reauthenticateWithCredential(cred);
+                await user.updatePassword(newPass);
+                if(currentDeviceId) {
+                    await database.ref('/Devices/' + currentDeviceId + '/customerInfo/password').set(newPass);
+                    await database.ref('/Devices/' + currentDeviceId + '/control/updatePortalPass').set(newPass);
+                }
+                await customAlert("✅ Password changed successfully!\nYour new login password is: " + newPass + "\n\nThis will also be updated on the device setup portal.");
+            } catch (err) {
+                if (err.code === 'auth/wrong-password') {
+                    await customAlert("❌ Verification failed. Incorrect current password.");
+                } else {
+                    await customAlert("❌ Error updating password: " + err.message);
+                }
+            }
+        }
+
+        async function changeMasterPin() {
+            let current = await customPrompt("🔒 VERIFICATION\n\nEnter Current Master PIN:", true);
+            if (current !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect PIN.");
+                return;
+            }
+            let newPin = await customPrompt("🔑 NEW PIN\n\nEnter new Master PIN (Minimum 4 characters):", true);
+            if (newPin && newPin.length >= 4) {
+                await database.ref('/AdminConfig/MasterPIN').set(newPin);
+                window.adminPin = newPin;
+                await customAlert("✅ Master PIN updated successfully.");
+            } else {
+                await customAlert("❌ Update failed. PIN must be at least 4 characters.");
+            }
+        }
+
+        function loginUser() {
+            const email = document.getElementById('emailInput').value.trim();
+            const pass = document.getElementById('passwordInput').value;
+            const errDiv = document.getElementById('loginError');
+            
+            firebase.auth().signInWithEmailAndPassword(email, pass).catch((error) => {
+                errDiv.style.display = 'block';
+                let cleanMessage = "Authentication Failed.";
+                if(error.code === 'auth/invalid-email') cleanMessage = "Invalid email format.";
+                else if(error.code === 'auth/user-not-found') cleanMessage = "User not found.";
+                else if(error.code === 'auth/wrong-password') cleanMessage = "Incorrect password.";
+                else if(error.code === 'auth/network-request-failed') cleanMessage = "Network error. Check connection.";
+                else cleanMessage = "Invalid credentials or account disabled.";
+                
+                errDiv.innerText = "⚠️ " + cleanMessage;
+            });
+        }
+
+        function logoutUser() {
+            firebase.auth().signOut().then(() => {
+                window.location.reload();
+            });
+        }
+
+        firebase.auth().onAuthStateChanged((user) => {
+            if(user) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('dashboardScreen').style.display = 'flex';
+                document.getElementById('loggedInEmail').innerText = user.email;
+
+                if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
+                    document.getElementById('topBarTitle').innerHTML = 'Admin Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>';
+                    document.getElementById('creditText').innerHTML = "This is admin portal used by <strong>ANISH.</strong>";
+                    
+                    document.getElementById('customerMarquee').style.display = 'none';
+                    document.getElementById('customerMenuDots').style.display = 'none';
+                    document.getElementById('advancedSection').style.display = 'none';
+                    
+                    document.getElementById('adminCommandCenter').style.display = 'flex';
+                    document.getElementById('mainDashboardView').style.display = 'none'; 
+                    
+                    database.ref('/AdminConfig/MasterPIN').on('value', (s) => {
+                        if (s.exists()) window.adminPin = s.val();
+                    });
+
+                    startAdminInboxListener(); 
+                } else {
+                    document.getElementById('topBarTitle').innerHTML = 'Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>';
+                    document.getElementById('creditText').innerHTML = "This system is developed by <strong>ANISH.</strong>";
+                    
+                    document.getElementById('customerMarquee').style.display = 'block';
+                    document.getElementById('customerMenuDots').style.display = 'block';
+                    document.getElementById('customerMenuContainer').style.display = 'inline-block';
+                    
+                    document.getElementById('adminCommandCenter').style.display = 'none';
+                    document.getElementById('mainDashboardView').style.display = 'flex';
+                    
+                    database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
+                        const devId = snapshot.val();
+                        if(devId) {
+                            currentDeviceId = devId;
+                            startListeners();
+                            
+                            let mDevice = getMobileDeviceModel();
+                            let sessionKey = localStorage.getItem("waterIoT_sessionKey");
+                            if(!sessionKey) {
+                                sessionKey = "sess_" + Math.random().toString(36).substr(2, 9);
+                                localStorage.setItem("waterIoT_sessionKey", sessionKey);
+                            }
+                            
+                            database.ref('/Devices/' + devId + '/mobileLogins/' + sessionKey).update({
+                                modelName: mDevice,
+                                lastSeen: new Date().toLocaleString()
+                            });
+
+                        } else {
+                            customAlert("Account error: Your profile has not been linked to a Device ID yet.");
+                        }
+                    });
+                }
+            } else {
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('dashboardScreen').style.display = 'none';
+                
+                if(currentDeviceId) {
+                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus').off();
+                    database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
+                    database.ref('/Devices/' + currentDeviceId + '/state').off();
+                    database.ref('/Devices/' + currentDeviceId + '/control').off();
+                    database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
+                    database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
+                    database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
+                    currentDeviceId = null;
+                }
+                if(linkedDevicesRef) {
+                    linkedDevicesRef.off();
+                }
+            }
+        });
+
+        function fetchLinkedDevices(targetEmail) {
+            const listElements = document.querySelectorAll('.linked-devices-list');
+            
+            if(!targetEmail || targetEmail === "Not saved in DB") {
+                listElements.forEach(el => el.innerHTML = "No email linked to this account.");
+                return;
+            }
+            
+            if(linkedDevicesRef) linkedDevicesRef.off();
+
+            linkedDevicesRef = database.ref('Devices');
+            linkedDevicesRef.on('value', (snapshot) => {
+                let count = 0;
+                let listHtml = "";
+                snapshot.forEach(child => {
+                    let devData = child.val();
+                    if(devData.customerInfo && devData.customerInfo.email && devData.customerInfo.email.toLowerCase() === targetEmail.toLowerCase()) {
+                        count++;
+                        let model = devData.customerInfo.deviceType || "Unknown Model";
+                        let name = devData.customerInfo.assignedName || "Unnamed Device";
+                        let status = (devData.state && devData.state.fault) ? "🔴 Fault" : "🟢 Online";
+                        
+                        let mobileList = "";
+                        let mobileCount = 0;
+                        if(devData.mobileLogins) {
+                            for(let key in devData.mobileLogins) {
+                                mobileCount++;
+                                mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${devData.mobileLogins[key].modelName} <span style="color:#666; font-size:10px;">(Last: ${devData.mobileLogins[key].lastSeen})</span></div>`;
+                            }
+                        }
+                        if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
+
+                        listHtml += `<div style="padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="color:#00d2ff; font-size:14px;">${child.key}</strong><br>
+                                    <span style="color:#aaa; font-size:11px;">${name}</span>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span style="color:#feca57; font-size:12px; font-weight:bold;">${model}</span><br>
+                                    <span style="font-size:11px;">${status}</span>
+                                </div>
+                            </div>
+                            <div style="border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 10px; padding-top: 8px;">
+                                <span style="color:#7bed9f; font-size:11px; font-weight:bold;">Logged-in Devices (${mobileCount}):</span>
+                                ${mobileList}
+                            </div>
+                        </div>`;
+                    }
+                });
+                
+                let finalHtml = "";
+                if(count === 0) {
+                    finalHtml = "No devices found.";
+                } else {
+                    finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
+                }
+                
+                listElements.forEach(el => el.innerHTML = finalHtml);
+            });
+        }
+
+        function updateRadioUI() {
+            if (document.getElementById('adminTxtRadio')) {
+                document.getElementById('adminTxtRadio').innerText = window.manualRadioTech || window.autoRadioTech || "nRF24L01";
+            }
+            if (document.getElementById('adminTxtChannel')) {
+                document.getElementById('adminTxtChannel').innerText = window.manualRadioChan || window.autoRadioChan || "125";
+            }
+            if (document.getElementById('adminTxtDataRate')) {
+                document.getElementById('adminTxtDataRate').innerText = window.manualRadioRate || window.autoRadioRate || "250 KBPS";
+            }
+        }
+
+        function updateRuntimeUI() {
+            if (window.deviceDeployDate) {
+                let deployed = new Date(window.deviceDeployDate);
+                let diffTime = Math.abs(Date.now() - deployed.getTime());
+                let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                document.getElementById('txtRuntimeDays').innerText = `Running: ${diffDays} Days`;
+            } else if (lastHeartbeat > 0) {
+                let totalSeconds = Math.floor(lastHeartbeat * 1.5);
+                let runningDays = Math.floor(totalSeconds / 86400);
+                document.getElementById('txtRuntimeDays').innerText = `Uptime: ${runningDays} Days`;
+            } else {
+                document.getElementById('txtRuntimeDays').innerText = '-- Days';
+            }
+        }
+
+        function startAdminInboxListener() {
+            if(globalScannerTimer) clearInterval(globalScannerTimer);
+            
+            globalScannerTimer = setInterval(() => {
+                database.ref('/Devices').once('value').then((snapshot) => {
+                    globalDeviceState = {}; 
+                    snapshot.forEach(child => {
+                        let devId = child.key;
+                        let val = child.val();
+                        let hb = val.deviceStatus && val.deviceStatus.heartbeat ? val.deviceStatus.heartbeat : 0;
+                        let devType = val.customerInfo && val.customerInfo.deviceType ? val.customerInfo.deviceType : "Unknown";
+                        let assignedName = val.customerInfo && val.customerInfo.assignedName ? val.customerInfo.assignedName : "";
+                        
+                        if(val.customerInfo && val.customerInfo.email && val.customerInfo.accountCreated === false) {
+                            let autoEmail = val.customerInfo.email;
+                            let autoPass = val.customerInfo.password;
+                            
+                            secondaryApp.auth().createUserWithEmailAndPassword(autoEmail, autoPass)
+                            .then((userCred) => {
+                                secondaryApp.auth().signOut();
+                                database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
+                                let cleanUid = userCred.user.uid; 
+                                database.ref('/Users/' + cleanUid + '/deviceId').set(devId);
+                            })
+                            .catch(err => {
+                                console.log("Silent Auto-Provisioning Error:", err);
+                                if(err.code === "auth/email-already-in-use") {
+                                    database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
+                                }
+                            });
+                        }
+
+                        globalDeviceState[devId] = { lastHb: hb, lastTime: Date.now(), deviceType: devType, assignedName: assignedName };
+                    });
+                    renderAdminInbox();
+                });
+            }, 2000);
+
+            database.ref('/AdminInbox').on('value', async (snapshot) => {
+                adminInboxData = snapshot.val() || {};
+                
+                if (pendingOtaDevice && adminInboxData[pendingOtaDevice]) {
+                    let status = adminInboxData[pendingOtaDevice].status || "";
+                    let msg = adminInboxData[pendingOtaDevice].message || "";
+                    
+                    if (status.includes("OTA SUCCESS")) {
+                        await customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
+                        pendingOtaDevice = null; 
+                    } else if (status.includes("ERROR") || status.includes("Failed")) {
+                        await customAlert("❌❌ OTA UPLOAD FAILED! ❌❌\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
+                        pendingOtaDevice = null; 
+                    }
+                }
+                renderAdminInbox();
+            });
+        }
+
+        function openInboxMenu(devId, event) {
+            event.stopPropagation();
+            selectedInboxDevId = devId;
+            isInboxMenuOpen = true;
+            const menu = document.getElementById('inboxFloatingMenu');
+            menu.style.display = 'block';
+            menu.style.left = (event.clientX - 160) + 'px'; 
+            menu.style.top = event.clientY + 'px';
+        }
+
+        async function handleInboxAction(action) {
+            if(!selectedInboxDevId) return;
+            
+            if (action === 'connect') {
+                document.getElementById('sideInboxPanel').classList.remove('open');
+                await processAdminConnectionDirect(selectedInboxDevId);
+            } else if (action === 'remove') {
+                const pin = await customPrompt("🔒 SECURITY\n\nEnter Admin PIN to clear this alert:", true);
+                if (pin !== window.adminPin) {
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
+                database.ref('/AdminInbox/' + selectedInboxDevId).remove();
+            } else if (action === 'delete') {
+                const pin = await customPrompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to erase " + selectedInboxDevId + ":", true);
+                if (pin !== window.adminPin) {
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
+                if(await customConfirm("Are you ABSOLUTELY sure? This will delete telemetry, config, and alerts. Cannot be undone!")) {
+                    await database.ref('/Devices/' + selectedInboxDevId).remove();
+                    await database.ref('/AdminInbox/' + selectedInboxDevId).remove();
+                    await customAlert("🗑️ Device Profile Permanently Deleted.");
+                    if(currentDeviceId === selectedInboxDevId) {
+                        window.location.reload();
+                    }
+                }
+            }
+            document.getElementById('inboxFloatingMenu').style.display = 'none';
+            isInboxMenuOpen = false;
+        }
+
+        async function processAdminConnectionDirect(devId) {
+            document.getElementById('connStatus').innerText = "VERIFYING...";
+            database.ref('Devices/' + devId).once('value').then(async (snapshot) => {
+                if(snapshot.exists()) {
+                    executeConnection(devId);
+                } else {
+                    await customAlert("❌ Error: Device ID '" + devId + "' does not exist.");
+                    document.getElementById('connStatus').innerText = "ONLINE";
+                }
+            });
+        }
+
+        function renderAdminInbox() {
+            if (isInboxMenuOpen) return; 
+            const inboxDiv = document.getElementById('adminInbox');
+            if(!inboxDiv) return; 
+
+            const filterEle = document.querySelector('input[name="inboxFilter"]:checked');
+            const filter = filterEle ? filterEle.value : 'All';
+
+            const searchInput = document.getElementById('inboxSearchInput');
+            const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+            let htmlStr = '';
+            let hasDevices = false;
+            let currentConnectedDeviceFaultMessage = null; 
+
+            for (const devId in adminInboxData) {
+                if (!globalDeviceState[devId]) continue;
+
+                let devType = globalDeviceState[devId].deviceType || "Unknown";
+                let assignedNameStrRaw = globalDeviceState[devId].assignedName || "";
+                
+                if (filter !== "All" && devType !== filter) continue; 
+
+                let devIdLower = devId.toLowerCase();
+                let nameLower = assignedNameStrRaw.toLowerCase();
+                if (searchVal !== "" && !devIdLower.includes(searchVal) && !nameLower.includes(searchVal)) {
+                    continue;
+                }
+                
+                hasDevices = true;
+                const data = adminInboxData[devId];
+                let color = "#2ed573"; 
+                let displayStatus = data.status || "UNKNOWN STATUS";
+                let displayMsg = data.message || "No message available.";
+                let isDead = false;
+
+                if(globalDeviceState[devId]) {
+                    if (Date.now() - globalDeviceState[devId].lastTime > 35000) { 
+                        isDead = true;
+                    }
+                }
+
+                if (isDead) {
+                    color = "#ff4757"; 
+                    displayStatus = "❌ OFFLINE";
+                    displayMsg = "Machine is unresponsive.";
+                    if (devId === currentDeviceId) {
+                        currentConnectedDeviceFaultMessage = `Machine [${devId}] went completely Offline. Power supply or connection lost Momently.`;
+                    }
+                } else if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
+                    color = "#ff4757";
+                    if (devId === currentDeviceId) {
+                        currentConnectedDeviceFaultMessage = `[${devId}] ${displayStatus}: ${displayMsg}`;
+                    }
+                } else if(displayStatus.includes("OTA SUCCESS")) {
+                    color = "#feca57";
+                } else if(displayStatus.includes("OTA")) {
+                    color = "#00d2ff";
+                }
+
+                let formattedName = assignedNameStrRaw ? `(${assignedNameStrRaw})` : "";
+
+                htmlStr += `<div class="inbox-card" style="border-left: 4px solid ${color}; position:relative;">
+                    <div style="position:absolute; top:8px; right:10px; cursor:pointer; font-size:18px; color:#00d2ff; font-weight:bold; user-select:none;" onclick="openInboxMenu('${devId}', event)" title="Device Options">⋮</div>
+                    <strong style="color:${color}">${devId} <span style="color:#fff;">${formattedName}</span></strong> <span style="font-size:10px; color:#aaa;">[${devType}]</span> - <span style="font-weight:bold; color:white;">${displayStatus}</span>
+                    <span style="display:block; margin-top:4px; color:#ccc; width: 90%;">${displayMsg}</span>
+                </div>`;
+            }
+
+            const errorBanner = document.getElementById('criticalErrorBanner');
+            if(currentConnectedDeviceFaultMessage) {
+                errorBanner.style.display = "block";
+                errorBanner.innerHTML = `⚠️ <strong>CRITICAL LIVE ALERT:</strong><br>• ${currentConnectedDeviceFaultMessage}`;
+            } else {
+                const currentUser = firebase.auth().currentUser;
+                if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                     errorBanner.style.display = "none";
+                     errorBanner.innerHTML = "";
+                }
+            }
+
+            if(hasDevices) {
+                inboxDiv.innerHTML = htmlStr;
+            } else {
+                inboxDiv.innerHTML = '<div style="text-align:left; color:#ccc; font-size:13px; margin-top:20px;">No devices matched or no active alerts.</div>';
+            }
+        }
+
+        async function processAdminConnection() {
+            const searchVal = document.getElementById('adminSearchInput').value.trim();
+            const mode = document.querySelector('input[name="searchMode"]:checked').value;
+
+            if(!searchVal) {
+                await customAlert("Please enter a value to search!");
+                return;
+            }
+
+            if(mode === "email") {
+                document.getElementById('connStatus').innerText = "SCANNING...";
+                
+                database.ref('Devices').once('value').then(async (snapshot) => {
+                    let foundDevId = null;
+                    snapshot.forEach(child => {
+                        let devData = child.val();
+                        if(devData.customerInfo && devData.customerInfo.email && devData.customerInfo.email.toLowerCase() === searchVal.toLowerCase()) {
+                            foundDevId = child.key;
+                        }
+                    });
+
+                    if(foundDevId) {
+                        executeConnection(foundDevId);
+                    } else {
+                        await customAlert("❌ Email not found! Ensure you typed it into the 'Link Customer' tool when you created their account.");
+                        document.getElementById('connStatus').innerText = "ONLINE";
+                    }
+                }).catch(async (err) => {
+                    await customAlert("Database Error: " + err.message);
+                });
+            } else {
+                document.getElementById('connStatus').innerText = "VERIFYING...";
+                database.ref('Devices/' + searchVal).once('value').then(async (snapshot) => {
+                    if(snapshot.exists()) {
+                        executeConnection(searchVal);
+                    } else {
+                        await customAlert("❌ Error: Device ID '" + searchVal + "' does not exist in the database! Please check the spelling or link the device first.");
+                        document.getElementById('connStatus').innerText = "ONLINE";
+                    }
+                }).catch(async (err) => {
+                    await customAlert("Database Error: " + err.message);
+                });
+            }
+        }
+
+        function updatePumpButtonUI() {
+            const btn = document.getElementById('pumpToggleBtn');
+            const tankModel = document.getElementById('waterTankModel'); 
+            
+            // Re-enable touches and clear lock UI
+            btn.style.pointerEvents = "auto";
+            btn.style.cursor = "pointer";
+            btn.style.opacity = "1"; 
+            
+            if(currentPumpState) {
+                btn.className = "btn-round btn-off";
+                btn.innerText = "TURN\nOFF";
+                if(tankModel) tankModel.classList.add('pump-active'); 
+            } else {
+                btn.className = "btn-round btn-on";
+                btn.innerText = "TURN\nON";
+                if(tankModel) tankModel.classList.remove('pump-active'); 
+            }
+        }
+
+        function executeConnection(devId) {
+            if(currentDeviceId) {
+                database.ref('/Devices/' + currentDeviceId + '/deviceStatus').off();
+                database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
+                database.ref('/Devices/' + currentDeviceId + '/state').off();
+                database.ref('/Devices/' + currentDeviceId + '/control').off();
+                database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
+                database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
+                database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
+            }
+
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            
+            if(localPumpCommandTimeout) {
+                clearTimeout(localPumpCommandTimeout);
+                localPumpCommandTimeout = null;
+            }
+            lastSeenControlTrigger = null;
+            lastCommandedState = false;
+            
+            currentDeviceId = devId;
+
+            espLogHistory = [];
+            lastWaterPercent = -1;
+            hasShownPopup = false;
+
+            window.manualRadioTech = null;
+            window.manualRadioChan = null;
+            window.manualRadioRate = null;
+            window.autoRadioTech = null;
+            window.autoRadioChan = null;
+            window.autoRadioRate = null;
+            window.deviceDeployDate = null;
+            window.deviceTopology = null;
+            window.latestRawDistance = null;
+
+            document.getElementById('assignedNameDisplay').innerText = '';
+            document.getElementById('criticalErrorBanner').style.display = "none";
+            document.getElementById('waterLevelFill').style.height = '0%';
+            document.getElementById('waterLevelText').innerText = '--%';
+            document.getElementById('txtFinalCm').innerText = '-- cm';
+            document.getElementById('txtS1').innerText = '-- cm';
+            document.getElementById('txtS2').innerText = '-- cm';
+            document.getElementById('txtBypass').innerText = '--';
+            document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
+            document.getElementById('adminTxtFullDist').innerText = '-- cm';
+            
+            if (document.getElementById('dailyUsageText')) {
+                document.getElementById('dailyUsageText').innerText = '0.0%';
+            }
+            
+            document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = 'Scanning account data...');
+            
+            document.getElementById('adminTxtRadio').innerText = 'nRF24L01'; 
+            document.getElementById('adminTxtChannel').innerText = '--';
+            document.getElementById('adminTxtDataRate').innerText = '--';
+            document.getElementById('adminTxtTopology').innerText = '--';
+            document.getElementById('adminTxtDeployDate').innerText = '--';
+            
+            if(document.getElementById('adminLiveRawDist')) document.getElementById('adminLiveRawDist').innerText = '-- cm';
+            
+            document.getElementById('adminTxtDist').innerText = '-- m';
+            document.getElementById('adminTxtSignal').innerText = 'N/A';
+            document.getElementById('txtDistanceCustomer').innerText = '-- m';
+            document.getElementById('txtSignalCustomer').innerText = 'N/A';
+            document.getElementById('credEmail').innerText = "Not saved in DB";
+            document.getElementById('credPass').innerText = "Not saved in DB";
+            document.getElementById('credentialsBox').style.display = "none"; 
+            document.getElementById('hwTerminalPanel').innerText = "Awaiting Cloud Sync...";
+            
+            if(document.getElementById('txtRuntimeDays')) {
+                document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
+            }
+            
+            const btn = document.getElementById('pumpToggleBtn');
+            btn.className = "btn-round btn-off";
+            btn.innerText = "WAIT...";
+            btn.style.opacity = "1";
+            
+            const badge = document.getElementById('connStatus');
+            badge.style.background = "#ffa502";
+            badge.innerText = "CONNECTING...";
+            
+            lastHeartbeatTime = Date.now(); 
+            
+            document.getElementById('mainDashboardView').style.display = 'flex';
+            document.getElementById('adminTerminalContainer').style.display = 'block';
+
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                document.getElementById('pumpControlCard').style.display = 'none'; 
+            } else {
+                document.getElementById('pumpControlCard').style.display = 'block';
+            }
+            
+            if(document.getElementById('termDevId')) {
+                document.getElementById('termDevId').innerText = currentDeviceId;
+            }
+            
+            document.getElementById('logConsole').innerText = "Connecting...";
+            document.getElementById('nanoLogConsole').innerText = "Connecting...";
+            
+            renderAdminInbox();
+            startListeners();
+        }
+
+        async function saveCustomerSettings() {
+            if(!currentDeviceId) return;
+            
+            let currentPass = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter your account password to authorize device updates:", true);
+            if(!currentPass) return;
+            
+            let user = firebase.auth().currentUser;
+            let cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
+            
+            try {
+                await user.reauthenticateWithCredential(cred);
+                const emptyVal = parseFloat(document.getElementById('custEmptyInput').value);
+                const fullVal = parseFloat(document.getElementById('custFullInput').value);
+                
+                let updates = false;
+                let willReboot = false;
+
+                if(!isNaN(emptyVal) && emptyVal > 1.0) {
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
+                    updates = true;
+                }
+                if(!isNaN(fullVal) && fullVal >= 1.0) {
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
+                    updates = true;
+                }
+                
+                for(let i=1; i<=4; i++) {
+                    let ssid = document.getElementById('custWifiSSID_'+i).value.trim();
+                    let pass = document.getElementById('custWifiPass_'+i).value;
+                    if(ssid !== "") {
+                        await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
+                        updates = true; willReboot = true;
+                    }
+                    if(pass !== "") {
+                        await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
+                        updates = true; willReboot = true;
+                    }
+                }
+                
+                if(updates) {
+                    let msg = "✅ Settings successfully pushed to the device.";
+                    if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi. It may take a minute to come back online.";
+                    await customAlert(msg);
+                    document.getElementById('customerSettingsBox').style.display = 'none';
+                    for(let i=1; i<=4; i++) {
+                        document.getElementById('custWifiSSID_'+i).value = "";
+                        document.getElementById('custWifiPass_'+i).value = "";
+                    }
+                } else {
+                    await customAlert("No valid changes detected.");
+                }
+            } catch(err) {
+                await customAlert("❌ Verification failed. Incorrect password.");
+            }
+        }
+
+        async function saveAdminManualSettings() {
+            if(!currentDeviceId) return;
+            
+            const emptyVal = parseFloat(document.getElementById('adminEmptyInput').value);
+            const fullVal = parseFloat(document.getElementById('adminFullInput').value);
+            
+            let updates = false;
+            let willReboot = false;
+
+            if(!isNaN(emptyVal) && emptyVal > 1.0) {
+                await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
+                updates = true;
+            }
+            if(!isNaN(fullVal) && fullVal >= 1.0) {
+                await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
+                updates = true;
+            }
+            
+            for(let i=1; i<=4; i++) {
+                let ssid = document.getElementById('adminWifiSSID_'+i).value.trim();
+                let pass = document.getElementById('adminWifiPass_'+i).value;
+                if(ssid !== "") {
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
+                    updates = true; willReboot = true;
+                }
+                if(pass !== "") {
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
+                    updates = true; willReboot = true;
+                }
+            }
+            
+            if(updates) {
+                let msg = "✅ Manual settings successfully pushed to the device.";
+                if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi.";
+                await customAlert(msg);
+                document.getElementById('adminEmptyInput').value = "";
+                document.getElementById('adminFullInput').value = "";
+                for(let i=1; i<=4; i++) {
+                    document.getElementById('adminWifiSSID_'+i).value = "";
+                    document.getElementById('adminWifiPass_'+i).value = "";
+                }
+            } else {
+                await customAlert("No valid changes detected.");
+            }
+        }
+
+        async function deleteDeviceProfile() {
+            if(!currentDeviceId) return;
+            
+            const pin = await customPrompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to permanently erase " + currentDeviceId + " from the database:", true);
+            if(pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+            
+            if(await customConfirm("Are you ABSOLUTELY sure? This will delete all telemetry, customer info, and logs for " + currentDeviceId + ". This action cannot be undone!")) {
+                await database.ref('/Devices/' + currentDeviceId).remove();
+                await database.ref('/AdminInbox/' + currentDeviceId).remove();
+                await customAlert("🗑️ Device Profile Permanently Deleted.");
+                window.location.reload();
+            }
+        }
+
+        async function calibrateTank(type) {
+            if(!currentDeviceId || !window.latestRawDistance || window.latestRawDistance <= 0.1) {
+                await customAlert("❌ Cannot calibrate: Invalid or missing sensor data.");
+                return;
+            }
+
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                const pin = await customPrompt("🔒 MASTER CONTROL SECURITY\n\nEnter Admin PIN to calibrate tank:\n(Default is 3943)", true);
+                if (pin !== window.adminPin) {
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
+            }
+
+            if(type === 'empty') {
+                if(await customConfirm("Set Empty Tank Depth to " + window.latestRawDistance + " cm?")) {
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(window.latestRawDistance);
+                    await customAlert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
+                }
+            } else if(type === 'full') {
+                if(await customConfirm("Set Full Water Clearance Level to " + window.latestRawDistance + " cm?")) {
+                    await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(window.latestRawDistance);
+                    await customAlert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
+                }
+            }
+        }
+
+        async function assignDeviceToUser() {
+            const uid = document.getElementById('assignUidInput').value.trim();
+            const devId = document.getElementById('assignDevInput').value.trim();
+            
+            const type = document.getElementById('assignTypeInput').value;
+            const name = document.getElementById('assignNameInput').value.trim();
+            const email = document.getElementById('assignEmailInput').value.trim();
+            const pass = document.getElementById('assignPassInput').value.trim();
+            const rTech = document.getElementById('assignRadioTech').value.trim();
+            const rChan = document.getElementById('assignRadioChannel').value.trim();
+            const rRate = document.getElementById('assignRadioRate').value.trim();
+            const usesRepeater = document.getElementById('assignUsesRepeater').value;
+            const deployDate = document.getElementById('assignDeployDate').value;
+            
+            if(uid && devId) {
+                try {
+                    await database.ref('Users/' + uid + '/deviceId').set(devId);
+                    const updates = { deviceType: type };
+                    if(email) updates.email = email;
+                    if(pass) updates.password = pass;
+                    if(name) updates.assignedName = name;
+                    if(rTech) updates.radioTech = rTech;
+                    if(rChan) updates.radioChannel = rChan;
+                    if(rRate) updates.radioRate = rRate;
+                    if(usesRepeater) updates.usesRepeater = usesRepeater;
+                    if(deployDate) updates.deployDate = deployDate;
+
+                    await database.ref('Devices/' + devId + '/customerInfo').update(updates);
+                    await customAlert("✅ Success! " + devId + " configuration saved and linked to " + uid);
+                    
+                    document.getElementById('assignUidInput').value = '';
+                    document.getElementById('assignDevInput').value = '';
+                    document.getElementById('assignTypeInput').value = 'Household';
+                    document.getElementById('assignNameInput').value = '';
+                    document.getElementById('assignEmailInput').value = '';
+                    document.getElementById('assignPassInput').value = '';
+                    document.getElementById('assignRadioTech').value = '';
+                    document.getElementById('assignRadioChannel').value = '';
+                    document.getElementById('assignRadioRate').value = '';
+                    document.getElementById('assignUsesRepeater').value = 'Yes';
+                    document.getElementById('assignDeployDate').value = '';
+                    document.getElementById('linkCustomerBox').style.display = "none";
+                } catch(error) {
+                    await customAlert("❌ Error: " + error.message);
+                }
+            } else {
+                await customAlert("Please enter at least a UID and a Device ID.");
+            }
+        }
+
+        function startListeners() {
+            const basePath = '/Devices/' + currentDeviceId;
+
+            database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
+                const slots = snapshot.val();
+                if(slots) {
+                    if(document.getElementById('cust_slot1_name')) document.getElementById('cust_slot1_name').innerText = slots.slot1 || "Empty";
+                    if(document.getElementById('cust_slot2_name')) document.getElementById('cust_slot2_name').innerText = slots.slot2 || "Empty";
+                    if(document.getElementById('cust_slot3_name')) document.getElementById('cust_slot3_name').innerText = slots.slot3 || "Empty";
+                    if(document.getElementById('cust_slot4_name')) document.getElementById('cust_slot4_name').innerText = slots.slot4 || "Empty";
+                    
+                    if(document.getElementById('admin_slot1_name')) document.getElementById('admin_slot1_name').innerText = slots.slot1 || "Empty";
+                    if(document.getElementById('admin_slot2_name')) document.getElementById('admin_slot2_name').innerText = slots.slot2 || "Empty";
+                    if(document.getElementById('admin_slot3_name')) document.getElementById('admin_slot3_name').innerText = slots.slot3 || "Empty";
+                    if(document.getElementById('admin_slot4_name')) document.getElementById('admin_slot4_name').innerText = slots.slot4 || "Empty";
+                }
+            });
+
+            database.ref(basePath + '/customerInfo').on('value', (snapshot) => {
+                const info = snapshot.val();
+                if(info) {
+                    document.getElementById('credEmail').innerText = info.email ? info.email : "Not saved in DB";
+                    document.getElementById('credPass').innerText = info.password ? info.password : "Not saved in DB";
+                    
+                    if(info.assignedName) {
+                        document.getElementById('assignedNameDisplay').innerText = `- ${info.assignedName} (${info.deviceType || 'Unknown'})`;
+                    } else {
+                        document.getElementById('assignedNameDisplay').innerText = "";
+                    }
+
+                    if(document.getElementById('editNameInput')) document.getElementById('editNameInput').value = info.assignedName || "";
+                    if(document.getElementById('editTypeInput')) document.getElementById('editTypeInput').value = info.deviceType || "Household";
+                    if(document.getElementById('editDeployDate')) document.getElementById('editDeployDate').value = info.deployDate || "";
+                    if(document.getElementById('editUsesRepeater')) document.getElementById('editUsesRepeater').value = info.usesRepeater || "No";
+                    if(document.getElementById('editRadioTech')) document.getElementById('editRadioTech').value = info.radioTech || "nRF24L01";
+                    if(document.getElementById('editRadioChannel')) document.getElementById('editRadioChannel').value = info.radioChannel || "125";
+                    if(document.getElementById('editRadioRate')) document.getElementById('editRadioRate').value = info.radioRate || "250 KBPS";
+
+                    if(info.email) {
+                        fetchLinkedDevices(info.email);
+                    } else {
+                        document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = "No email associated with this device.");
+                    }
+
+                    window.manualRadioTech = info.radioTech || null;
+                    window.manualRadioChan = info.radioChannel || null;
+                    window.manualRadioRate = info.radioRate || null;
+                    window.deviceDeployDate = info.deployDate || null;
+                    window.deviceTopology = info.usesRepeater || null;
+                    
+                    if(document.getElementById('adminTxtTopology')) {
+                        document.getElementById('adminTxtTopology').innerText = window.deviceTopology ? (window.deviceTopology === "Yes" ? "Uses Middleman" : "Direct Link Only") : "Unknown";
+                    }
+                    if(document.getElementById('adminTxtDeployDate')) {
+                        document.getElementById('adminTxtDeployDate').innerText = window.deviceDeployDate || "Not Set";
+                    }
+                    
+                    updateRadioUI();
+                    updateRuntimeUI();
+                } else {
+                    document.getElementById('assignedNameDisplay').innerText = "";
+                    window.manualRadioTech = null;
+                    window.manualRadioChan = null;
+                    window.manualRadioRate = null;
+                    window.deviceDeployDate = null;
+                    window.deviceTopology = null;
+                    document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = "No configuration found for this device.");
+                    
+                    if(document.getElementById('adminTxtTopology')) document.getElementById('adminTxtTopology').innerText = "Unknown";
+                    if(document.getElementById('adminTxtDeployDate')) document.getElementById('adminTxtDeployDate').innerText = "Not Set";
+                    
+                    updateRadioUI();
+                    updateRuntimeUI();
+                }
+            });
+
+            database.ref(basePath + '/usageStats/today').on('value', snap => {
+                let val = snap.val();
+                let todayDate = new Date().toDateString();
+                
+                if(val && val.date === todayDate) {
+                    localDailyUsage = val.usage || 0;
+                } else {
+                    localDailyUsage = 0; 
+                }
+                
+                if (document.getElementById('dailyUsageText')) {
+                    document.getElementById('dailyUsageText').innerText = localDailyUsage.toFixed(1) + '%';
+                }
+                
+                if(!hasShownPopup && localDailyUsage > 0) {
+                    hasShownPopup = true;
+                    setTimeout(() => {
+                        const popup = document.getElementById('usageSmsPopup');
+                        popup.innerHTML = `💧 <strong>Daily Alert:</strong> You have used ${localDailyUsage.toFixed(1)}% of your tank today!`;
+                        popup.classList.add('show');
+                        setTimeout(() => popup.classList.remove('show'), 6000);
+                    }, 3000);
+                }
+            });
+
+            database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
+                const statusData = snapshot.val() || {};
+                
+                lastHeartbeat = statusData.heartbeat || 0;
+                lastHeartbeatTime = Date.now(); 
+                document.getElementById('offlineOverlay').style.display = 'none'; 
+                
+                updateRuntimeUI();
+
+                if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
+                    document.getElementById('logConsole').innerText = "Signal restored. Fetching logs...";
+                    document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
+                }
+
+                window.autoRadioTech = statusData.radioTech;
+                window.autoRadioChan = statusData.radioChannel;
+                window.autoRadioRate = statusData.radioDataRate;
+                
+                updateRadioUI();
+            });
+
+            heartbeatTimer = setInterval(() => {
+                if(Date.now() - lastHeartbeatTime > 35000) { 
+                    const user = firebase.auth().currentUser;
+                    if(user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com")) {
+                        document.getElementById('offlineOverlay').style.display = 'none';
+                        const badge = document.getElementById('connStatus');
+                        badge.style.background = "#ff4757";
+                        badge.innerText = "OFFLINE";
+                        document.getElementById('pumpToggleBtn').className = "btn-round btn-off";
+                        document.getElementById('pumpToggleBtn').innerText = "OFFLINE";
+                        document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
+                        document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
+                        
+                        const tankModel = document.getElementById('waterTankModel'); 
+                        if(tankModel) tankModel.classList.remove('pump-active'); 
+                    } else {
+                        document.getElementById('offlineOverlay').style.display = 'flex';
+                    }
+                }
+            }, 2000);
+
+            database.ref(basePath + '/control').on('value', (snapshot) => {
+                const ctrl = snapshot.val();
+                if(ctrl && ctrl.triggerId && ctrl.triggerId !== lastSeenControlTrigger) {
+                    lastSeenControlTrigger = ctrl.triggerId;
+                    lastCommandedState = ctrl.forceState; 
+                    
+                    if (currentPumpState !== ctrl.forceState) {
+                        const btn = document.getElementById('pumpToggleBtn');
+                        btn.innerText = "WAIT...";
+                        // --- UI LOCK APPLIED GLOBALLY ---
+                        btn.style.pointerEvents = "none";
+                        btn.style.cursor = "not-allowed";
+                        btn.style.opacity = "0.6";
+
+                        if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
+                        
+                        localPumpCommandTimeout = setTimeout(async () => {
+                            if (!navigator.onLine) return;
+                            updatePumpButtonUI();
+                        }, 7000);
+                    }
+                }
+            });
+
+            database.ref(basePath + '/telemetry').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) {
+                    document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
+                    document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
+                    document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
+                    
+                    window.latestRawDistance = parseFloat(data.waterCm);
+                    if(document.getElementById('adminLiveRawDist')) {
+                        document.getElementById('adminLiveRawDist').innerText = window.latestRawDistance.toFixed(1) + ' cm';
+                    }
+                    
+                    if(data.bucketEmptyHeight) document.getElementById('adminTxtEmptyDist').innerText = parseFloat(data.bucketEmptyHeight).toFixed(1) + ' cm';
+                    if(data.bucketFullHeight) document.getElementById('adminTxtFullDist').innerText = parseFloat(data.bucketFullHeight).toFixed(1) + ' cm';
+
+                    if(data.sensor1Cm > 0) {
+                        document.getElementById('txtS1').innerText = parseFloat(data.sensor1Cm).toFixed(1) + ' cm';
+                    } else {
+                        document.getElementById('txtS1').innerText = 'FAULT';
+                    }
+                    
+                    if(data.sensor2Cm > 0) {
+                        document.getElementById('txtS2').innerText = parseFloat(data.sensor2Cm).toFixed(1) + ' cm';
+                    } else {
+                        document.getElementById('txtS2').innerText = 'FAULT';
+                    }
+
+                    if(data.signalStrength !== undefined) {
+                        document.getElementById('txtSignalCustomer').innerText = data.signalStrength;
+                        if(document.getElementById('adminTxtSignal')) document.getElementById('adminTxtSignal').innerText = data.signalStrength;
+                    } else {
+                        document.getElementById('txtSignalCustomer').innerText = 'N/A';
+                        if(document.getElementById('adminTxtSignal')) document.getElementById('adminTxtSignal').innerText = 'N/A';
+                    }
+
+                    if(data.estDistance !== undefined) {
+                        document.getElementById('txtDistanceCustomer').innerText = data.estDistance + ' m';
+                        if(document.getElementById('adminTxtDist')) document.getElementById('adminTxtDist').innerText = data.estDistance + ' m';
+                    } else {
+                        document.getElementById('txtDistanceCustomer').innerText = '-- m';
+                        if(document.getElementById('adminTxtDist')) document.getElementById('adminTxtDist').innerText = '-- m';
+                    }
+
+                    let currentPct = parseFloat(data.waterPercent);
+                    if (lastWaterPercent !== -1) {
+                        if (currentPct < lastWaterPercent && !currentPumpState) {
+                            let drop = lastWaterPercent - currentPct;
+                            if (drop > 0.2 && drop < 30) { 
+                                let todayDate = new Date().toDateString();
+                                database.ref(basePath + '/usageStats/today').once('value').then(s => {
+                                    let val = s.val();
+                                    let newUsage = drop;
+                                    if(val && val.date === todayDate) {
+                                        newUsage = (val.usage || 0) + drop;
+                                    }
+                                    database.ref(basePath + '/usageStats/today').set({
+                                        date: todayDate,
+                                        usage: newUsage
+                                    });
+                                });
+                            }
+                        }
+                    }
+                    lastWaterPercent = currentPct;
+
+                    if(data.log) {
+                        let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
+                        if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
+                            espLogHistory.push(cleanEspLog);
+                            if(espLogHistory.length > 5) espLogHistory.shift(); 
+                        }
+                        const logBox = document.getElementById('logConsole');
+                        logBox.innerText = espLogHistory.join('\n\n-----------------\n\n');
+                        logBox.scrollTop = logBox.scrollHeight; 
+                    }
+                    
+                    if(data.nanoLog) {
+                        let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
+                        const nanoBox = document.getElementById('nanoLogConsole');
+                        nanoBox.innerText = cleanNanoLog;
+                    }
+
+                    if(data.hardwareLog) {
+                        const hwBox = document.getElementById('hwTerminalPanel');
+                        if (hwBox) hwBox.innerText = data.hardwareLog;
+
+                        const custHwBox = document.getElementById('customerHwTerminalPanel');
+                        if (custHwBox) custHwBox.innerText = data.hardwareLog;
+                    }
+                }
+            });
+
+            database.ref(basePath + '/state').on('value', (snapshot) => {
+                const state = snapshot.val();
+                if(state) {
+                    const badge = document.getElementById('connStatus');
+                    const currentUser = firebase.auth().currentUser;
+                    const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
+                    
+                    if(state.fault) {
+                        badge.style.background = "#ff4757";
+                        badge.innerText = "LINK FAULT";
+                        
+                        if(isCustomer) {
+                            const errBanner = document.getElementById('criticalErrorBanner');
+                            errBanner.style.display = "block";
+                            errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
+                        }
+                    } else {
+                        badge.style.background = "#2ed573";
+                        badge.innerText = "ONLINE";
+                        
+                        if(isCustomer) {
+                            document.getElementById('criticalErrorBanner').style.display = "none";
+                        }
+                    }
+                    
+                    if(state.automationBypassed) {
+                        document.getElementById('txtBypass').innerText = "LOCKED";
+                    } else {
+                        document.getElementById('txtBypass').innerText = "ACTIVE";
+                    }
+
+                    currentPumpState = state.pumpActive;
+                    
+                    if (currentPumpState === lastCommandedState) {
+                        if(localPumpCommandTimeout) {
+                            clearTimeout(localPumpCommandTimeout);
+                            localPumpCommandTimeout = null;
+                        }
+                        updatePumpButtonUI();
+                    } else if (!localPumpCommandTimeout) {
+                        updatePumpButtonUI();
+                    }
+                }
+            });
+        }
+
+        async function togglePump() {
+            if(!currentDeviceId) return;
+
+            const btn = document.getElementById('pumpToggleBtn');
+            
+            // --- TOUCH LOCK ENABLED ---
+            // If the user's screen is currently in the "WAIT..." state, 
+            // the button becomes physically unresponsive to their finger.
+            // This prevents UI glitching while retaining backend atomic multi-user support.
+            if (btn.innerText.includes("WAIT")) return; 
+            // --------------------------
+
+            if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
+                await customAlert("❌ Network Offline: Cannot send command right now.");
+                return;
+            }
+
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                if(!await customConfirm("⚠️ LAYER 1: WARNING!\n\nYou are about to manually override the automated pump system. Proceed?")) return;
+                
+                const pin = await customPrompt("🔒 LAYER 2: MASTER CONTROL SECURITY\n\nEnter Admin PIN to authorize pump control:", true);
+                if (pin !== window.adminPin) {
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
+                
+                if(!await customConfirm("🛑 LAYER 3: FINAL CONFIRMATION\n\nAre you absolutely sure you want to execute this hardware command?")) return;
+            }
+            
+            let desiredState;
+            if (btn.innerText.includes("TURN\nON")) {
+                desiredState = true;
+            } else if (btn.innerText.includes("TURN\nOFF")) {
+                desiredState = false;
+            } else {
+                return; 
+            }
+
+            // INSTANT UI TOUCH BARRIER
+            btn.innerText = "WAIT...";
+            btn.style.pointerEvents = "none";
+            btn.style.cursor = "not-allowed";
+            btn.style.opacity = "0.6";
+            
+            const newTrigger = Date.now(); 
+
+            database.ref('/Devices/' + currentDeviceId + '/control').update({
+                forceState: desiredState,
+                triggerId: newTrigger
+            });
+            
+            if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
+            localPumpCommandTimeout = setTimeout(async () => {
+                if (!navigator.onLine) return;
+                updatePumpButtonUI();
+                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please try again.");
+            }, 7000);
+        }
+
+        async function triggerOTA() {
+            if(!currentDeviceId) {
+                await customAlert("You must connect to a device first!");
+                return;
+            }
+            
+            const fileUrl = document.getElementById('otaUrlInput').value.trim();
+            
+            if(!fileUrl) {
+                await customAlert("Please paste the .bin download link first!");
+                return;
+            }
+            
+            if(await customConfirm("WARNING: Are you absolutely sure you want to push a firmware update to " + currentDeviceId + "?")) {
+                pendingOtaDevice = currentDeviceId; 
+                database.ref('/Devices/' + currentDeviceId + '/control/otaUrl').set(fileUrl);
+                database.ref('/Devices/' + currentDeviceId + '/control/otaTrigger').set(true);
+                await customAlert("OTA Upload Started! Keep this page open.");
+            }
+        }
+    </script>
+</body>
+</html>
