@@ -2622,8 +2622,13 @@
             const desiredState = !currentPumpState;
             const newTrigger = Math.floor(Math.random() * 1000000) + 1; 
             
-            database.ref('/Devices/' + currentDeviceId + '/control/forceState').set(desiredState);
-            database.ref('/Devices/' + currentDeviceId + '/control/triggerId').set(newTrigger);
+            // --- NEW FIX: ATOMIC DATABASE UPDATE ---
+            // Bundles both commands into one unbreakable package so it never drops
+            database.ref('/Devices/' + currentDeviceId + '/control').update({
+                forceState: desiredState,
+                triggerId: newTrigger
+            });
+            // ---------------------------------------
             
             const btn = document.getElementById('pumpToggleBtn');
             btn.innerText = "WAIT...";
@@ -2639,8 +2644,13 @@
                 }
 
                 const revertTrigger = Math.floor(Math.random() * 1000000) + 1; 
-                database.ref('/Devices/' + currentDeviceId + '/control/forceState').set(currentPumpState);
-                database.ref('/Devices/' + currentDeviceId + '/control/triggerId').set(revertTrigger);
+                
+                // --- NEW FIX: ATOMIC DATABASE UPDATE (REVERT) ---
+                database.ref('/Devices/' + currentDeviceId + '/control').update({
+                    forceState: currentPumpState,
+                    triggerId: revertTrigger
+                });
+                // ------------------------------------------------
                 
                 btn.style.opacity = "1";
                 if(currentPumpState) {
