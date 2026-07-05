@@ -1214,7 +1214,7 @@
                         <h3 style="color: #ff6b81; margin:0; text-align:left;">OTA Firmware Update</h3>
                         <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none;" onclick="toggleLinkCustomerBox()" title="Advanced Tools">⋮</span>
                     </div>
-                    <input type="text" id="otaUrlInput" class="input-box" placeholder="https://raw.githubusercontent.com/.../WaterUpdate.ino.bin" style="margin-top:15px;">
+                    <input type="text" id="otaUrlInput" class="input-box" value="https://raw.githubusercontent.com/homeiot333-bit/OTA-UPDATE/main/sketch_jul5a.ino.bin" placeholder="Enter OTA .bin URL" style="margin-top:15px;">
                     <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
 
                     <div id="linkCustomerBox" style="display:none; width:100%; text-align: left;">
@@ -1326,11 +1326,9 @@
         let localDailyUsage = 0;
         let hasShownPopup = false;
         
-        // --- NEW GLOBALS FOR ULTRA-LEVEL SYNC ---
         let localPumpCommandTimeout = null; 
         let lastSeenControlTrigger = null;
         let lastCommandedState = false; 
-        // ----------------------------------------
 
         window.manualRadioTech = null;
         window.manualRadioChan = null;
@@ -2019,7 +2017,6 @@
             }
         }
 
-        // --- HELPER: RESTORES BUTTON TO TRUE HARDWARE STATE ---
         function updatePumpButtonUI() {
             const btn = document.getElementById('pumpToggleBtn');
             const tankModel = document.getElementById('waterTankModel'); 
@@ -2048,7 +2045,6 @@
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
             
-            // Clean up old wait loops
             if(localPumpCommandTimeout) {
                 clearTimeout(localPumpCommandTimeout);
                 localPumpCommandTimeout = null;
@@ -2482,10 +2478,6 @@
                 }
             }, 2000);
 
-            // --- ULTRA LEVEL FIX: GLOBAL UI SYNC ---
-            // If any user clicks the button anywhere in the world, this triggers instantly.
-            // It puts EVERY connected dashboard into the "WAIT..." state together so they
-            // don't accidentally fight each other.
             database.ref(basePath + '/control').on('value', (snapshot) => {
                 const ctrl = snapshot.val();
                 if(ctrl && ctrl.triggerId && ctrl.triggerId !== lastSeenControlTrigger) {
@@ -2500,7 +2492,6 @@
 
                         if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
                         
-                        // Silent safety net. No reverting the DB, just unlocks the UI locally if the ESP32 dies.
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
@@ -2508,7 +2499,6 @@
                     }
                 }
             });
-            // ---------------------------------------
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -2635,9 +2625,6 @@
 
                     currentPumpState = state.pumpActive;
                     
-                    // --- ULTRA LEVEL FIX: INSTANT UI RESOLUTION ---
-                    // The exact millisecond the ESP32 updates its true state, we clear the 
-                    // timeout clock and snap the button perfectly to match the hardware.
                     if (currentPumpState === lastCommandedState) {
                         if(localPumpCommandTimeout) {
                             clearTimeout(localPumpCommandTimeout);
@@ -2647,7 +2634,6 @@
                     } else if (!localPumpCommandTimeout) {
                         updatePumpButtonUI();
                     }
-                    // ----------------------------------------------
                 }
             });
         }
@@ -2655,9 +2641,6 @@
         async function togglePump() {
             if(!currentDeviceId) return;
 
-            // NO MORE ANTI-SPAM LOCK.
-            // The customer is completely free to spam the button rapidly to test the system!
-            
             if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
                 await customAlert("❌ Network Offline: Cannot send command right now.");
                 return;
@@ -2676,7 +2659,6 @@
                 if(!await customConfirm("🛑 LAYER 3: FINAL CONFIRMATION\n\nAre you absolutely sure you want to execute this hardware command?")) return;
             }
             
-            // Allow rapid spam-clicking by evaluating pure intent
             let desiredState;
             const btn = document.getElementById('pumpToggleBtn');
             
@@ -2690,21 +2672,17 @@
                 return; 
             }
 
-            // Temporarily lock in UI locally so it feels fast
             btn.innerText = "WAIT...";
             btn.className = desiredState ? "btn-round btn-on" : "btn-round btn-off";
             btn.style.opacity = "0.6";
             
             const newTrigger = Date.now(); 
 
-            // THE ATOMIC UPDATE
-            // Bundles both commands into a single, unbreakable upload package.
             database.ref('/Devices/' + currentDeviceId + '/control').update({
                 forceState: desiredState,
                 triggerId: newTrigger
             });
             
-            // Re-trigger the silent safety loop for the active clicker
             if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
             localPumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine) return;
