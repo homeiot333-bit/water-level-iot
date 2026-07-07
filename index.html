@@ -1330,6 +1330,9 @@
         let lastSeenControlTrigger = null;
         let lastCommandedState = false; 
 
+        // --- NEW GLOBAL FOR OTA UI TRACKING ---
+        let isOtaMode = false;
+
         window.manualRadioTech = null;
         window.manualRadioChan = null;
         window.manualRadioRate = null;
@@ -2017,6 +2020,7 @@
             }
         }
 
+        // --- HELPER: RESTORES BUTTON TO TRUE HARDWARE STATE ---
         function updatePumpButtonUI() {
             const btn = document.getElementById('pumpToggleBtn');
             const tankModel = document.getElementById('waterTankModel'); 
@@ -2050,6 +2054,7 @@
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
             
+            // Clean up old wait loops
             if(localPumpCommandTimeout) {
                 clearTimeout(localPumpCommandTimeout);
                 localPumpCommandTimeout = null;
@@ -2062,6 +2067,7 @@
             espLogHistory = [];
             lastWaterPercent = -1;
             hasShownPopup = false;
+            isOtaMode = false; // Reset OTA flag on connection
 
             window.manualRadioTech = null;
             window.manualRadioChan = null;
@@ -2462,23 +2468,49 @@
                 updateRadioUI();
             });
 
+            // --- FIX: OTA STATE LISTENER ---
+            database.ref(basePath + '/state/otaMode').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    isOtaMode = snapshot.val();
+                } else {
+                    isOtaMode = false;
+                }
+            });
+            // -------------------------------
+
             heartbeatTimer = setInterval(() => {
                 if(Date.now() - lastHeartbeatTime > 35000) { 
                     const user = firebase.auth().currentUser;
                     if(user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com")) {
-                        document.getElementById('offlineOverlay').style.display = 'none';
-                        const badge = document.getElementById('connStatus');
-                        badge.style.background = "#ff4757";
-                        badge.innerText = "OFFLINE";
-                        document.getElementById('pumpToggleBtn').className = "btn-round btn-off";
-                        document.getElementById('pumpToggleBtn').innerText = "OFFLINE";
-                        document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
-                        document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
                         
-                        const tankModel = document.getElementById('waterTankModel'); 
-                        if(tankModel) tankModel.classList.remove('pump-active'); 
+                        // --- FIX: SMART OTA OFFLINE BYPASS ---
+                        if (isOtaMode) {
+                            document.getElementById('offlineOverlay').style.display = 'none';
+                            const badge = document.getElementById('connStatus');
+                            badge.style.background = "#00d2ff";
+                            badge.innerText = "OTA DOWNLOADING...";
+                            document.getElementById('pumpToggleBtn').className = "btn-round btn-off";
+                            document.getElementById('pumpToggleBtn').innerText = "UPDATING";
+                            document.getElementById('pumpToggleBtn').style.opacity = "0.5";
+                            document.getElementById('pumpToggleBtn').style.pointerEvents = "none";
+                            document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
+                        } else {
+                            document.getElementById('offlineOverlay').style.display = 'none';
+                            const badge = document.getElementById('connStatus');
+                            badge.style.background = "#ff4757";
+                            badge.innerText = "OFFLINE";
+                            document.getElementById('pumpToggleBtn').className = "btn-round btn-off";
+                            document.getElementById('pumpToggleBtn').innerText = "OFFLINE";
+                            document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
+                            document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
+                            
+                            const tankModel = document.getElementById('waterTankModel'); 
+                            if(tankModel) tankModel.classList.remove('pump-active'); 
+                        }
                     } else {
-                        document.getElementById('offlineOverlay').style.display = 'flex';
+                        if (!isOtaMode) {
+                            document.getElementById('offlineOverlay').style.display = 'flex';
+                        }
                     }
                 }
             }, 2000);
@@ -2492,7 +2524,7 @@
                     if (currentPumpState !== ctrl.forceState) {
                         const btn = document.getElementById('pumpToggleBtn');
                         btn.innerText = "WAIT...";
-                        // --- UI LOCK APPLIED GLOBALLY ---
+                        // --- TOUCH LOCK ENABLED GLOBALLY ---
                         btn.style.pointerEvents = "none";
                         btn.style.cursor = "not-allowed";
                         btn.style.opacity = "0.6";
@@ -2616,8 +2648,13 @@
                             errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
                         }
                     } else {
-                        badge.style.background = "#2ed573";
-                        badge.innerText = "ONLINE";
+                        if (isOtaMode) {
+                            badge.style.background = "#00d2ff";
+                            badge.innerText = "OTA DOWNLOADING...";
+                        } else {
+                            badge.style.background = "#2ed573";
+                            badge.innerText = "ONLINE";
+                        }
                         
                         if(isCustomer) {
                             document.getElementById('criticalErrorBanner').style.display = "none";
@@ -2650,12 +2687,7 @@
 
             const btn = document.getElementById('pumpToggleBtn');
             
-            // --- TOUCH LOCK ENABLED ---
-            // If the user's screen is currently in the "WAIT..." state, 
-            // the button becomes physically unresponsive to their finger.
-            // This prevents UI glitching while retaining backend atomic multi-user support.
             if (btn.innerText.includes("WAIT")) return; 
-            // --------------------------
 
             if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
                 await customAlert("❌ Network Offline: Cannot send command right now.");
