@@ -1330,6 +1330,7 @@
         let lastSeenControlTrigger = null;
         let lastCommandedState = false; 
 
+        // --- NEW GLOBAL FOR UI FIX ---
         let isOtaMode = false;
 
         window.manualRadioTech = null;
@@ -1823,9 +1824,15 @@
                     if (status.includes("OTA SUCCESS")) {
                         await customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
                         pendingOtaDevice = null; 
+                        isOtaMode = false;
+                        document.getElementById('offlineOverlay').style.display = 'none';
+                        document.getElementById('connStatus').innerText = "ONLINE";
                     } else if (status.includes("ERROR") || status.includes("Failed")) {
                         await customAlert("❌❌ OTA UPLOAD FAILED! ❌❌\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
                         pendingOtaDevice = null; 
+                        isOtaMode = false;
+                        document.getElementById('offlineOverlay').style.display = 'none';
+                        document.getElementById('connStatus').innerText = "ONLINE";
                     }
                 }
                 renderAdminInbox();
@@ -2063,7 +2070,7 @@
             espLogHistory = [];
             lastWaterPercent = -1;
             hasShownPopup = false;
-            isOtaMode = false;
+            isOtaMode = false; 
 
             window.manualRadioTech = null;
             window.manualRadioChan = null;
@@ -2467,29 +2474,35 @@
                 updateRadioUI();
             });
 
-            // --- FIX: DASHBOARD HEARTBEAT & OTA SYNC ---
+            // --- THE 35-SECOND DASHBOARD FIX ---
             heartbeatTimer = setInterval(() => {
                 if(Date.now() - lastHeartbeatTime > 35000) { 
                     const user = firebase.auth().currentUser;
                     if(user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com")) {
                         
-                        if (isOtaMode) {
+                        if (isOtaMode || pendingOtaDevice === currentDeviceId) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             const badge = document.getElementById('connStatus');
                             badge.style.background = "#00d2ff";
                             badge.innerText = "OTA DOWNLOADING...";
-                            document.getElementById('pumpToggleBtn').className = "btn-round btn-off";
-                            document.getElementById('pumpToggleBtn').innerText = "UPDATING";
-                            document.getElementById('pumpToggleBtn').style.opacity = "0.5";
-                            document.getElementById('pumpToggleBtn').style.pointerEvents = "none";
+                            
+                            const btn = document.getElementById('pumpToggleBtn');
+                            btn.className = "btn-round btn-off";
+                            btn.innerText = "UPDATING";
+                            btn.style.opacity = "0.5";
+                            btn.style.pointerEvents = "none";
+                            
                             document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
                         } else {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             const badge = document.getElementById('connStatus');
                             badge.style.background = "#ff4757";
                             badge.innerText = "OFFLINE";
-                            document.getElementById('pumpToggleBtn').className = "btn-round btn-off";
-                            document.getElementById('pumpToggleBtn').innerText = "OFFLINE";
+                            
+                            const btn = document.getElementById('pumpToggleBtn');
+                            btn.className = "btn-round btn-off";
+                            btn.innerText = "OFFLINE";
+                            
                             document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
                             document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
                             
@@ -2497,10 +2510,8 @@
                             if(tankModel) tankModel.classList.remove('pump-active'); 
                         }
                     } else {
-                        if (!isOtaMode) {
+                        if (!isOtaMode && pendingOtaDevice !== currentDeviceId) {
                             document.getElementById('offlineOverlay').style.display = 'flex';
-                        } else {
-                            document.getElementById('offlineOverlay').style.display = 'none';
                         }
                     }
                 }
@@ -2595,18 +2606,20 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
-                        // --- FIX: INSTANT OTA LOG PARSER ---
+                        
+                        // --- THE LIVE TERMINAL INTERCEPTOR ---
                         if(data.log.includes("[OTA] Contacting GitHub...")) {
                             isOtaMode = true;
                         }
+                        
                         if(data.log.includes("[OTA SUCCESS]")) {
-                            if (pendingOtaDevice === currentDeviceId) {
+                            if (pendingOtaDevice === currentDeviceId || isOtaMode) {
                                 customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + currentDeviceId + "\n\nNew firmware downloaded and installed. Rebooting!");
                                 pendingOtaDevice = null;
                                 isOtaMode = false;
                             }
                         }
-                        // -----------------------------------
+                        // -------------------------------------
 
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
@@ -2651,7 +2664,7 @@
                             errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
                         }
                     } else {
-                        if (isOtaMode) {
+                        if (isOtaMode || pendingOtaDevice === currentDeviceId) {
                             badge.style.background = "#00d2ff";
                             badge.innerText = "OTA DOWNLOADING...";
                         } else {
@@ -2754,6 +2767,9 @@
             
             if(await customConfirm("WARNING: Are you absolutely sure you want to push a firmware update to " + currentDeviceId + "?")) {
                 pendingOtaDevice = currentDeviceId; 
+                // --- FIX: INSTANTLY LOCK DASHBOARD INTO OTA MODE ---
+                isOtaMode = true; 
+                
                 database.ref('/Devices/' + currentDeviceId + '/control/otaUrl').set(fileUrl);
                 database.ref('/Devices/' + currentDeviceId + '/control/otaTrigger').set(true);
                 await customAlert("OTA Upload Started! Keep this page open.");
