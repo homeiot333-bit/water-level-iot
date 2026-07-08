@@ -8,7 +8,7 @@
 #include <Preferences.h> 
 #include <WiFiClientSecure.h> 
 #include <HTTPClient.h>       
-#include <Update.h>           
+#include <HTTPUpdate.h>       
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
 
@@ -77,8 +77,11 @@ bool pumpActive = false;
 bool commsFaultActive = false;
 bool automationBypassed = false; 
 int consecutiveFullReadings = 0; 
-bool otaInProgress = false; 
+
+volatile bool otaInProgress = false; 
+
 bool filterInitialized = false; 
+int pendingOtaNotification = 0; 
 
 uint32_t expectedPacketId = 0;
 uint32_t packetsReceived = 0;
@@ -96,7 +99,6 @@ uint32_t heartbeatCounter = 0;
 int lastTriggerId = -1; 
 bool initialCloudSyncComplete = false; 
 
-// Multi-Core Telemetry Sync
 volatile unsigned long lastTelemetrySync = 0; 
 
 float currentWaterPercent = 0.0;
@@ -345,6 +347,26 @@ void firebaseSyncTask(void *pvParameters) {
   int slowPollState = 0;
   bool configNeedsReboot = false;
 
+  if (pendingOtaNotification > 0) {
+      unsigned long waitStart = millis();
+      while (!Firebase.ready() && millis() - waitStart < 8000) { vTaskDelay(250 / portTICK_PERIOD_MS); }
+      
+      if (pendingOtaNotification == 1) {
+          FirebaseJson successInbox; successInbox.set("status", "⭐ OTA SUCCESS"); successInbox.set("message", "New firmware downloaded and installed. Rebooting!");
+          Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &successInbox);
+          Firebase.RTDB.setString(&fbdo, basePath + "/telemetry/log", "[OTA SUCCESS] New firmware installed.");
+          logEvent("[SYSTEM] OTA Update was successfully applied on previous boot.");
+      } else if (pendingOtaNotification == 2) {
+          FirebaseJson errInbox; errInbox.set("status", "❌ OTA ERROR"); errInbox.set("message", "Update Failed. Link broken or Memory Full.");
+          Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
+          Firebase.RTDB.setString(&fbdo, basePath + "/telemetry/log", "[OTA ERROR] Failed to download update.");
+          logEvent("[SYSTEM] OTA Update failed in the previous boot.");
+      }
+      
+      Firebase.RTDB.setBool(&fbdo, basePath + "/state/otaMode", false);
+      pendingOtaNotification = 0; 
+  }
+
   while(1) {
     if (WiFi.status() != WL_CONNECTED && apCount > 0) {
         logEvent("[WIFI] Connection lost! Scanning 4 Equal Mesh Array Nodes...");
@@ -385,9 +407,6 @@ void firebaseSyncTask(void *pvParameters) {
     if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
       unsigned long currentMillis = millis();
 
-      // =========================================================================
-      // FAST LANE 1: PUMP TRIGGER (Polls every 800ms for instant feel)
-      // =========================================================================
       if (currentMillis - lastTriggerPoll >= 800) {
           lastTriggerPoll = currentMillis;
           
@@ -408,9 +427,6 @@ void firebaseSyncTask(void *pvParameters) {
           }
       }
 
-      // =========================================================================
-      // FAST LANE 2: TELEMETRY UPLOAD (Every 2000ms OR Instantly on Button Press)
-      // =========================================================================
       if (currentMillis - lastTelemetrySync >= 2000) {
           lastTelemetrySync = currentMillis;
           heartbeatCounter++;
@@ -467,25 +483,8 @@ void firebaseSyncTask(void *pvParameters) {
           json.set("state/pumpActive", pumpActive);
           json.set("state/automationBypassed", automationBypassed);
           Firebase.RTDB.updateNode(&fbdo, basePath, &json);
-
-          String inboxPath = "/AdminInbox/" + String(custom_dev_id);
-          FirebaseJson inboxJson;
-          if (commsFaultActive || safe_lastSystemEvent.indexOf("ERROR") != -1) {
-              inboxJson.set("status", "⚠️ FAULT DETECTED");
-              inboxJson.set("message", safe_lastSystemEvent);
-          } else if (safe_lastSystemEvent.indexOf("[OTA]") != -1) {
-              inboxJson.set("status", "🔄 OTA ACTIVITY");
-              inboxJson.set("message", safe_lastSystemEvent);
-          } else {
-              inboxJson.set("status", "✅ ONLINE");
-              inboxJson.set("message", "System is running normally.");
-          }
-          Firebase.RTDB.updateNode(&fbdo, inboxPath, &inboxJson);
       }
 
-      // =========================================================================
-      // SLOW LANE: BACKGROUND CONFIG STATE MACHINE (Checks 1 item every 1500ms)
-      // =========================================================================
       if (currentMillis - lastSlowPoll >= 1500) {
           lastSlowPoll = currentMillis;
           Preferences pEdit;
@@ -617,7 +616,6 @@ void firebaseSyncTask(void *pvParameters) {
                   break;
 
               case 5:
-                  // --- SURGICAL BUG FIX: PREVENT RAM CRASH & HANDLE HIDDEN FILE SIZE ---
                   if (Firebase.RTDB.getBool(&fbdo, basePath + "/control/otaTrigger")) {
                       if (fbdo.boolData() == true) {
                           
@@ -628,110 +626,82 @@ void firebaseSyncTask(void *pvParameters) {
                           }
                           
                           if (downloadUrl.length() > 10 && downloadUrl.indexOf("http") != -1) { 
+                              
                               otaInProgress = true; 
                               digitalWrite(relay_pump, RELAY_OFF); 
-                              digitalWrite(led_relay_status, HIGH); 
+                              digitalWrite(led_relay_status, LOW); 
+                              digitalWrite(led_signal_status, LOW);
                               pumpActive = false;
                               
-                              logEvent("[OTA] Freeing memory for GitHub connection...");
+                              // --- CRITICAL FIX: PUSH OTA MODE TO DASHBOARD AND WAIT FOR TX ---
+                              Firebase.RTDB.setBool(&fbdo, basePath + "/state/otaMode", true);
                               Firebase.RTDB.setString(&fbdo, basePath + "/telemetry/log", "[OTA] Contacting GitHub...");
-                              delay(1000); 
+                              delay(2000); // 2 full seconds to guarantee packet transmission!
                               
-                              // Delete triggers so we don't boot loop
+                              logEvent("[OTA] Freeing memory for GitHub connection...");
+                              
                               Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/otaTrigger"); 
                               Firebase.RTDB.deleteNode(&fbdo, basePath + "/control/otaUrl");
                               
-                              // VITAL: Completely shut down Firebase's massive memory buffers
-                              // before trying to open a new SSL connection to GitHub.
+                              downloadUrl.replace("github.com", "raw.githubusercontent.com");
+                              downloadUrl.replace("/blob/", "/");
+                              downloadUrl.replace("/raw/refs/heads/", "/");
+                              downloadUrl.replace("/refs/heads/", "/");
+                              downloadUrl.replace("/raw/", "/");
+                              downloadUrl.replace("/edit/", "/");
+                              downloadUrl.replace("/tree/", "/");
+                              
+                              fbdo.stopWiFiClient(); 
                               fbdo.clear(); 
+                              delay(500);
                               
                               WiFiClientSecure client; 
                               client.setInsecure(); 
-                              client.setTimeout(20000); 
-                              HTTPClient http; 
-                              http.setTimeout(20000); 
-                              http.begin(client, downloadUrl);
-                              http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); 
-                              http.setUserAgent("ESP32-WaterSystem-OTA"); 
                               
-                              int httpCode = http.GET();
+                              httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+                              httpUpdate.rebootOnUpdate(false); 
                               
-                              if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY || httpCode == 302 || httpCode == 301) {
-                                  int contentLength = http.getSize();
+                              // --- CRITICAL FIX: DATA-BASED LED TOGGLING ---
+                              // Defeats Flash memory CPU freezing for beautiful bright pulses
+                              httpUpdate.onProgress([](int current, int total) {
+                                  int percent = (total > 0) ? (current * 100 / total) : (current / 20000);
+                                  bool ledState = (percent % 2) == 0; // Toggle state every 1% of download
                                   
-                                  // VITAL: Handle Chunked Data. If GitHub hides the file size (-1), 
-                                  // we must tell the ESP32 the size is UPDATE_SIZE_UNKNOWN, otherwise it fails.
-                                  bool canBegin = Update.begin(contentLength > 0 ? contentLength : UPDATE_SIZE_UNKNOWN);
+                                  digitalWrite(led_0_24, ledState ? HIGH : LOW);
+                                  digitalWrite(led_25_49, ledState ? HIGH : LOW);
+                                  digitalWrite(led_50_74, ledState ? HIGH : LOW);
+                                  digitalWrite(led_75_100, ledState ? HIGH : LOW);
                                   
-                                  if (canBegin) {
-                                      Update.onProgress([](size_t progress, size_t total) {
-                                          static unsigned long lastBlinkTime = 0;
-                                          static bool ledState = false;
-                                          if (millis() - lastBlinkTime > 200) { 
-                                              lastBlinkTime = millis();
-                                              ledState = !ledState;
-                                              digitalWrite(led_0_24, ledState ? HIGH : LOW);
-                                              digitalWrite(led_25_49, ledState ? HIGH : LOW);
-                                              digitalWrite(led_50_74, ledState ? HIGH : LOW);
-                                              digitalWrite(led_75_100, ledState ? HIGH : LOW);
-                                              digitalWrite(led_relay_status, ledState ? HIGH : LOW);
-                                              digitalWrite(led_signal_status, ledState ? HIGH : LOW);
-                                          }
-                                      });
+                                  digitalWrite(led_relay_status, LOW);
+                                  digitalWrite(led_signal_status, LOW);
+                              });
 
-                                      WiFiClient& tcp = http.getStream();
-                                      size_t written = Update.writeStream(tcp);
-                                      
-                                      if (written == contentLength || (contentLength == -1 && written > 0)) {
-                                          if (Update.end()) {
-                                              // OTA IS DONE. Shut down HTTP to free RAM back up.
-                                              http.end(); 
-                                              
-                                              // Now wake Firebase back up to send the success message!
-                                              Firebase.begin(&config, &auth);
-                                              unsigned long waitStart = millis();
-                                              while (!Firebase.ready() && millis() - waitStart < 8000) { delay(250); }
-                                              
-                                              FirebaseJson successInbox; successInbox.set("status", "⭐ OTA SUCCESS"); successInbox.set("message", "New firmware downloaded and installed. Rebooting!");
-                                              Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &successInbox);
-                                              
-                                              digitalWrite(led_0_24, HIGH);
-                                              digitalWrite(led_25_49, HIGH);
-                                              digitalWrite(led_50_74, HIGH);
-                                              digitalWrite(led_75_100, HIGH);
-                                              digitalWrite(led_relay_status, HIGH);
-                                              digitalWrite(led_signal_status, HIGH);
-                                              delay(1000); 
-                                              
-                                              ESP.restart();
-                                          }
-                                      } else {
-                                          Update.end(); // abort
-                                          http.end();
-                                          Firebase.begin(&config, &auth);
-                                          unsigned long waitStart = millis();
-                                          while (!Firebase.ready() && millis() - waitStart < 8000) { delay(250); }
-                                          FirebaseJson errInbox; errInbox.set("status", "❌ OTA ERROR"); errInbox.set("message", "Download interrupted or file corrupted.");
-                                          Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
-                                          delay(3000); ESP.restart(); 
-                                      }
-                                  } else {
-                                      http.end();
-                                      Firebase.begin(&config, &auth);
-                                      unsigned long waitStart = millis();
-                                      while (!Firebase.ready() && millis() - waitStart < 8000) { delay(250); }
-                                      FirebaseJson errInbox; errInbox.set("status", "❌ OTA ERROR"); errInbox.set("message", "Not enough free memory on ESP32 to install.");
-                                      Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
-                                      delay(3000); ESP.restart();
+                              t_httpUpdate_return ret = httpUpdate.update(client, downloadUrl);
+
+                              digitalWrite(led_0_24, LOW);
+                              digitalWrite(led_25_49, LOW);
+                              digitalWrite(led_50_74, LOW);
+                              digitalWrite(led_75_100, LOW);
+
+                              Preferences pOtaMem;
+                              pOtaMem.begin("water-cfg", false);
+                              
+                              if (ret == HTTP_UPDATE_OK) {
+                                  pOtaMem.putInt("ota_flag", 1); 
+                                  pOtaMem.end();
+                                  
+                                  for (int i = 0; i < 6; i++) {
+                                      digitalWrite(buzzer_pin, HIGH);
+                                      delay(250);
+                                      digitalWrite(buzzer_pin, LOW);
+                                      delay(250);
                                   }
+                                  ESP.restart();
                               } else {
-                                  http.end();
-                                  Firebase.begin(&config, &auth);
-                                  unsigned long waitStart = millis();
-                                  while (!Firebase.ready() && millis() - waitStart < 8000) { delay(250); }
-                                  FirebaseJson errInbox; errInbox.set("status", "❌ OTA ERROR"); errInbox.set("message", "Bad Link! GitHub rejected it. HTTP Code: " + String(httpCode));
-                                  Firebase.RTDB.updateNode(&fbdo, "/AdminInbox/" + String(custom_dev_id), &errInbox);
-                                  delay(3000); ESP.restart(); 
+                                  pOtaMem.putInt("ota_flag", 2); 
+                                  pOtaMem.end();
+                                  delay(3000); 
+                                  ESP.restart(); 
                               }
                           }
                       }
@@ -807,8 +777,12 @@ void setup() {
   if (global_cust_name.length() == 0) global_cust_name = "Unknown House";
 
   bool forcePortal = prefs.getBool("force_portal", false);
-  
   String portal_pass = prefs.getString("portal_pass", auto_gen_pass);
+
+  pendingOtaNotification = prefs.getInt("ota_flag", 0);
+  if (pendingOtaNotification > 0) {
+      prefs.putInt("ota_flag", 0); 
+  }
 
   dtostrf(bucket_empty_distance, 4, 1, emptyStr);
   dtostrf(bucket_full_distance, 4, 1, fullStr);
@@ -1179,10 +1153,13 @@ void loop() {
             consecutiveFullReadings = 0; 
           }
 
-          digitalWrite(led_0_24,   (currentWaterPercent >= 0.0  && currentWaterPercent <= 24.9) ? HIGH : LOW);
-          digitalWrite(led_25_49,  (currentWaterPercent >= 25.0 && currentWaterPercent <= 49.9) ? HIGH : LOW);
-          digitalWrite(led_50_74,  (currentWaterPercent >= 50.0 && currentWaterPercent <= 74.9) ? HIGH : LOW);
-          digitalWrite(led_75_100, (currentWaterPercent >= 75.0 && currentWaterPercent <= 100.0) ? HIGH : LOW);
+          // --- FIX: CORE OVERRIDE PROTECTION ---
+          if (!otaInProgress) {
+              digitalWrite(led_0_24,   (currentWaterPercent >= 0.0  && currentWaterPercent <= 24.9) ? HIGH : LOW);
+              digitalWrite(led_25_49,  (currentWaterPercent >= 25.0 && currentWaterPercent <= 49.9) ? HIGH : LOW);
+              digitalWrite(led_50_74,  (currentWaterPercent >= 50.0 && currentWaterPercent <= 74.9) ? HIGH : LOW);
+              digitalWrite(led_75_100, (currentWaterPercent >= 75.0 && currentWaterPercent <= 100.0) ? HIGH : LOW);
+          }
         }
       }
     }
