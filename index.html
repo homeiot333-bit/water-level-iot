@@ -972,7 +972,8 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <!-- HIDDEN FROM CUSTOMER -->
+                <div class="card" id="adminLinkedDevicesCard" style="display:none;">
                     <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
                     <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
@@ -1227,10 +1228,6 @@
                             <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
-                        <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
-                            <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
-                        </div>
                     </div>
 
                     <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
@@ -1660,6 +1657,8 @@
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
                     
+                    document.getElementById('adminLinkedDevicesCard').style.display = 'block'; // SHOW TO ADMIN
+                    
                     database.ref('/AdminConfig/MasterPIN').on('value', (s) => {
                         if (s.exists()) window.adminPin = s.val();
                     });
@@ -1675,6 +1674,8 @@
                     
                     document.getElementById('adminCommandCenter').style.display = 'none';
                     document.getElementById('mainDashboardView').style.display = 'flex';
+                    
+                    document.getElementById('adminLinkedDevicesCard').style.display = 'none'; // HIDE FROM CUSTOMER
                     
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
@@ -1711,6 +1712,7 @@
                     database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
+                    database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -1777,7 +1779,7 @@
                     finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
                 
-                // Only inject into the Admin list to prevent permissions errors
+                // --- FIX: ONLY INJECT INTO ADMIN VIEW ---
                 const adminList = document.querySelector('#adminCommandCenter .linked-devices-list');
                 if(adminList) adminList.innerHTML = finalHtml;
             });
@@ -2088,7 +2090,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                 database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
-                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off(); // Clean up new listener
+                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -2401,7 +2403,6 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            // --- NEW FIX: SHOW CUSTOMER LOGIN DEVICES ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
                 const currentUser = firebase.auth().currentUser;
                 const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
@@ -2633,6 +2634,7 @@
                         
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
+                            localPumpCommandTimeout = null;
                             updatePumpButtonUI();
                         }, 7000);
                     }
@@ -2694,8 +2696,6 @@
                         if (currentPct < lastWaterPercent && !currentPumpState) {
                             let drop = lastWaterPercent - currentPct;
                             
-                            // --- FIX: NOISE RESISTANT MATH ---
-                            // 1.5% threshold blocks false "ripples" from logging as fake water usage
                             if (drop > 1.5 && drop < 30) { 
                                 let todayDate = new Date().toDateString();
                                 database.ref(basePath + '/usageStats/today').once('value').then(s => {
@@ -2847,6 +2847,10 @@
             
             const newTrigger = Date.now(); 
 
+            // IMMEDIATE LOCAL STATE UPDATE
+            lastCommandedState = desiredState;
+            lastSeenControlTrigger = newTrigger;
+
             database.ref('/Devices/' + currentDeviceId + '/control').update({
                 forceState: desiredState,
                 triggerId: newTrigger
@@ -2855,8 +2859,9 @@
             if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
             localPumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine) return;
+                localPumpCommandTimeout = null;
                 updatePumpButtonUI();
-                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please try again.");
+                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please check device power or connection.");
             }, 7000);
         }
 
