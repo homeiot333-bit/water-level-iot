@@ -711,7 +711,6 @@
             100% { transform: translate(-100%, 0); }
         }
 
-        /* FIX 2: POPUP NOW DROPS DOWN FROM THE TOP */
         .usage-popup {
             position: fixed;
             top: -100px;
@@ -973,7 +972,6 @@
                     </div>
                 </div>
 
-                <!-- Customer Account Devices View -->
                 <div class="card">
                     <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
                     <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
@@ -1136,6 +1134,13 @@
                                 <span>Network Config: <strong id="adminTxtTopology" style="color:#feca57;">--</strong></span>
                                 <span>Deployed: <strong id="adminTxtDeployDate" style="color:#ccc;">--</strong></span>
                             </div>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Rooftop: <strong id="adminTxtRooftopBoard" style="color:#00d2ff;">--</strong></span>
+                                <span>Middleman: <strong id="adminTxtMiddlemanBoard" style="color:#00d2ff;">--</strong></span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Last OTA Update: <strong id="adminTxtLastOta" style="color:#feca57;">--</strong></span>
+                            </div>
                         </div>
 
                         <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
@@ -1222,6 +1227,10 @@
                             <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
+                        <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
+                            <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                        </div>
                     </div>
 
                     <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
@@ -1261,6 +1270,10 @@
                         
                         <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">10. Device Deployed Date:</label>
                         <input type="date" id="assignDeployDate" class="input-box">
+
+                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">11. Hardware Infrastructure:</label>
+                        <input type="text" id="assignRooftopBoard" class="input-box" placeholder="Rooftop Board (e.g., Arduino Nano)">
+                        <input type="text" id="assignMiddlemanBoard" class="input-box" placeholder="Middleman Board (e.g., ESP32)">
 
                         <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
                     </div>
@@ -1530,6 +1543,8 @@
             const radioTech = document.getElementById('editRadioTech').value.trim();
             const radioChannel = document.getElementById('editRadioChannel').value.trim();
             const radioRate = document.getElementById('editRadioRate').value.trim();
+            const rooftopBoard = document.getElementById('editRooftopBoard').value.trim();
+            const middlemanBoard = document.getElementById('editMiddlemanBoard').value.trim();
 
             const pin = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter Admin PIN to modify device configuration:", true);
             if (pin !== window.adminPin) {
@@ -1544,7 +1559,9 @@
                 usesRepeater: usesRepeater,
                 radioTech: radioTech,
                 radioChannel: radioChannel,
-                radioRate: radioRate
+                radioRate: radioRate,
+                rooftopBoard: rooftopBoard,
+                middlemanBoard: middlemanBoard
             };
 
             database.ref('Devices/' + currentDeviceId + '/customerInfo').update(updates).then(async () => {
@@ -1643,9 +1660,6 @@
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
                     
-                    // Show global device list for Admin
-                    document.getElementById('adminLinkedDevicesCard').style.display = 'block';
-                    
                     database.ref('/AdminConfig/MasterPIN').on('value', (s) => {
                         if (s.exists()) window.adminPin = s.val();
                     });
@@ -1661,9 +1675,6 @@
                     
                     document.getElementById('adminCommandCenter').style.display = 'none';
                     document.getElementById('mainDashboardView').style.display = 'flex';
-                    
-                    // Hide global list for standard customers
-                    document.getElementById('adminLinkedDevicesCard').style.display = 'none'; 
                     
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
@@ -1700,7 +1711,6 @@
                     database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
-                    database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -1767,7 +1777,7 @@
                     finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
                 
-                // Inject safely ONLY into the Admin panel
+                // Only inject into the Admin list to prevent permissions errors
                 const adminList = document.querySelector('#adminCommandCenter .linked-devices-list');
                 if(adminList) adminList.innerHTML = finalHtml;
             });
@@ -2078,7 +2088,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                 database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
-                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
+                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off(); // Clean up new listener
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -2135,6 +2145,7 @@
             document.getElementById('adminTxtDeployDate').innerText = '--';
             document.getElementById('adminTxtRooftopBoard').innerText = '--';
             document.getElementById('adminTxtMiddlemanBoard').innerText = '--';
+            document.getElementById('adminTxtLastOta').innerText = '--';
             
             if(document.getElementById('adminLiveRawDist')) document.getElementById('adminLiveRawDist').innerText = '-- cm';
             
@@ -2344,6 +2355,9 @@
             const usesRepeater = document.getElementById('assignUsesRepeater').value;
             const deployDate = document.getElementById('assignDeployDate').value;
             
+            const rooftopBoard = document.getElementById('assignRooftopBoard').value.trim();
+            const middlemanBoard = document.getElementById('assignMiddlemanBoard').value.trim();
+            
             if(uid && devId) {
                 try {
                     await database.ref('Users/' + uid + '/deviceId').set(devId);
@@ -2356,6 +2370,8 @@
                     if(rRate) updates.radioRate = rRate;
                     if(usesRepeater) updates.usesRepeater = usesRepeater;
                     if(deployDate) updates.deployDate = deployDate;
+                    if(rooftopBoard) updates.rooftopBoard = rooftopBoard;
+                    if(middlemanBoard) updates.middlemanBoard = middlemanBoard;
 
                     await database.ref('Devices/' + devId + '/customerInfo').update(updates);
                     await customAlert("✅ Success! " + devId + " configuration saved and linked to " + uid);
@@ -2371,6 +2387,8 @@
                     document.getElementById('assignRadioRate').value = '';
                     document.getElementById('assignUsesRepeater').value = 'Yes';
                     document.getElementById('assignDeployDate').value = '';
+                    document.getElementById('assignRooftopBoard').value = '';
+                    document.getElementById('assignMiddlemanBoard').value = '';
                     document.getElementById('linkCustomerBox').style.display = "none";
                 } catch(error) {
                     await customAlert("❌ Error: " + error.message);
@@ -2383,7 +2401,7 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            // --- FIX 4: CUSTOMER LOGIN TRACKER ---
+            // --- NEW FIX: SHOW CUSTOMER LOGIN DEVICES ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
                 const currentUser = firebase.auth().currentUser;
                 const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
@@ -2439,6 +2457,8 @@
                     if(document.getElementById('editRadioTech')) document.getElementById('editRadioTech').value = info.radioTech || "nRF24L01";
                     if(document.getElementById('editRadioChannel')) document.getElementById('editRadioChannel').value = info.radioChannel || "125";
                     if(document.getElementById('editRadioRate')) document.getElementById('editRadioRate').value = info.radioRate || "250 KBPS";
+                    if(document.getElementById('editRooftopBoard')) document.getElementById('editRooftopBoard').value = info.rooftopBoard || "";
+                    if(document.getElementById('editMiddlemanBoard')) document.getElementById('editMiddlemanBoard').value = info.middlemanBoard || "";
 
                     if(info.email) {
                         fetchLinkedDevices(info.email);
@@ -2458,6 +2478,15 @@
                     if(document.getElementById('adminTxtDeployDate')) {
                         document.getElementById('adminTxtDeployDate').innerText = window.deviceDeployDate || "Not Set";
                     }
+                    if(document.getElementById('adminTxtRooftopBoard')) {
+                        document.getElementById('adminTxtRooftopBoard').innerText = info.rooftopBoard || "Unknown";
+                    }
+                    if(document.getElementById('adminTxtMiddlemanBoard')) {
+                        document.getElementById('adminTxtMiddlemanBoard').innerText = info.middlemanBoard || "Unknown";
+                    }
+                    if(document.getElementById('adminTxtLastOta')) {
+                        document.getElementById('adminTxtLastOta').innerText = info.lastOtaDate || "Never Updated";
+                    }
                     
                     updateRadioUI();
                     updateRuntimeUI();
@@ -2472,6 +2501,9 @@
                     
                     if(document.getElementById('adminTxtTopology')) document.getElementById('adminTxtTopology').innerText = "Unknown";
                     if(document.getElementById('adminTxtDeployDate')) document.getElementById('adminTxtDeployDate').innerText = "Not Set";
+                    if(document.getElementById('adminTxtRooftopBoard')) document.getElementById('adminTxtRooftopBoard').innerText = "Unknown";
+                    if(document.getElementById('adminTxtMiddlemanBoard')) document.getElementById('adminTxtMiddlemanBoard').innerText = "Unknown";
+                    if(document.getElementById('adminTxtLastOta')) document.getElementById('adminTxtLastOta').innerText = "Never Updated";
                     
                     updateRadioUI();
                     updateRuntimeUI();
@@ -2601,7 +2633,6 @@
                         
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
-                            localPumpCommandTimeout = null;
                             updatePumpButtonUI();
                         }, 7000);
                     }
@@ -2663,7 +2694,8 @@
                         if (currentPct < lastWaterPercent && !currentPumpState) {
                             let drop = lastWaterPercent - currentPct;
                             
-                            // --- FIX 3: NOISE RESISTANT WATER TRACKING ---
+                            // --- FIX: NOISE RESISTANT MATH ---
+                            // 1.5% threshold blocks false "ripples" from logging as fake water usage
                             if (drop > 1.5 && drop < 30) { 
                                 let todayDate = new Date().toDateString();
                                 database.ref(basePath + '/usageStats/today').once('value').then(s => {
@@ -2692,6 +2724,8 @@
                                 customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + currentDeviceId + "\n\nNew firmware downloaded and installed. Rebooting!");
                                 pendingOtaDevice = null;
                                 isOtaMode = false;
+                                
+                                database.ref('/Devices/' + currentDeviceId + '/customerInfo/lastOtaDate').set(new Date().toLocaleString());
                             }
                         }
 
@@ -2759,7 +2793,6 @@
 
                     currentPumpState = state.pumpActive;
                     
-                    // --- FIX 1 (CONT.): RACE CONDITION CLEARANCE ---
                     if (currentPumpState === lastCommandedState) {
                         if(localPumpCommandTimeout) {
                             clearTimeout(localPumpCommandTimeout);
@@ -2814,11 +2847,6 @@
             
             const newTrigger = Date.now(); 
 
-            // --- FIX 1: IMMEDIATE LOCAL OVERRIDE ---
-            // Blocks the website from throwing a false timeout if the ESP32 replies instantly
-            lastCommandedState = desiredState;
-            lastSeenControlTrigger = newTrigger;
-
             database.ref('/Devices/' + currentDeviceId + '/control').update({
                 forceState: desiredState,
                 triggerId: newTrigger
@@ -2827,9 +2855,8 @@
             if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
             localPumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine) return;
-                localPumpCommandTimeout = null;
                 updatePumpButtonUI();
-                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please check device power or connection.");
+                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please try again.");
             }, 7000);
         }
 
