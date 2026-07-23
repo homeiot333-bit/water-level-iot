@@ -25,23 +25,6 @@
             box-sizing: border-box;
             overflow-x: hidden; 
         }
-
-        /* --- NEW: Active Robot Scanning Effect --- */
-        body::after {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 200%;
-            background: linear-gradient(to bottom, transparent, rgba(0, 210, 255, 0.05) 50%, transparent);
-            background-size: 100% 12px;
-            animation: robotScan 7s linear infinite;
-            pointer-events: none;
-            z-index: 9999;
-            mix-blend-mode: overlay;
-        }
-        @keyframes robotScan {
-            0% { transform: translateY(-50%); }
-            100% { transform: translateY(0%); }
-        }
         
         .card { 
             background: rgba(20, 25, 35, 0.6); 
@@ -458,49 +441,6 @@
             0% { transform: scale(0.4) translateY(0); opacity: 1; }
             50% { transform: scale(1.6) translateY(-6px); opacity: 0.9; }
             100% { transform: scale(2.8) translateY(2px); opacity: 0; }
-        }
-
-        /* --- NEW: Realistic Natural Fish Animation --- */
-        .fish-container {
-            position: absolute;
-            z-index: 6;
-            pointer-events: none;
-        }
-        
-        .fish-body {
-            display: inline-block;
-            font-size: 16px;
-            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
-            animation: fishWiggle 0.3s ease-in-out infinite alternate;
-        }
-
-        .fish1 { top: 30%; animation: swimPathRight 16s ease-in-out infinite; }
-        .fish2 { top: 60%; animation: swimPathLeft 20s ease-in-out infinite; font-size: 13px; }
-        .fish3 { top: 85%; animation: swimPathRight 14s ease-in-out infinite reverse; font-size: 15px; }
-
-        @keyframes fishWiggle {
-            0% { transform: scaleY(0.9) skewY(-5deg); }
-            100% { transform: scaleY(1.1) skewY(5deg); }
-        }
-
-        @keyframes swimPathRight {
-            0%   { left: -20%; transform: scaleX(1) translateY(0); }
-            25%  { transform: scaleX(1) translateY(-10px); }
-            49%  { left: 115%; transform: scaleX(1) translateY(5px); }
-            50%  { left: 115%; transform: scaleX(-1) translateY(5px); }
-            75%  { transform: scaleX(-1) translateY(15px); }
-            99%  { left: -20%; transform: scaleX(-1) translateY(0); }
-            100% { left: -20%; transform: scaleX(1) translateY(0); }
-        }
-
-        @keyframes swimPathLeft {
-            0%   { right: -20%; transform: scaleX(-1) translateY(0); }
-            25%  { transform: scaleX(-1) translateY(10px); }
-            49%  { right: 115%; transform: scaleX(-1) translateY(-5px); }
-            50%  { right: 115%; transform: scaleX(1) translateY(-5px); }
-            75%  { transform: scaleX(1) translateY(-15px); }
-            99%  { right: -20%; transform: scaleX(1) translateY(0); }
-            100% { right: -20%; transform: scaleX(-1) translateY(0); }
         }
 
         .water-text { 
@@ -1003,13 +943,7 @@
                                 
                                 <div id="waterLevelFill" class="water-fill" style="height: 0%;">
                                     <div class="wave"></div>
-                                    <div class="dynamic-splash"></div>
-                                    
-                                    <!-- --- NEW: Realistic Fish Animation Elements --- -->
-                                    <div class="fish-container fish1"><div class="fish-body">🐠</div></div>
-                                    <div class="fish-container fish2"><div class="fish-body">🐟</div></div>
-                                    <div class="fish-container fish3"><div class="fish-body">🐡</div></div>
-                                </div>
+                                    <div class="dynamic-splash"></div> </div>
                                 
                                 <div id="waterLevelText" class="water-text">--%</div>
                             </div>
@@ -1207,6 +1141,11 @@
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Last OTA Update: <strong id="adminTxtLastOta" style="color:#feca57;">--</strong></span>
                             </div>
+                            <!-- NEW FEATURE: Connection Times -->
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Last Connected: <strong id="adminTxtLastConn" style="color:#2ed573;">--</strong></span>
+                                <span>Last Disconnect: <strong id="adminTxtLastDisconn" style="color:#ff4757;">--</strong></span>
+                            </div>
                         </div>
 
                         <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
@@ -1350,7 +1289,11 @@
     </div>
 
     <script>
-        // --- NEW: Helper function to safely format hardware logs ---
+        let isOtaMode = false;
+        
+        // --- NEW FEATURE GLOBALS ---
+        let localIsOnline = false;
+        let initialHeartbeatCheck = true;
         const globalLogTimestamps = {};
 
         function processAndFormatLog(logText, isHardware = false) {
@@ -1362,7 +1305,6 @@
                 let line = lines[i].trim();
                 if (!line) continue;
                 
-                // If this exact string has never been seen before, assign it the EXACT time it arrived
                 if (!globalLogTimestamps[line]) {
                     globalLogTimestamps[line] = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
                 }
@@ -1457,8 +1399,6 @@
         let localPumpCommandTimeout = null; 
         let lastSeenControlTrigger = null;
         let lastCommandedState = false; 
-
-        let isOtaMode = false;
 
         window.manualRadioTech = null;
         window.manualRadioChan = null;
@@ -2216,6 +2156,10 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
 
+            // --- Reset Feature variables ---
+            localIsOnline = false;
+            initialHeartbeatCheck = true;
+
             document.getElementById('assignedNameDisplay').innerText = '';
             document.getElementById('criticalErrorBanner').style.display = "none";
             document.getElementById('waterLevelFill').style.height = '0%';
@@ -2230,6 +2174,9 @@
             if (document.getElementById('txtCustEmptyDist')) document.getElementById('txtCustEmptyDist').innerText = '-- cm';
             if (document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = '-- cm';
             
+            if (document.getElementById('adminTxtLastConn')) document.getElementById('adminTxtLastConn').innerText = '--';
+            if (document.getElementById('adminTxtLastDisconn')) document.getElementById('adminTxtLastDisconn').innerText = '--';
+
             if (document.getElementById('dailyUsageText')) {
                 document.getElementById('dailyUsageText').innerText = '0.0%';
                 document.getElementById('dailyUsageText').style.color = '#00d2ff';
@@ -2500,7 +2447,6 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            // --- NEW FIX: SHOW CUSTOMER LOGIN DEVICES ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
                 const currentUser = firebase.auth().currentUser;
                 const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
@@ -2655,6 +2601,13 @@
                 lastHeartbeat = statusData.heartbeat || 0;
                 lastHeartbeatTime = Date.now(); 
                 
+                if (statusData.lastConnect && document.getElementById('adminTxtLastConn')) {
+                    document.getElementById('adminTxtLastConn').innerText = statusData.lastConnect;
+                }
+                if (statusData.lastDisconnect && document.getElementById('adminTxtLastDisconn')) {
+                    document.getElementById('adminTxtLastDisconn').innerText = statusData.lastDisconnect;
+                }
+
                 if (!isOtaMode) {
                     document.getElementById('offlineOverlay').style.display = 'none'; 
                 }
@@ -2674,10 +2627,27 @@
             });
 
             heartbeatTimer = setInterval(() => {
-                if(Date.now() - lastHeartbeatTime > 35000) { 
-                    const user = firebase.auth().currentUser;
-                    if(user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com")) {
-                        
+                let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                const user = firebase.auth().currentUser;
+                const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
+                
+                if (isCurrentlyOnline !== localIsOnline) {
+                    if (!initialHeartbeatCheck) {
+                        let timestamp = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
+                        if (isCurrentlyOnline) {
+                            if (document.getElementById('adminTxtLastConn')) document.getElementById('adminTxtLastConn').innerText = timestamp;
+                            if (isAdmin && currentDeviceId) database.ref('/Devices/' + currentDeviceId + '/deviceStatus/lastConnect').set(timestamp);
+                        } else {
+                            if (document.getElementById('adminTxtLastDisconn')) document.getElementById('adminTxtLastDisconn').innerText = timestamp;
+                            if (isAdmin && currentDeviceId) database.ref('/Devices/' + currentDeviceId + '/deviceStatus/lastDisconnect').set(timestamp);
+                        }
+                    }
+                    localIsOnline = isCurrentlyOnline;
+                }
+                initialHeartbeatCheck = false;
+
+                if(!isCurrentlyOnline) { 
+                    if(isAdmin) {
                         if (isOtaMode || pendingOtaDevice === currentDeviceId) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             const badge = document.getElementById('connStatus');
@@ -2828,43 +2798,28 @@
                         }
 
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1].text !== cleanEspLog) {
-                            let timeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                            espLogHistory.push({text: cleanEspLog, time: timeStr});
+                        if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
+                            espLogHistory.push(cleanEspLog);
                             if(espLogHistory.length > 5) espLogHistory.shift(); 
                         }
                         const logBox = document.getElementById('logConsole');
-                        logBox.innerHTML = espLogHistory.map(item => `<div style="cursor:pointer; display:block; width:100%; margin-bottom:4px;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${item.text}<span class="ts" style="display:none; color:#888; margin-left:8px; font-size:10px;">[${item.time}]</span></div>`).join('');
+                        logBox.innerHTML = processAndFormatLog(espLogHistory.join('\n'), false);
                         logBox.scrollTop = logBox.scrollHeight; 
                     }
                     
                     if(data.nanoLog) {
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        document.getElementById('nanoLogConsole').innerHTML = processAndFormatLog(cleanNanoLog, false);
+                        const nanoBox = document.getElementById('nanoLogConsole');
+                        nanoBox.innerHTML = processAndFormatLog(cleanNanoLog, false);
                     }
 
                     if(data.hardwareLog) {
-                        let formattedHwLog = formatHwLog(data.hardwareLog);
-                        
+                        let formattedHwLog = processAndFormatLog(data.hardwareLog, true);
                         const hwBox = document.getElementById('hwTerminalPanel');
-                        if (hwBox) {
-                            if (hwBox.getAttribute('data-last') !== data.hardwareLog) {
-                                let timeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                                hwBox.setAttribute('data-time', timeStr);
-                                hwBox.setAttribute('data-last', data.hardwareLog);
-                            }
-                            hwBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${formattedHwLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${hwBox.getAttribute('data-time')}]</span></div>`;
-                        }
+                        if (hwBox) hwBox.innerHTML = formattedHwLog;
 
                         const custHwBox = document.getElementById('customerHwTerminalPanel');
-                        if (custHwBox) {
-                            if (custHwBox.getAttribute('data-last') !== data.hardwareLog) {
-                                let timeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                                custHwBox.setAttribute('data-time', timeStr);
-                                custHwBox.setAttribute('data-last', data.hardwareLog);
-                            }
-                            custHwBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${formattedHwLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${custHwBox.getAttribute('data-time')}]</span></div>`;
-                        }
+                        if (custHwBox) custHwBox.innerHTML = formattedHwLog;
                     }
                 }
             });
