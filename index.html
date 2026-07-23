@@ -972,7 +972,7 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" id="adminLinkedDevicesCard" style="display:none;">
                     <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
                     <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
@@ -1227,10 +1227,6 @@
                             <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
-                        <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
-                            <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
-                        </div>
                     </div>
 
                     <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
@@ -1777,7 +1773,6 @@
                     finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
                 
-                // Only inject into the Admin list to prevent permissions errors
                 const adminList = document.querySelector('#adminCommandCenter .linked-devices-list');
                 if(adminList) adminList.innerHTML = finalHtml;
             });
@@ -2633,6 +2628,7 @@
                         
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
+                            localPumpCommandTimeout = null;
                             updatePumpButtonUI();
                         }, 7000);
                     }
@@ -2694,8 +2690,6 @@
                         if (currentPct < lastWaterPercent && !currentPumpState) {
                             let drop = lastWaterPercent - currentPct;
                             
-                            // --- FIX: NOISE RESISTANT MATH ---
-                            // 1.5% threshold blocks false "ripples" from logging as fake water usage
                             if (drop > 1.5 && drop < 30) { 
                                 let todayDate = new Date().toDateString();
                                 database.ref(basePath + '/usageStats/today').once('value').then(s => {
@@ -2730,27 +2724,47 @@
                         }
 
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
-                            espLogHistory.push(cleanEspLog);
+                        if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1].text !== cleanEspLog) {
+                            let timeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                            espLogHistory.push({text: cleanEspLog, time: timeStr});
                             if(espLogHistory.length > 5) espLogHistory.shift(); 
                         }
                         const logBox = document.getElementById('logConsole');
-                        logBox.innerText = espLogHistory.join('\n\n-----------------\n\n');
+                        logBox.innerHTML = espLogHistory.map(item => `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${item.text}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${item.time}]</span></div>`).join('\n\n-----------------\n\n');
                         logBox.scrollTop = logBox.scrollHeight; 
                     }
                     
                     if(data.nanoLog) {
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         const nanoBox = document.getElementById('nanoLogConsole');
-                        nanoBox.innerText = cleanNanoLog;
+                        if (nanoBox.getAttribute('data-last') !== cleanNanoLog) {
+                            let timeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                            nanoBox.setAttribute('data-time', timeStr);
+                            nanoBox.setAttribute('data-last', cleanNanoLog);
+                        }
+                        nanoBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${cleanNanoLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${nanoBox.getAttribute('data-time')}]</span></div>`;
                     }
 
                     if(data.hardwareLog) {
                         const hwBox = document.getElementById('hwTerminalPanel');
-                        if (hwBox) hwBox.innerText = data.hardwareLog;
+                        if (hwBox) {
+                            if (hwBox.getAttribute('data-last') !== data.hardwareLog) {
+                                let timeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                                hwBox.setAttribute('data-time', timeStr);
+                                hwBox.setAttribute('data-last', data.hardwareLog);
+                            }
+                            hwBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${data.hardwareLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${hwBox.getAttribute('data-time')}]</span></div>`;
+                        }
 
                         const custHwBox = document.getElementById('customerHwTerminalPanel');
-                        if (custHwBox) custHwBox.innerText = data.hardwareLog;
+                        if (custHwBox) {
+                            if (custHwBox.getAttribute('data-last') !== data.hardwareLog) {
+                                let timeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                                custHwBox.setAttribute('data-time', timeStr);
+                                custHwBox.setAttribute('data-last', data.hardwareLog);
+                            }
+                            custHwBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${data.hardwareLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${custHwBox.getAttribute('data-time')}]</span></div>`;
+                        }
                     }
                 }
             });
@@ -2847,6 +2861,9 @@
             
             const newTrigger = Date.now(); 
 
+            lastCommandedState = desiredState;
+            lastSeenControlTrigger = newTrigger;
+
             database.ref('/Devices/' + currentDeviceId + '/control').update({
                 forceState: desiredState,
                 triggerId: newTrigger
@@ -2855,8 +2872,9 @@
             if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
             localPumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine) return;
+                localPumpCommandTimeout = null;
                 updatePumpButtonUI();
-                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please try again.");
+                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please check device power or connection.");
             }, 7000);
         }
 
