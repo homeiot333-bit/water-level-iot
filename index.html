@@ -10,14 +10,12 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app-check.js"></script>
     
     <style>
-        /* =========================================
-           ULTRA-CLEAN PREMIUM DARK UI
-           ========================================= */
         body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #0b1121; /* Deep premium slate/navy */
-            background-image: radial-gradient(circle at top right, #1e293b 0%, #0b1121 40%);
-            color: #f8fafc; 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(rgba(10, 15, 25, 0.85), rgba(15, 20, 30, 0.95)), 
+                        url('https://images.unsplash.com/photo-1518314916381-77a37c2a49ae?q=80&w=2000&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            color: white; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
@@ -29,13 +27,15 @@
         }
         
         .card { 
-            background: #111827; /* Solid crisp dark card */
-            padding: 24px; 
-            border-radius: 16px; 
+            background: rgba(20, 25, 35, 0.6); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 20px; 
+            border-radius: 15px; 
             width: 100%; 
-            margin-bottom: 24px; 
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.3); 
-            border: 1px solid #1f2937; /* Crisp subtle border */
+            margin-bottom: 20px; 
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
             position: relative; 
             box-sizing: border-box;
         }
@@ -43,42 +43,41 @@
         h2, h3 { 
             text-align: left; 
             margin-top: 0; 
-            color: #38bdf8; /* Bright crisp cyan */
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            color: #00d2ff; 
         }
         
         .menu-dots {
             position: absolute; 
-            top: 20px; 
+            top: 15px; 
             right: 20px; 
             font-size: 24px; 
             font-weight: bold; 
             cursor: pointer; 
-            color: #64748b; 
+            color: #00d2ff; 
             user-select: none;
-            transition: color 0.2s;
+            transition: 0.3s;
             z-index: 50;
         }
 
         .menu-dots:hover { 
-            color: #38bdf8; 
+            color: #fff; 
+            text-shadow: 0 0 10px #00d2ff; 
         }
 
         .error-banner {
-            background: #7f1d1d; 
-            border: 1px solid #ef4444;
-            color: #fca5a5; 
-            padding: 16px; 
-            border-radius: 12px; 
-            margin-bottom: 24px;
+            background: rgba(255, 71, 87, 0.95); 
+            border: 2px solid #ff4757;
+            color: white; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 20px;
             font-weight: bold; 
             text-align: center; 
             display: none; 
             width: 100%;
             max-width: 500px; 
             box-sizing: border-box; 
-            box-shadow: 0 10px 15px -3px rgba(127, 29, 29, 0.5);
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
             font-size: 14px;
         }
         
@@ -94,55 +93,39 @@
 
         .input-box { 
             width: 100%; 
-            padding: 14px 16px; 
+            padding: 12px; 
             margin: 10px 0; 
-            border-radius: 10px; 
-            font-size: 15px; 
+            border-radius: 8px; 
+            border: none; 
+            font-size: 16px; 
             box-sizing: border-box;
-            background: #0f172a; /* Deep inset background */
-            color: #f1f5f9;
-            border: 1px solid #334155;
-            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.9);
+            color: #111;
         }
 
-        .input-box:focus {
-            outline: none;
-            border-color: #38bdf8;
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
-        }
-
-        .input-box::placeholder { color: #64748b; }
-
-        select.input-box option {
-            background-color: #0f172a;
-            color: #fff;
-        }
-        
-        input[type="date"].input-box::-webkit-calendar-picker-indicator { 
-            filter: invert(0.8); 
-            cursor: pointer;
+        select.input-box, input[type="date"].input-box {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #111;
         }
 
         .btn-login { 
-            background: linear-gradient(to right, #0ea5e9, #2563eb);
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
             color: #fff; 
-            font-weight: 600; 
+            font-weight: bold; 
             width: 100%; 
-            padding: 14px; 
+            padding: 12px; 
             border: none; 
-            border-radius: 10px; 
-            font-size: 16px; 
-            letter-spacing: 0.5px;
+            border-radius: 8px; 
+            font-size: 18px; 
             cursor: pointer; 
-            transition: 0.2s ease; 
-            margin-top: 8px;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transition: 0.3s; 
+            margin-top: 5px;
+            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.2);
         }
 
         .btn-login:hover { 
-            background: linear-gradient(to right, #0284c7, #1d4ed8); 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+            background: linear-gradient(90deg, #3a7bd5, #00d2ff); 
+            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.4);
         }
         
         .top-bar { 
@@ -151,24 +134,22 @@
             align-items: center; 
             width: 100%; 
             max-width: 1100px; 
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .logout-btn { 
-            background: transparent; 
-            color: #ef4444; 
-            border: 1px solid #ef4444;
-            padding: 8px 16px; 
-            border-radius: 8px; 
+            background: rgba(255, 71, 87, 0.8); 
+            color: white; 
+            border: 1px solid rgba(255, 71, 87, 0.5);
+            padding: 8px 15px; 
+            border-radius: 5px; 
             cursor: pointer; 
-            font-weight: 600;
-            font-size: 13px;
-            transition: 0.2s ease;
+            font-weight: bold;
+            transition: 0.3s;
         }
         
         .logout-btn:hover {
-            background: #ef4444;
-            color: white;
+            background: #ff4757;
         }
 
         #dashboardScreen { 
@@ -183,7 +164,7 @@
             flex-direction: row;
             width: 100%;
             max-width: 1100px;
-            gap: 24px;
+            gap: 25px;
             align-items: flex-start;
             justify-content: center;
             flex-wrap: wrap; 
@@ -214,12 +195,12 @@
             left: 0; 
             width: 100%; 
             height: 100%;
-            background: rgba(15, 23, 42, 0.95); 
+            background: rgba(10, 15, 25, 0.95); 
             z-index: 9999; 
             flex-direction: column;
             align-items: center; 
             justify-content: center; 
-            color: #ef4444; 
+            color: #ff4757; 
             text-align: center;
             font-size: 28px; 
             font-weight: bold; 
@@ -248,12 +229,13 @@
         .motor-box {
             width: 45px;
             height: 35px;
-            background: #1e293b;
-            border: 2px solid #475569;
+            background: linear-gradient(135deg, #2c3e50, #1a252f);
+            border: 2px solid #00d2ff;
             border-radius: 6px;
             display: flex;
             justify-content: center;
             align-items: center;
+            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.2);
             z-index: 11;
         }
 
@@ -261,12 +243,12 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            border: 3px dashed #64748b;
+            border: 3px dashed #555;
             transition: 0.3s;
         }
 
         .pump-active .motor-fan {
-            border-color: #22c55e;
+            border-color: #00d2ff;
             animation: motorSpin 0.15s linear infinite;
         }
 
@@ -275,9 +257,9 @@
         .motor-pipe-ext {
             width: 25px;
             height: 12px;
-            background: #475569;
-            border-top: 2px solid #64748b;
-            border-bottom: 2px solid #334155;
+            background: linear-gradient(to bottom, #999, #555);
+            border-top: 2px solid #ccc;
+            border-bottom: 2px solid #333;
             z-index: 10;
         }
 
@@ -293,7 +275,7 @@
         .tank-lid-handle {
             width: 24px;
             height: 10px;
-            border: 4px solid #cbd5e1;
+            border: 4px solid rgba(255,255,255,0.8);
             border-bottom: none;
             border-radius: 6px 6px 0 0;
             z-index: 5;
@@ -303,9 +285,9 @@
         .tank-lid {
             width: 75px;
             height: 16px;
-            background: #e2e8f0;
+            background: linear-gradient(to right, rgba(150,150,150,0.9) 0%, #fff 50%, rgba(150,150,150,0.9) 100%);
             border-radius: 50%;
-            border: 3px solid #cbd5e1;
+            border: 3px solid rgba(255,255,255,0.8);
             z-index: 4;
             margin-bottom: -8px; 
             box-sizing: border-box;
@@ -314,23 +296,25 @@
         .tank-top-ellipse {
             width: 100%;
             height: 45px; 
-            background: #0f172a;
-            border: 4px solid #cbd5e1;
+            background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.2) 80%, rgba(0,0,0,0.85) 100%);
+            border: 4px solid rgba(255,255,255,0.8);
             border-radius: 50%;
             z-index: 3;
             margin-bottom: -23px; 
             box-sizing: border-box;
+            box-shadow: inset 0 -5px 15px rgba(0,0,0,0.6);
         }
 
         .tank-body {
             width: 100%;
             height: 280px; 
-            border: 4px solid #cbd5e1;
+            border: 4px solid rgba(255,255,255,0.8);
             border-top: none; 
             border-radius: 0 0 50% 50% / 0 0 22px 22px; 
             position: relative;
-            background: #0f172a;
+            background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.2) 80%, rgba(0,0,0,0.85) 100%);
             overflow: hidden;
+            box-shadow: 0 15px 25px rgba(0, 210, 255, 0.2);
             z-index: 1;
             box-sizing: border-box;
         }
@@ -343,8 +327,8 @@
                 to bottom,
                 transparent,
                 transparent 35px,
-                rgba(255,255,255,0.03) 35px,
-                rgba(255,255,255,0.03) 39px
+                rgba(255,255,255,0.2) 35px,
+                rgba(255,255,255,0.2) 39px
             );
             pointer-events: none;
             z-index: 8; 
@@ -356,10 +340,10 @@
             top: 10%; 
             width: 35px; 
             height: 12px;
-            background: #475569;
-            border-top: 2px solid #64748b;
-            border-bottom: 2px solid #334155;
-            border-right: 2px solid #1e293b;
+            background: linear-gradient(to bottom, #999, #555);
+            border-top: 2px solid #ccc;
+            border-bottom: 2px solid #333;
+            border-right: 2px solid #444;
             border-radius: 0 4px 4px 0;
             z-index: 10;
         }
@@ -385,14 +369,15 @@
             height: 200%;
             background: repeating-linear-gradient(
                 to bottom,
-                #38bdf8 0%,
-                #0284c7 15%,
-                #38bdf8 30%,
-                #bae6fd 45%,
-                #38bdf8 60%
+                rgba(255, 255, 255, 0.95) 0%,
+                rgba(220, 245, 255, 0.8) 15%,
+                rgba(255, 255, 255, 0.9) 30%,
+                rgba(173, 216, 230, 0.7) 45%,
+                rgba(255, 255, 255, 0.95) 60%
             );
             background-size: 100% 40px;
             animation: waterfallCascade 0.2s linear infinite;
+            filter: blur(1.5px); 
         }
 
         @keyframes waterfallCascade {
@@ -404,7 +389,7 @@
             position: absolute; 
             bottom: 0; 
             width: 100%; 
-            background: linear-gradient(to top, #0284c7, #38bdf8); 
+            background: linear-gradient(to top, #005c97, #00d2ff); 
             transition: height 1s ease-in-out; 
             z-index: 5;
         }
@@ -413,7 +398,7 @@
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(to right, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.5) 100%);
+            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.7) 100%);
             z-index: 7;
             pointer-events: none;
         }
@@ -424,7 +409,7 @@
             left: 0;
             width: 200%;
             height: 22px;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 88.7'%3E%3Cpath d='M0,40 C100,80 200,0 300,40 C400,80 500,0 600,40 C700,80 800,0 800,40 L800,88.7 L0,88.7 Z' fill='%2338bdf8'/%3E%3C/svg%3E") repeat-x;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 88.7'%3E%3Cpath d='M0,40 C100,80 200,0 300,40 C400,80 500,0 600,40 C700,80 800,0 800,40 L800,88.7 L0,88.7 Z' fill='%2300d2ff'/%3E%3C/svg%3E") repeat-x;
             background-size: 50% 100%;
             animation: waveAnimation 3s linear infinite;
             z-index: 6;
@@ -441,10 +426,11 @@
             left: 15px; 
             width: 34px;
             height: 15px;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 50%;
             opacity: 0;
             z-index: 10;
+            filter: blur(2.5px); 
         }
 
         .pump-active .dynamic-splash {
@@ -462,55 +448,56 @@
             top: 50%; 
             left: 50%; 
             transform: translate(-50%, -50%); 
-            font-size: 28px; 
-            font-weight: 700; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8); 
+            font-size: 26px; 
+            font-weight: bold; 
+            text-shadow: 2px 2px 8px black; 
             z-index: 30; 
-            color: #fff;
         }
         
         .stats-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
             gap: 12px; 
-            margin-top: 16px; 
+            margin-top: 15px; 
             width: 100%;
         }
 
         .stat-box { 
-            background: #0f172a; 
-            padding: 16px; 
-            border-radius: 12px; 
+            background: rgba(0,0,0,0.4); 
+            padding: 12px; 
+            border-radius: 8px; 
             text-align: center; 
             font-size: 13px; 
-            color: #94a3b8;
-            border: 1px solid #1e293b;
+            color: #ddd;
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
         .stat-value { 
-            font-size: 20px; 
-            font-weight: 700; 
-            color: #f1f5f9; 
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #00d2ff; 
             display: block; 
-            margin-top: 6px; 
+            margin-top: 5px; 
         }
         
         .btn-container { 
             display: flex; 
             justify-content: center; 
-            padding: 20px 0; 
+            padding: 15px 0; 
         }
 
         .btn-round { 
-            width: 130px; 
-            height: 130px; 
+            width: 140px; 
+            height: 140px; 
             border-radius: 50%; 
-            font-size: 16px; 
-            font-weight: 700; 
-            border: none;
+            font-size: 18px; 
+            font-weight: bold; 
+            border: 4px solid rgba(255,255,255,0.15); 
             cursor: pointer; 
             color: white;
-            transition: all 0.2s ease; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            transition: all 0.3s; 
+            text-shadow: 1px 1px 3px black;
             -webkit-tap-highlight-color: transparent; 
         }
 
@@ -519,24 +506,18 @@
         }
 
         .btn-off { 
-            background: #1f2937; 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.1);
-            color: #ef4444;
-            border: 2px solid #ef4444;
+            background: radial-gradient(circle, #ff6b81, #d63031); 
         } 
 
         .btn-on { 
-            background: #22c55e;
-            box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4), inset 0 2px 0 rgba(255,255,255,0.3);
-            color: #fff;
-            border: 2px solid #16a34a;
+            background: radial-gradient(circle, #7bed9f, #2ed573); 
         } 
         
         .terminals-wrapper { 
             display: flex; 
-            gap: 12px; 
+            gap: 10px; 
             width: 100%; 
-            margin-top: 12px; 
+            margin-top: 10px; 
         }
 
         .terminal-column { 
@@ -548,82 +529,81 @@
         }
 
         .log-box { 
-            background: #020617; 
-            padding: 16px; 
-            border-radius: 12px; 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 12px; 
-            height: 140px; 
+            background: rgba(0,0,0,0.7); 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: monospace; 
+            font-size: 11px; 
+            height: 120px; 
             overflow-y: auto; 
-            color: #4ade80;
+            color: #00ff00;
             white-space: pre-wrap; 
             word-wrap: break-word; 
             word-break: break-all;
-            border: 1px solid #1e293b;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
         .log-nano { 
-            color: #38bdf8; 
+            color: #00d2ff; 
         }
         
         .status-badge { 
-            padding: 6px 12px; 
-            border-radius: 20px; 
+            padding: 5px 10px; 
+            border-radius: 15px; 
             font-size: 12px; 
-            font-weight: 700; 
-            background: #22c55e; 
+            font-weight: bold; 
+            background: rgba(46, 213, 115, 0.9); 
             color: white; 
             display: inline-block;
-            margin-bottom: 12px;
-            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            box-shadow: 0 0 10px rgba(46, 213, 115, 0.4);
         }
         
         .btn-danger { 
-            background: #ef4444; 
+            background: rgba(255, 71, 87, 0.9); 
             color: white; 
-            border: none;
-            padding: 14px; 
-            border-radius: 10px; 
-            font-weight: 600; 
+            border: 1px solid rgba(255, 71, 87, 0.5);
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: bold; 
             cursor: pointer; 
             width: 100%; 
-            margin-top: 12px;
-            transition: 0.2s ease;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            margin-top: 10px;
+            transition: 0.3s;
         }
 
         .btn-danger:hover { 
-            background: #dc2626; 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+            background: #ff4757; 
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
         }
 
         .inbox-container {
             max-height: 250px; 
             overflow-y: auto; 
             width: 100%; 
-            border-radius: 12px; 
-            padding: 12px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 8px; 
+            padding: 10px; 
             box-sizing: border-box; 
-            background: #0f172a;
-            margin-top: 12px;
-            border: 1px solid #1e293b;
+            background: rgba(0,0,0,0.4);
+            margin-top: 10px;
         }
 
         .inbox-card {
-            background: #1e293b; 
-            padding: 16px; 
-            margin-bottom: 10px; 
-            border-radius: 10px; 
-            font-size: 14px;
-            border: 1px solid #334155;
+            background: rgba(0,0,0,0.6); 
+            padding: 12px; 
+            margin-bottom: 8px; 
+            border-radius: 6px; 
+            font-size: 13px;
+            border: 1px solid rgba(255,255,255,0.05);
             position: relative; 
         }
 
         .inbox-card span { 
-            color: #94a3b8; 
+            color: #ccc; 
             display: block; 
-            margin-top: 6px; 
+            margin-top: 4px; 
         }
 
         .developer-credit-top {
@@ -631,14 +611,14 @@
             align-items: center;
             width: 100%;
             max-width: 500px;
-            padding: 12px 16px;
-            background: #111827;
-            border: 1px solid #1e293b;
-            border-radius: 16px;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
             box-sizing: border-box;
-            margin-bottom: 20px;
-            gap: 16px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            margin-bottom: 15px;
+            gap: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
         .brand-logo-left {
@@ -652,14 +632,15 @@
             flex-grow: 1;
             text-align: center;
             font-size: 14px;
-            color: #cbd5e1;
+            line-height: 1.4;
+            color: #eee;
         }
 
         .developer-credit-top strong {
-            font-weight: 700;
-            font-size: 16px;
+            font-weight: 900;
+            font-size: 17px;
             display: inline-block;
-            color: #f8fafc;
+            color: #00d2ff;
         }
 
         #sideInboxPanel {
@@ -669,15 +650,17 @@
             width: 350px;
             max-width: 85vw;
             height: 100vh;
-            background: #0f172a;
-            border-left: 1px solid #334155;
+            background: rgba(15, 20, 25, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(254, 202, 87, 0.5);
             z-index: 1000;
-            transition: right 0.3s ease;
-            padding: 24px;
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            box-shadow: -10px 0 25px rgba(0,0,0,0.5);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.8);
         }
         
         #sideInboxPanel.open {
@@ -686,18 +669,18 @@
         
         .close-inbox-btn {
             align-self: flex-end;
-            font-size: 28px;
-            color: #64748b;
+            font-size: 24px;
+            color: #ff4757;
             cursor: pointer;
             font-weight: bold;
-            margin-bottom: 16px;
+            margin-bottom: 15px;
             user-select: none;
-            transition: 0.2s ease;
-            line-height: 1;
+            transition: 0.3s;
         }
         
         .close-inbox-btn:hover {
-            color: #f8fafc;
+            color: #ff6b81;
+            transform: scale(1.1);
         }
 
         .green-marquee-container {
@@ -705,20 +688,20 @@
             max-width: 500px;
             overflow: hidden;
             white-space: nowrap;
-            margin-bottom: 20px;
-            background: rgba(34, 197, 94, 0.1); 
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(34, 197, 94, 0.2);
+            margin-bottom: 15px;
+            background: rgba(46, 213, 115, 0.15); 
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(46, 213, 115, 0.3);
             box-sizing: border-box;
         }
 
         .green-marquee-text {
             display: inline-block;
             padding-left: 100%;
-            animation: scroll-left 15s linear infinite;
-            color: #4ade80; 
-            font-weight: 600;
+            animation: scroll-left 13s linear infinite;
+            color: #7bed9f; 
+            font-weight: bold;
             font-size: 15px;
             letter-spacing: 0.5px;
         }
@@ -733,53 +716,52 @@
             top: -100px;
             left: 50%;
             transform: translateX(-50%);
-            background: #1e293b;
-            border: 2px solid #38bdf8;
-            color: #f8fafc;
-            padding: 16px 24px;
+            background: rgba(10, 20, 35, 0.95);
+            border: 2px solid #00d2ff;
+            color: #fff;
+            padding: 15px 25px;
             border-radius: 30px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.3);
+            font-weight: 500;
             font-size: 15px;
             z-index: 99999;
-            transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: top 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             white-space: nowrap;
         }
         
         .usage-popup.show {
-            top: 24px;
+            top: 30px;
         }
 
         #customModalOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); z-index: 100000;
-            align-items: center; justify-content: center;
+            background: rgba(10, 15, 25, 0.9); z-index: 100000;
+            align-items: center; justify-content: center; backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
         #customModalBox {
-            background: #111827; 
-            border: 1px solid #334155;
-            border-radius: 20px; padding: 30px; width: 90%; max-width: 400px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); 
-            text-align: center;
+            background: rgba(20, 25, 35, 0.95); border: 2px solid #00d2ff;
+            border-radius: 12px; padding: 25px; width: 90%; max-width: 400px;
+            box-shadow: 0 15px 40px rgba(0,210,255,0.3); text-align: center;
         }
-        #customModalTitle { color: #f8fafc; margin-top: 0; font-size: 20px; margin-bottom: 16px; font-weight: 700; }
-        #customModalText { color: #94a3b8; font-size: 15px; margin-bottom: 24px; white-space: pre-wrap; line-height: 1.5; }
+        #customModalTitle { color: #feca57; margin-top: 0; font-size: 18px; margin-bottom: 15px; }
+        #customModalText { color: #fff; font-size: 14px; margin-bottom: 20px; white-space: pre-wrap; line-height: 1.4; }
 
         @media (max-width: 600px) {
             .terminals-wrapper { 
                 flex-direction: column; 
-                gap: 16px; 
+                gap: 15px; 
             }
             .stats-grid { 
                 grid-template-columns: 1fr; 
             }
             .log-box { 
                 font-size: 11px; 
-                padding: 12px; 
-                height: 110px; 
+                padding: 10px; 
+                height: 100px; 
             }
         }
     </style>
@@ -791,78 +773,78 @@
             <h3 id="customModalTitle"></h3>
             <p id="customModalText"></p>
             <input type="text" id="customModalInput" class="input-box" style="margin-bottom: 20px;">
-            <div style="display: flex; gap: 12px; justify-content: center;">
-                <button id="customModalCancel" class="btn-login" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 12px; flex: 1; box-shadow: none;">Cancel</button>
-                <button id="customModalConfirm" class="btn-login" style="background: #2563eb; color: white; padding: 12px; flex: 1;">OK</button>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="customModalCancel" class="btn-login" style="background: rgba(255,71,87,0.8); color: white; padding: 10px; flex: 1;">Cancel</button>
+                <button id="customModalConfirm" class="btn-login" style="background: #2ed573; color: black; padding: 10px; flex: 1;">OK</button>
             </div>
         </div>
     </div>
 
-    <div id="inboxFloatingMenu" style="display:none; position:fixed; background:#1e293b; border:1px solid #334155; border-radius:12px; padding:8px; z-index:10000; box-shadow: 0 10px 25px rgba(0,0,0,0.5); min-width: 180px;">
-        <div style="color:#f8fafc; font-size:14px; font-weight:600; cursor:pointer; padding:12px; border-bottom:1px solid #334155; transition: background 0.2s; border-radius:8px 8px 0 0;" onclick="handleInboxAction('connect')" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">🟢 Connect Device</div>
-        <div style="color:#f8fafc; font-size:14px; font-weight:600; cursor:pointer; padding:12px; border-bottom:1px solid #334155; transition: background 0.2s;" onclick="handleInboxAction('remove')" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">🧹 Remove Alert</div>
-        <div style="color:#ef4444; font-size:14px; font-weight:600; cursor:pointer; padding:12px; transition: background 0.2s; border-radius:0 0 8px 8px;" onclick="handleInboxAction('delete')" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">🗑️ Delete Device</div>
+    <div id="inboxFloatingMenu" style="display:none; position:fixed; background:rgba(20, 25, 35, 0.98); border:1px solid #00d2ff; border-radius:8px; padding:5px; z-index:10000; box-shadow: 0 10px 30px rgba(0,0,0,0.9); min-width: 160px;">
+        <div style="color:#7bed9f; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('connect')">🟢 Connect Device</div>
+        <div style="color:#feca57; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('remove')">🧹 Remove Alert</div>
+        <div style="color:#ff4757; font-size:13px; font-weight:bold; cursor:pointer; padding:10px;" onclick="handleInboxAction('delete')">🗑️ Delete Device</div>
     </div>
 
     <div id="usageSmsPopup" class="usage-popup">💧 Today's Water Usage: --%</div>
 
     <div id="sideInboxPanel">
         <div class="close-inbox-btn" onclick="toggleInboxPanel()">✕</div>
-        <h3 style="color: #f8fafc; margin-top:0; border-bottom: 1px solid #334155; padding-bottom:16px; text-align: left;">Global Alerts Inbox</h3>
+        <h3 style="color: #feca57; margin-top:0; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom:10px; text-align: left;">Global Alerts Inbox</h3>
         
-        <input type="text" id="inboxSearchInput" class="input-box" placeholder="🔍 Search Name or ID..." onkeyup="renderAdminInbox()" style="margin-bottom:20px;">
+        <input type="text" id="inboxSearchInput" class="input-box" placeholder="🔍 Search Name or Device ID..." onkeyup="renderAdminInbox()" style="margin-bottom:15px; background:rgba(255,255,255,0.1); color:white; border:1px solid rgba(255,255,255,0.3);">
 
-        <div style="display:flex; gap:16px; margin-bottom:20px; font-size:14px; color:#cbd5e1; justify-content: center;">
-            <label style="cursor:pointer;"><input type="radio" name="inboxFilter" value="All" checked onchange="renderAdminInbox()"> All</label>
-            <label style="cursor:pointer;"><input type="radio" name="inboxFilter" value="Household" onchange="renderAdminInbox()"> Household</label>
-            <label style="cursor:pointer;"><input type="radio" name="inboxFilter" value="Commercial" onchange="renderAdminInbox()"> Commercial</label>
+        <div style="display:flex; gap:10px; margin-bottom:15px; font-size:13px; color:#fff; justify-content: center;">
+            <label><input type="radio" name="inboxFilter" value="All" checked onchange="renderAdminInbox()"> All</label>
+            <label><input type="radio" name="inboxFilter" value="Household" onchange="renderAdminInbox()"> Household</label>
+            <label><input type="radio" name="inboxFilter" value="Commercial" onchange="renderAdminInbox()"> Commercial</label>
         </div>
 
         <div id="adminInbox" class="inbox-container" style="border:none; background:transparent; max-height:none; flex:1; margin-top:0; padding:0;">
-            <div style="text-align:left; color:#64748b; font-size:14px;">Scanning database...</div>
+            <div style="text-align:left; color:#ccc; font-size:13px;">Scanning database...</div>
         </div>
     </div>
 
     <div id="criticalErrorBanner" class="error-banner"></div>
 
     <div id="offlineOverlay">
-        ⚠️<br><br>Machine Offline
+        ⚠️<br><br>Machine is currently Offline
     </div>
 
-    <div id="loginScreen" class="card" style="max-width: 400px; padding: 40px;">
-        <h2 style="text-align: center; color: #f8fafc; font-size: 24px; margin-bottom: 8px;">Security Gateway</h2>
-        <div id="connIndicator" style="text-align:center; font-size:13px; color:#64748b; margin-bottom: 24px;">
+    <div id="loginScreen" class="card" style="max-width: 400px;">
+        <h2 style="text-align: center;">🔒 Security Gateway</h2>
+        <div id="connIndicator" style="text-align:center; font-size:12px; color:#aaa;">
             Checking server connection...
         </div>
         
-        <input type="email" id="emailInput" class="input-box" placeholder="Email Address" />
+        <input type="email" id="emailInput" class="input-box" placeholder="Email" />
         <input type="password" id="passwordInput" class="input-box" placeholder="Password" />
         
-        <div style="width: 100%; display: flex; align-items: center; justify-content: flex-start; margin-top: 5px; margin-bottom: 24px;">
-            <input type="checkbox" id="showPassCheckbox" onclick="togglePasswordVisibility()" style="margin-right: 10px; cursor: pointer; width: 16px; height: 16px;">
-            <label for="showPassCheckbox" style="font-size: 14px; color: #94a3b8; cursor: pointer; user-select: none;">Show password</label>
+        <div style="width: 100%; display: flex; align-items: center; justify-content: flex-start; margin-top: -5px; margin-bottom: 15px;">
+            <input type="checkbox" id="showPassCheckbox" onclick="togglePasswordVisibility()" style="margin-right: 8px; cursor: pointer;">
+            <label for="showPassCheckbox" style="font-size: 13px; color: #ccc; cursor: pointer; user-select: none;">Show password</label>
         </div>
         
-        <button class="btn-login" onclick="loginUser()">Sign In</button>
+        <button class="btn-login" onclick="loginUser()">LOGIN</button>
         
-        <div id="loginError" style="color: #ef4444; font-weight: 600; margin-top: 16px; display: none; text-align: center;"></div>
+        <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
     </div>
 
     <div id="dashboardScreen">
         
         <div class="top-bar">
-            <h3 id="topBarTitle" style="margin:0; color:#f8fafc; text-align:left; flex:1; font-size: 20px;">
-                Dashboard <span id="assignedNameDisplay" style="color:#38bdf8; font-size:16px; font-weight:600; margin-left:12px;"></span>
+            <h3 id="topBarTitle" style="margin:0; color:#fff; text-align:left; flex:1;">
+                Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>
             </h3>
             
-            <div style="display:flex; align-items:center; gap: 20px;">
-                <span id="loggedInEmail" style="color:#94a3b8; font-size:14px; font-weight:500;"></span>
+            <div style="display:flex; align-items:center; gap: 15px;">
+                <span id="loggedInEmail" style="color:#ccc; font-size:13px; font-weight:bold;"></span>
                 
                 <div id="customerMenuContainer" style="position:relative; display:none;">
-                    <div class="menu-dots" style="position:static; margin-left:5px; margin-top: -5px;" onclick="toggleCustomerTopMenu()" title="Account Options">⋮</div>
-                    <div id="customerTopMenuDropdown" style="display:none; position:absolute; right:0; top:35px; background:#1e293b; border:1px solid #334155; border-radius:12px; padding:8px; z-index:100; box-shadow: 0 10px 25px rgba(0,0,0,0.5); min-width: 180px;">
-                        <div style="color:#f8fafc; font-size:14px; font-weight:500; cursor:pointer; padding:12px; border-bottom:1px solid #334155; transition: background 0.2s; border-radius:8px 8px 0 0;" onclick="toggleCustomerSettings()" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">⚙️ Device Settings</div>
-                        <div style="color:#f8fafc; font-size:14px; font-weight:500; cursor:pointer; padding:12px; transition: background 0.2s; border-radius:0 0 8px 8px;" onclick="changeCustomerPassword()" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">🔑 Change Password</div>
+                    <div class="menu-dots" style="position:static; margin-left:5px;" onclick="toggleCustomerTopMenu()" title="Account Options">⋮</div>
+                    <div id="customerTopMenuDropdown" style="display:none; position:absolute; right:0; top:30px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
+                        <div style="color:#fff; font-size:13px; cursor:pointer; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="toggleCustomerSettings()">⚙️ Device Settings</div>
+                        <div style="color:#fff; font-size:13px; cursor:pointer; padding:8px 0;" onclick="changeCustomerPassword()">🔑 Change Password</div>
                     </div>
                 </div>
 
@@ -883,63 +865,63 @@
             
             <div class="dash-col-left" id="mainDashboardView" style="display:none;">
                 
-                <div id="customerSettingsBox" style="display:none; width:100%; text-align: left; background: #0f172a; padding: 24px; border-radius: 16px; border: 1px solid #38bdf8; margin-bottom: 24px;">
-                    <h3 style="color: #38bdf8; margin-top:0;">⚙️ Device Configuration</h3>
-                    <p style="font-size:13px; color:#94a3b8; margin-top:0; margin-bottom: 20px;">Update your tank dimensions or configure up to 4 backup WiFi networks.</p>
+                <div id="customerSettingsBox" style="display:none; width:100%; text-align: left; background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; border: 1px dashed #00d2ff; margin-bottom: 20px;">
+                    <h3 style="color: #00d2ff; margin-top:0;">⚙️ Device Configuration</h3>
+                    <p style="font-size:12px; color:#aaa; margin-top:0;">Update your tank dimensions or configure up to 4 backup WiFi networks.</p>
                     
-                    <div style="display:flex; gap:16px;">
+                    <div style="display:flex; gap:10px;">
                         <div style="flex:1;">
-                            <label style="color:#cbd5e1; font-size:13px; font-weight:500;">Tank Empty Depth (cm):</label>
+                            <label style="color:#ccc; font-size:12px;">Tank Empty Depth (cm):</label>
                             <input type="number" id="custEmptyInput" class="input-box" placeholder="e.g., 150">
                         </div>
                         <div style="flex:1;">
-                            <label style="color:#cbd5e1; font-size:13px; font-weight:500;">Full Clearance (cm):</label>
+                            <label style="color:#ccc; font-size:12px;">Full Clearance (cm):</label>
                             <input type="number" id="custFullInput" class="input-box" placeholder="e.g., 15">
                         </div>
                     </div>
                     
-                    <hr style="border: 1px solid #1e293b; margin: 24px 0;">
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
                     
-                    <h4 style="color:#f8fafc; margin-top:0; margin-bottom:12px; font-size:15px;">📶 WiFi Mesh Networks (Slots 1-4)</h4>
-                    <p style="font-size:12px; color:#64748b; margin-top:0; margin-bottom: 16px;">Current network names are shown below. Enter a new Name and Password to overwrite a slot. Passwords are hidden for security.</p>
+                    <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">📶 WiFi Mesh Networks (Slots 1-4)</h4>
+                    <p style="font-size:11px; color:#aaa; margin-top:0;">Current network names are shown below. Enter a new Name and Password to overwrite a slot. Passwords are hidden for security.</p>
                     
-                    <div style="display:flex; flex-direction:column; gap:16px;">
-                        <div style="background:#1e293b; padding:16px; border-radius:12px; border:1px solid #334155;">
-                            <strong style="color:#38bdf8; font-size:13px;">Slot 1 (Primary):</strong> <span id="cust_slot1_name" style="color:#f8fafc; font-size:13px; margin-left: 8px;">Scanning...</span>
-                            <div style="display:flex; gap:12px; margin-top:12px;">
-                                <input type="text" id="custWifiSSID_1" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New SSID">
-                                <input type="password" id="custWifiPass_1" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New Pass">
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 1 (Primary):</strong> <span id="cust_slot1_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="password" id="custWifiPass_1" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                             </div>
                         </div>
-                        <div style="background:#1e293b; padding:16px; border-radius:12px; border:1px solid #334155;">
-                            <strong style="color:#94a3b8; font-size:13px;">Slot 2 (Backup):</strong> <span id="cust_slot2_name" style="color:#f8fafc; font-size:13px; margin-left: 8px;">Scanning...</span>
-                            <div style="display:flex; gap:12px; margin-top:12px;">
-                                <input type="text" id="custWifiSSID_2" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New SSID">
-                                <input type="password" id="custWifiPass_2" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New Pass">
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 2 (Backup):</strong> <span id="cust_slot2_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="password" id="custWifiPass_2" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                             </div>
                         </div>
-                        <div style="background:#1e293b; padding:16px; border-radius:12px; border:1px solid #334155;">
-                            <strong style="color:#94a3b8; font-size:13px;">Slot 3 (Backup):</strong> <span id="cust_slot3_name" style="color:#f8fafc; font-size:13px; margin-left: 8px;">Scanning...</span>
-                            <div style="display:flex; gap:12px; margin-top:12px;">
-                                <input type="text" id="custWifiSSID_3" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New SSID">
-                                <input type="password" id="custWifiPass_3" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New Pass">
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 3 (Backup):</strong> <span id="cust_slot3_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="password" id="custWifiPass_3" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                             </div>
                         </div>
-                        <div style="background:#1e293b; padding:16px; border-radius:12px; border:1px solid #334155;">
-                            <strong style="color:#94a3b8; font-size:13px;">Slot 4 (Backup):</strong> <span id="cust_slot4_name" style="color:#f8fafc; font-size:13px; margin-left: 8px;">Scanning...</span>
-                            <div style="display:flex; gap:12px; margin-top:12px;">
-                                <input type="text" id="custWifiSSID_4" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New SSID">
-                                <input type="password" id="custWifiPass_4" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New Pass">
+                        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                            <strong style="color:#00d2ff; font-size:12px;">Slot 4 (Backup):</strong> <span id="cust_slot4_name" style="color:#fff; font-size:12px;">Scanning...</span>
+                            <div style="display:flex; gap:10px; margin-top:8px;">
+                                <input type="text" id="custWifiSSID_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                <input type="password" id="custWifiPass_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                             </div>
                         </div>
                     </div>
                     
-                    <button class="btn-login" style="background:#22c55e; color:white; margin-top:24px; box-shadow: none;" onclick="saveCustomerSettings()">Save Settings</button>
+                    <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="saveCustomerSettings()">Save Settings to Device</button>
                 </div>
 
                 <div class="card">
                     <span id="connStatus" class="status-badge">ONLINE</span>
-                    <div id="customerMenuDots" class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data" style="display:none;">⋮</div>
+                    <div id="customerMenuDots" class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data" style="display:none; top: 15px; right: 20px;">⋮</div>
                     
                     <div style="clear:both;"></div>
                     
@@ -968,344 +950,336 @@
                         </div>
                     </div>
                     
-                    <div style="text-align: center; margin-top:20px; color:#94a3b8; font-size: 14px; font-weight: 500;">
-                        Manual Bypass Status: <span id="txtBypass" style="color:#f59e0b; font-weight:700;">--</span>
+                    <div style="text-align: center; margin-top:10px; color:#ccc; font-size: 14px;">
+                        Manual Bypass Status: <span id="txtBypass" style="color:#ffa502; font-weight:bold;">--</span>
                     </div>
                 </div>
 
                 <div class="card" id="pumpControlCard">
-                    <h3 style="text-align: left; color: #f8fafc;">Pump Control</h3>
+                    <h3 style="text-align: left;">Pump Control</h3>
                     <div class="btn-container">
                         <button id="pumpToggleBtn" class="btn-round btn-off" onclick="togglePump()">Loading...</button>
                     </div>
                 </div>
 
                 <div class="card" id="usageTrackerCard">
-                    <h3 style="text-align: left; margin-bottom: 20px; color: #f8fafc;">💧 Daily Usage Tracker</h3>
-                    <div style="display: flex; justify-content: center; align-items: center; background: #0f172a; padding: 24px; border-radius: 12px; border: 1px solid #1e293b; text-align: center;">
+                    <h3 style="text-align: left; margin-bottom: 15px;">💧 Daily Usage Tracker</h3>
+                    <div style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 210, 255, 0.2); text-align: center;">
                         <div>
-                            <span style="color:#94a3b8; font-size: 14px; font-weight: 500;">Consumed Today</span><br>
-                            <strong id="dailyUsageText" style="font-size: 36px; color: #38bdf8; display: inline-block; margin-top: 8px;">0.0%</strong>
+                            <span style="color:#aaa; font-size: 13px;">Consumed Today</span><br>
+                            <strong id="dailyUsageText" style="font-size: 32px; color: #00d2ff;">0.0%</strong>
                         </div>
                     </div>
                 </div>
 
-                <!-- Customer Account Devices View -->
                 <div class="card">
-                    <h3 style="text-align: left; margin-bottom: 20px; color: #f8fafc;">🔗 Linked Devices</h3>
-                    <div class="linked-devices-list" style="font-size: 14px; color: #94a3b8;">Scanning account data...</div>
+                    <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
+                    <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
 
                 <div id="advancedSection" style="display:none; width:100%;">
                     <div class="card" style="width:100%;">
-                        <h3 style="color: #f8fafc;">Engineering Data</h3>
+                        <h3>Engineering Data</h3>
                         <div class="stats-grid">
                             <div class="stat-box">
                                 Average Gap
-                                <span id="txtFinalCm" class="stat-value" style="color:#f8fafc;">-- cm</span>
+                                <span id="txtFinalCm" class="stat-value">-- cm</span>
                             </div>
                             <div class="stat-box">
                                 Sensor 1 (Raw)
-                                <span id="txtS1" class="stat-value" style="color:#f8fafc;">-- cm</span>
+                                <span id="txtS1" class="stat-value">-- cm</span>
                             </div>
                             <div class="stat-box">
                                 Sensor 2 (Raw)
-                                <span id="txtS2" class="stat-value" style="color:#f8fafc;">-- cm</span>
+                                <span id="txtS2" class="stat-value">-- cm</span>
                             </div>
                             <div class="stat-box">
                                 Est. Distance
-                                <span id="txtDistanceCustomer" class="stat-value" style="color:#f59e0b;">-- m</span>
+                                <span id="txtDistanceCustomer" class="stat-value" style="color:#feca57;">-- m</span>
                             </div>
                             <div class="stat-box">
                                 Tank Depth
-                                <span id="txtCustEmptyDist" class="stat-value" style="color:#38bdf8;">-- cm</span>
+                                <span id="txtCustEmptyDist" class="stat-value" style="color:#00d2ff;">-- cm</span>
                             </div>
                             <div class="stat-box">
                                 Full Clearance
-                                <span id="txtCustFullDist" class="stat-value" style="color:#38bdf8;">-- cm</span>
+                                <span id="txtCustFullDist" class="stat-value" style="color:#00d2ff;">-- cm</span>
                             </div>
                             <div class="stat-box" style="grid-column: span 2;">
                                 Signal Quality
-                                <span id="txtSignalCustomer" class="stat-value" style="color:#22c55e;">N/A</span>
+                                <span id="txtSignalCustomer" class="stat-value" style="color:#7bed9f;">N/A</span>
                             </div>
                         </div>
                         
-                        <div style="margin-top: 24px; width: 100%; border-top: 1px solid #1e293b; padding-top: 20px;">
-                            <span style="color:#f59e0b; font-size:14px; font-weight:600; margin-bottom:12px; display:block;">⚙️ Hardware Logs</span>
-                            <div id="customerHwTerminalPanel" style="background: #020617; padding: 16px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 12px; color: #f59e0b; text-align:left; border: 1px solid #1e293b; white-space: pre-wrap; height: 100px; overflow-y:auto;">Awaiting Cloud Sync...</div>
+                        <div style="margin-top: 15px; width: 100%; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                            <span style="color:#feca57; font-size:13px; font-weight:bold; margin-bottom:5px; display:block;">⚙️ System Hardware Logs:</span>
+                            <div id="customerHwTerminalPanel" style="background: rgba(0,0,0,0.8); padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap; height: 80px; overflow-y:auto;">Awaiting Cloud Sync...</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="dash-col-right" id="adminCommandCenter" style="display:none;">
-                <div class="card" style="width:100%; border: 1px solid #38bdf8;">
+                <div class="card" style="width:100%; border: 2px solid rgba(0, 210, 255, 0.5); position: relative;">
                     
                     <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options" style="top: 20px; right: 20px;">⋮</div>
                     
-                    <h2 style="color: #f8fafc; font-size: 22px;">👑 Master Command</h2>
+                    <h2>👑 Master Command Center</h2>
 
-                    <div style="display: flex; gap: 12px; margin-top: 24px; margin-bottom: 24px; flex-wrap: wrap;">
-                        <button class="btn-login" style="background:#0284c7; color:#fff; flex: 1; min-width: 150px; font-size: 14px; padding: 12px; box-shadow: none; margin: 0;" onclick="toggleAdminPumpControl()">👁️ Show Pump</button>
-                        <button class="btn-login" style="background:#f59e0b; color:#fff; flex: 1; min-width: 150px; font-size: 14px; padding: 12px; box-shadow: none; margin: 0;" onclick="toggleInboxPanel()">🔔 Open Alerts</button>
-                        <button class="btn-login" style="background:#8b5cf6; color:#fff; flex: 1; min-width: 150px; font-size: 14px; padding: 12px; box-shadow: none; margin: 0;" onclick="changeMasterPin()">🔐 Change PIN</button>
-                    </div>
+                    <button class="btn-login" style="background:rgba(0, 210, 255, 0.8); color:#fff; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
+                    
+                    <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
-                    <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:60px; background:#1e293b; border:1px solid #334155; border-radius:12px; padding:16px; z-index:100; box-shadow: 0 10px 25px rgba(0,0,0,0.5); min-width: 200px;">
-                        <label style="color:#f8fafc; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:8px;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by ID</label>
-                        <div style="height: 12px;"></div>
-                        <label style="color:#f8fafc; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:8px;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
+                    <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
+
+                    <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
+                        <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
+                        <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
                     </div>
 
                     <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., a4e1 (MAC)">
-                    <button class="btn-login" onclick="processAdminConnection()" style="margin-top:12px;">Connect to Machine</button>
+                    <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
                     
-                    <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:32px;">
-                        <hr style="border: 1px solid #1e293b; margin: 24px 0;">
+                    <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
+                        <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
                         
-                        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px; background:#0f172a; padding:20px; border-radius:12px; border:1px solid #1e293b; position:relative;">
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <h3 style="color: #f8fafc; font-size: 16px; margin:0; text-align:left;">Diagnostics: <span id="termDevId" style="color: #38bdf8;"></span></h3>
+                                <h3 style="color: #fff; font-size: 15px; margin:0; text-align:left;">Live Diagnostics: <span id="termDevId"></span></h3>
                                 
-                                <div style="display:flex; gap:16px; align-items:center;">
-                                    <button class="btn-login" style="background:#f59e0b; color:#fff; font-size:12px; padding:6px 12px; margin:0; width:auto; box-shadow: none;" onclick="toggleAdminEditConfig()">✏️ Config</button>
-                                    <span id="txtRuntimeDays" style="background:#1e293b; color:#38bdf8; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; border:1px solid #334155;">-- Days</span>
-                                    <span style="cursor:pointer; color:#64748b; font-weight:bold; font-size:24px; user-select:none; line-height: 1;" onclick="toggleCredBox()" title="View Credentials">⋮</span>
+                                <div style="display:flex; gap:12px; align-items:center;">
+                                    <button class="btn-login" style="background:rgba(254, 202, 87, 0.8); color:#000; font-size:11px; padding:4px 8px; margin:0; width:auto;" onclick="toggleAdminEditConfig()">✏️ Edit Config</button>
+                                    <span id="txtRuntimeDays" style="background:rgba(0,210,255,0.15); color:#00d2ff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; border:1px solid rgba(0,210,255,0.3);">-- Days</span>
+                                    <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:20px; user-select:none;" onclick="toggleCredBox()" title="View Credentials">⋮</span>
                                 </div>
                             </div>
 
-                            <div id="adminEditConfigBox" style="display:none; background:#1e293b; padding:20px; border:1px solid #f59e0b; border-radius:12px; margin-top:16px; text-align:left;">
-                                <h4 style="color:#f59e0b; margin-top:0; font-size:14px; font-weight:600;">✏️ Edit Configuration</h4>
-                                <p style="font-size:12px; color:#94a3b8; margin-top:0; margin-bottom:16px;">Update deployed dates, assigned names, and hardware settings.</p>
+                            <div id="adminEditConfigBox" style="display:none; background:rgba(0,0,0,0.6); padding:15px; border:1px solid #feca57; border-radius:8px; margin-top:10px; text-align:left;">
+                                <h4 style="color:#feca57; margin-top:0; font-size:13px;">✏️ Edit Device Configuration</h4>
+                                <p style="font-size:11px; color:#aaa; margin-top:0;">Update deployed dates, assigned names, and hardware settings for this auto-provisioned machine.</p>
                                 
-                                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px;">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
                                     <div style="flex:1; min-width:140px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Assigned Name</label>
-                                        <input type="text" id="editNameInput" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;">
+                                        <label style="font-size:11px; color:#aaa;">Assigned Name</label>
+                                        <input type="text" id="editNameInput" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
                                     </div>
                                     <div style="flex:1; min-width:140px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Device Type</label>
-                                        <select id="editTypeInput" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;">
+                                        <label style="font-size:11px; color:#aaa;">Device Type</label>
+                                        <select id="editTypeInput" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
                                             <option value="Household">Household</option>
                                             <option value="Commercial">Commercial</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px;">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
                                     <div style="flex:1; min-width:140px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Rooftop Board</label>
-                                        <input type="text" id="editRooftopBoard" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;" placeholder="e.g. Arduino Nano">
+                                        <label style="font-size:11px; color:#aaa;">Rooftop Board</label>
+                                        <input type="text" id="editRooftopBoard" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="e.g. Arduino Nano">
                                     </div>
                                     <div style="flex:1; min-width:140px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Middleman Board</label>
-                                        <input type="text" id="editMiddlemanBoard" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;" placeholder="e.g. ESP32">
+                                        <label style="font-size:11px; color:#aaa;">Middleman Board</label>
+                                        <input type="text" id="editMiddlemanBoard" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="e.g. ESP32">
                                     </div>
                                 </div>
-                                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px;">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
                                     <div style="flex:1; min-width:140px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Deployed Date</label>
-                                        <input type="date" id="editDeployDate" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;">
+                                        <label style="font-size:11px; color:#aaa;">Deployed Date</label>
+                                        <input type="date" id="editDeployDate" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
                                     </div>
                                     <div style="flex:1; min-width:140px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Network Topology</label>
-                                        <select id="editUsesRepeater" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;">
+                                        <label style="font-size:11px; color:#aaa;">Network Topology</label>
+                                        <select id="editUsesRepeater" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;">
                                             <option value="No">Direct Link Only</option>
                                             <option value="Yes">Uses Middleman Repeater</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
                                     <div style="flex:1; min-width:90px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Radio Module</label>
-                                        <input type="text" id="editRadioTech" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;" placeholder="nRF24L01">
+                                        <label style="font-size:11px; color:#aaa;">Radio Module</label>
+                                        <input type="text" id="editRadioTech" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="nRF24L01">
                                     </div>
                                     <div style="flex:1; min-width:90px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Channel</label>
-                                        <input type="text" id="editRadioChannel" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;" placeholder="125">
+                                        <label style="font-size:11px; color:#aaa;">Channel</label>
+                                        <input type="text" id="editRadioChannel" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="125">
                                     </div>
                                     <div style="flex:1; min-width:90px;">
-                                        <label style="font-size:12px; color:#94a3b8; font-weight:500;">Data Rate</label>
-                                        <input type="text" id="editRadioRate" class="input-box" style="padding:10px; margin:6px 0 0 0; font-size:13px;" placeholder="250 KBPS">
+                                        <label style="font-size:11px; color:#aaa;">Data Rate</label>
+                                        <input type="text" id="editRadioRate" class="input-box" style="padding:6px; margin:2px 0; font-size:12px;" placeholder="250 KBPS">
                                     </div>
                                 </div>
-                                <button class="btn-login" style="background:#22c55e; color:white; padding:12px; font-size:14px; margin-top:0; box-shadow: none;" onclick="saveEditedConfig()">Save Changes to Database</button>
+                                <button class="btn-login" style="background:#2ed573; color:#000; padding:8px; font-size:13px; margin-top:5px;" onclick="saveEditedConfig()">Save Changes to Database</button>
                             </div>
 
-                            <div id="credentialsBox" style="display:none; margin-top:16px; padding:16px; background:#1e293b; border:1px solid #4ade80; border-radius:10px; font-size:14px; color:#cbd5e1; text-align: left;">
-                                <span style="color:#4ade80; font-weight:700; margin-bottom:8px; display:block;">User Credentials:</span>
-                                <strong>Email:</strong> <span id="credEmail" style="color:#fff; margin-left: 6px;">Not saved in DB</span><br>
-                                <div style="height: 6px;"></div>
-                                <strong>Password:</strong> <span id="credPass" style="color:#fff; margin-left: 6px;">Not saved in DB</span>
+                            <div id="credentialsBox" style="display:none; margin-top:10px; padding:12px; background:rgba(0,0,0,0.6); border:1px dashed #7bed9f; border-radius:6px; font-size:13px; color:#ccc; text-align: left;">
+                                <span style="color:#7bed9f; font-weight:bold; margin-bottom:5px; display:block;">Machine Linked To:</span>
+                                <strong>Email:</strong> <span id="credEmail" style="color:#fff;">Not saved in DB</span><br>
+                                <strong>Password:</strong> <span id="credPass" style="color:#fff;">Not saved in DB</span>
                             </div>
 
-                            <div style="display:flex; justify-content:space-between; font-size:13px; color:#94a3b8; padding-top:16px; border-top:1px solid #1e293b; margin-top:16px;">
-                                <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#f8fafc; font-weight: 600;">-- cm</strong></span>
-                                <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#38bdf8; font-weight: 600;">-- cm</strong></span>
-                                <span>Radio: <strong id="adminTxtRadio" style="color:#f59e0b; font-weight: 600;">--</strong></span>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1); margin-top:8px;">
+                                <span>Tank Depth: <strong id="adminTxtEmptyDist" style="color:#fff;">-- cm</strong></span>
+                                <span>Full Clearance: <strong id="adminTxtFullDist" style="color:#7bed9f;">-- cm</strong></span>
+                                <span>Radio: <strong id="adminTxtRadio" style="color:#feca57;">--</strong></span>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:13px; color:#94a3b8; padding-top:12px;">
-                                <span>Est. Range: <strong id="adminTxtDist" style="color:#f59e0b; font-weight: 600;">-- m</strong></span>
-                                <span>Signal: <strong id="adminTxtSignal" style="color:#22c55e; font-weight: 600;">N/A</strong></span>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Est. Range: <strong id="adminTxtDist" style="color:#feca57;">-- m</strong></span>
+                                <span>Signal: <strong id="adminTxtSignal" style="color:#7bed9f;">N/A</strong></span>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:13px; color:#94a3b8; padding-top:12px;">
-                                <span>Channel: <strong id="adminTxtChannel" style="color:#38bdf8; font-weight: 600;">--</strong></span>
-                                <span>Data Rate: <strong id="adminTxtDataRate" style="color:#38bdf8; font-weight: 600;">--</strong></span>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Channel: <strong id="adminTxtChannel" style="color:#00d2ff;">--</strong></span>
+                                <span>Data Rate: <strong id="adminTxtDataRate" style="color:#00d2ff;">--</strong></span>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:13px; color:#94a3b8; padding-top:12px;">
-                                <span>Network Config: <strong id="adminTxtTopology" style="color:#f59e0b; font-weight: 600;">--</strong></span>
-                                <span>Deployed: <strong id="adminTxtDeployDate" style="color:#cbd5e1; font-weight: 600;">--</strong></span>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Network Config: <strong id="adminTxtTopology" style="color:#feca57;">--</strong></span>
+                                <span>Deployed: <strong id="adminTxtDeployDate" style="color:#ccc;">--</strong></span>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:13px; color:#94a3b8; padding-top:12px;">
-                                <span>Rooftop: <strong id="adminTxtRooftopBoard" style="color:#38bdf8; font-weight: 600;">--</strong></span>
-                                <span>Middleman: <strong id="adminTxtMiddlemanBoard" style="color:#38bdf8; font-weight: 600;">--</strong></span>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Rooftop: <strong id="adminTxtRooftopBoard" style="color:#00d2ff;">--</strong></span>
+                                <span>Middleman: <strong id="adminTxtMiddlemanBoard" style="color:#00d2ff;">--</strong></span>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:13px; color:#94a3b8; padding-top:12px;">
-                                <span>Last OTA Update: <strong id="adminTxtLastOta" style="color:#f59e0b; font-weight: 600;">--</strong></span>
+                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                                <span>Last OTA Update: <strong id="adminTxtLastOta" style="color:#feca57;">--</strong></span>
                             </div>
                         </div>
 
-                        <div style="margin-top: 24px; background: #0f172a; border: 1px solid #1e293b; padding: 20px; border-radius: 12px;">
-                            <h3 style="text-align: left; margin-bottom: 12px; color: #f8fafc; font-size: 16px;">📏 Remote Calibration</h3>
-                            <p style="font-size:13px; color:#94a3b8; margin-top:0; margin-bottom: 20px;">Capture live sensor data to configure tank heights.</p>
+                        <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 10px; color: #7bed9f; font-size: 15px;">📏 Remote Auto-Calibration</h3>
+                            <p style="font-size:12px; color:#aaa; margin-top:0;">Capture live sensor data to automatically configure tank heights.</p>
                             
-                            <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:16px; border-radius:10px; margin-bottom:20px; border:1px solid #f59e0b;">
-                                <span style="font-size:14px; color:#cbd5e1; font-weight: 500;">Target Distance:</span>
-                                <span id="adminLiveRawDist" style="font-size:22px; font-weight:700; color:#f59e0b;">-- cm</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.6); padding:12px; border-radius:6px; margin-bottom:15px; border:1px dashed #feca57;">
+                                <span style="font-size:13px; color:#ccc;">Live Target Distance:</span>
+                                <span id="adminLiveRawDist" style="font-size:18px; font-weight:bold; color:#feca57;">-- cm</span>
                             </div>
                             
-                            <div style="display:flex; gap:16px;">
-                                <button class="btn-login" style="background:#ef4444; color:white; font-size:14px; padding:12px; flex:1; box-shadow: none;" onclick="calibrateTank('empty')">Set Empty (0%)</button>
-                                <button class="btn-login" style="background:#22c55e; color:white; font-size:14px; padding:12px; flex:1; box-shadow: none;" onclick="calibrateTank('full')">Set Full (100%)</button>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn-login" style="background:rgba(255, 71, 87, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('empty')">Set as Empty (0%)</button>
+                                <button class="btn-login" style="background:rgba(46, 213, 115, 0.8); color:white; font-size:13px; padding:10px; flex:1;" onclick="calibrateTank('full')">Set as Full (100%)</button>
                             </div>
 
-                            <hr style="border: 1px solid #1e293b; margin: 24px 0;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative; margin-bottom: 16px;">
-                                <h4 style="color:#38bdf8; margin:0; font-size:15px;">⚙️ Manual Override Settings</h4>
-                                <span style="cursor:pointer; color:#64748b; font-weight:bold; font-size:24px; user-select:none; line-height: 1;" onclick="toggleAdminOverrideBox()" title="Manual Config">⋮</span>
+                            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
+                                <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">⚙️ Manual Override & Network Config</h4>
+                                <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none; margin-top:-10px;" onclick="toggleAdminOverrideBox()" title="Manual Config">⋮</span>
                             </div>
 
                             <div id="adminOverrideBox" style="display:none; width:100%;">
-                                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom: 20px;">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap;">
                                     <div style="flex:1; min-width:140px;">
-                                        <label style="color:#94a3b8; font-size:12px; font-weight: 500;">Empty Tank Depth (cm)</label>
-                                        <input type="number" id="adminEmptyInput" class="input-box" style="padding:10px; margin:6px 0 0 0;" placeholder="e.g., 150">
+                                        <label style="color:#aaa; font-size:11px;">Empty Tank Depth (cm)</label>
+                                        <input type="number" id="adminEmptyInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 150">
                                     </div>
                                     <div style="flex:1; min-width:140px;">
-                                        <label style="color:#94a3b8; font-size:12px; font-weight: 500;">Full Clearance (cm)</label>
-                                        <input type="number" id="adminFullInput" class="input-box" style="padding:10px; margin:6px 0 0 0;" placeholder="e.g., 15">
+                                        <label style="color:#aaa; font-size:11px;">Full Clearance (cm)</label>
+                                        <input type="number" id="adminFullInput" class="input-box" style="padding:8px; margin:5px 0;" placeholder="e.g., 15">
                                     </div>
                                 </div>
 
-                                <p style="font-size:12px; color:#64748b; margin-top:0; margin-bottom:12px;">Update WiFi Slots (Passwords hidden)</p>
+                                <p style="font-size:11px; color:#aaa; margin-top:10px; margin-bottom:5px;">Update WiFi Slots (Passwords are hidden from telemetry for security)</p>
                                 
-                                <div style="background:#1e293b; padding:12px 16px; border-radius:10px; margin-bottom:12px; border:1px solid #334155;">
-                                    <strong style="color:#38bdf8; font-size:12px;">Slot 1:</strong> <span id="admin_slot1_name" style="color:#f8fafc; font-size:12px; margin-left:8px;">--</span>
-                                    <div style="display:flex; gap:12px; margin-top:10px;">
-                                        <input type="text" id="adminWifiSSID_1" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New SSID">
-                                        <input type="password" id="adminWifiPass_1" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New Pass">
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 1:</strong> <span id="admin_slot1_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_1" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
-                                <div style="background:#1e293b; padding:12px 16px; border-radius:10px; margin-bottom:12px; border:1px solid #334155;">
-                                    <strong style="color:#38bdf8; font-size:12px;">Slot 2:</strong> <span id="admin_slot2_name" style="color:#f8fafc; font-size:12px; margin-left:8px;">--</span>
-                                    <div style="display:flex; gap:12px; margin-top:10px;">
-                                        <input type="text" id="adminWifiSSID_2" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New SSID">
-                                        <input type="password" id="adminWifiPass_2" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New Pass">
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 2:</strong> <span id="admin_slot2_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_2" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
-                                <div style="background:#1e293b; padding:12px 16px; border-radius:10px; margin-bottom:12px; border:1px solid #334155;">
-                                    <strong style="color:#38bdf8; font-size:12px;">Slot 3:</strong> <span id="admin_slot3_name" style="color:#f8fafc; font-size:12px; margin-left:8px;">--</span>
-                                    <div style="display:flex; gap:12px; margin-top:10px;">
-                                        <input type="text" id="adminWifiSSID_3" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New SSID">
-                                        <input type="password" id="adminWifiPass_3" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New Pass">
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 3:</strong> <span id="admin_slot3_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_3" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
-                                <div style="background:#1e293b; padding:12px 16px; border-radius:10px; margin-bottom:12px; border:1px solid #334155;">
-                                    <strong style="color:#38bdf8; font-size:12px;">Slot 4:</strong> <span id="admin_slot4_name" style="color:#f8fafc; font-size:12px; margin-left:8px;">--</span>
-                                    <div style="display:flex; gap:12px; margin-top:10px;">
-                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New SSID">
-                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:10px; margin:0; flex:1; font-size:13px;" placeholder="New Pass">
+                                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
+                                    <strong style="color:#00d2ff; font-size:11px;">Slot 4:</strong> <span id="admin_slot4_name" style="color:#fff; font-size:11px;">--</span>
+                                    <div style="display:flex; gap:5px; margin-top:5px;">
+                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
 
-                                <button class="btn-login" style="background:#0284c7; color:#fff; font-size:14px; padding:14px; margin-top:16px; box-shadow: none;" onclick="saveAdminManualSettings()">Push Manual Settings</button>
+                                <button class="btn-login" style="background:#00d2ff; color:#000; font-size:13px; padding:10px; margin-top:10px;" onclick="saveAdminManualSettings()">Push Manual Settings</button>
                             </div>
                         </div>
                         
-                        <div class="terminals-wrapper" style="margin-top: 24px;">
+                        <div class="terminals-wrapper">
                             <div class="terminal-column" style="flex: 1.5;">
-                                <span style="color:#4ade80; font-size:12px; font-weight:600; margin-bottom:8px; text-align:left; display:block;">ESP32 (HUB) LOGS</span>
-                                <div id="logConsole" class="log-box" style="text-align:left; height: 140px;">Awaiting Core Stream...</div>
+                                <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ESP32 (HUB)</span>
+                                <div id="logConsole" class="log-box" style="text-align:left; height: 120px;">Awaiting Core Stream...</div>
                             </div>
                             
                             <div class="terminal-column" style="flex: 1.5;">
-                                <span style="color:#38bdf8; font-size:12px; font-weight:600; margin-bottom:8px; text-align:left; display:block;">NANO (TANK) LOGS</span>
-                                <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left; height: 140px;">Awaiting Payload Link...</div>
+                                <span style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">NANO (TANK)</span>
+                                <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left; height: 120px;">Awaiting Payload Link...</div>
                             </div>
                         </div>
                         
-                        <div style="margin-top: 16px; width: 100%;">
-                            <button class="btn-login" style="background:transparent; color:#38bdf8; border: 1px dashed #38bdf8; font-size:13px; padding:10px; margin-bottom:12px; box-shadow: none;" onclick="toggleHwPanel()">⚙️ Show Hardware Diagnostics</button>
-                            <div id="hwTerminalPanel" style="display:none; background: #020617; padding: 16px; border-radius: 10px; font-family: monospace; font-size: 12px; color: #f59e0b; text-align:left; border: 1px solid #1e293b; white-space: pre-wrap;">Awaiting Cloud Sync...</div>
+                        <div style="margin-top: 10px; width: 100%;">
+                            <button class="btn-login" style="background:rgba(255, 255, 255, 0.1); color:#00d2ff; border: 1px dashed #00d2ff; font-size:13px; padding:8px; margin-bottom:5px;" onclick="toggleHwPanel()">⚙️ Show Hardware Diagnostics</button>
+                            <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
+                        <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
+                            <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                        </div>
                     </div>
 
-                    <hr style="border: 1px solid #1e293b; margin: 32px 0 24px 0;">
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
 
-                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative; margin-bottom: 16px;">
-                        <h3 style="color: #ef4444; margin:0; font-size: 18px;">OTA Firmware Update</h3>
-                        <span style="cursor:pointer; color:#64748b; font-weight:bold; font-size:24px; user-select:none; line-height: 1;" onclick="toggleLinkCustomerBox()" title="Advanced Tools">⋮</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative;">
+                        <h3 style="color: #ff6b81; margin:0; text-align:left;">OTA Firmware Update</h3>
+                        <span style="cursor:pointer; color:#00d2ff; font-weight:bold; font-size:24px; user-select:none;" onclick="toggleLinkCustomerBox()" title="Advanced Tools">⋮</span>
                     </div>
-                    <input type="text" id="otaUrlInput" class="input-box" value="https://raw.githubusercontent.com/homeiot333-bit/OTA-UPDATE/main/sketch_jul5a.ino.bin" placeholder="Enter OTA .bin URL" style="margin-top:0;">
-                    <button class="btn-danger" style="margin-top: 16px;" onclick="triggerOTA()">Push Remote Update ⚠️</button>
+                    <input type="text" id="otaUrlInput" class="input-box" value="https://raw.githubusercontent.com/homeiot333-bit/OTA-UPDATE/main/sketch_jul5a.ino.bin" placeholder="Enter OTA .bin URL" style="margin-top:15px;">
+                    <button class="btn-danger" onclick="triggerOTA()">Push Remote Update ⚠️</button>
 
                     <div id="linkCustomerBox" style="display:none; width:100%; text-align: left;">
-                        <hr style="border: 1px solid #1e293b; margin: 32px 0 24px 0;">
-                        <h3 style="color: #4ade80; margin-top:0; font-size: 18px;">Link Customer & Config</h3>
+                        <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                        <h3 style="color: #7bed9f; margin-top:0; text-align:left;">Link Customer & Config Device</h3>
+                        <input type="text" id="assignUidInput" class="input-box" placeholder="1. Paste Customer UID Here">
+                        <input type="text" id="assignDevInput" class="input-box" placeholder="2. e.g., a4e1 (MAC)">
                         
-                        <div style="display:flex; flex-direction:column; gap: 12px; margin-top: 20px;">
-                            <input type="text" id="assignUidInput" class="input-box" style="margin:0;" placeholder="1. Paste Customer UID Here">
-                            <input type="text" id="assignDevInput" class="input-box" style="margin:0;" placeholder="2. e.g., a4e1 (MAC)">
-                            
-                            <select id="assignTypeInput" class="input-box" style="margin:0;">
-                                <option value="Household">House Hold</option>
-                                <option value="Commercial">Commercial</option>
-                            </select>
-                            
-                            <input type="text" id="assignNameInput" class="input-box" style="margin:0;" placeholder="3. Name (Family Name / Org Name)">
-                            
-                            <input type="email" id="assignEmailInput" class="input-box" style="margin:0;" placeholder="4. Customer Email (Optional Admin Ref)">
-                            <input type="text" id="assignPassInput" class="input-box" style="margin:0;" placeholder="5. Customer Password (Optional Admin Ref)">
-                            
-                            <input type="text" id="assignRadioTech" class="input-box" style="margin:0;" placeholder="6. RF Module (Manual Override)">
-                            <input type="text" id="assignRadioChannel" class="input-box" style="margin:0;" placeholder="7. RF Channel (Manual Override)">
-                            <input type="text" id="assignRadioRate" class="input-box" style="margin:0;" placeholder="8. Data Rate (Manual Override)">
-                            
-                            <div style="margin-top: 8px;">
-                                <label style="color:#94a3b8; font-size:12px; font-weight:500;">9. Network Topology:</label>
-                                <select id="assignUsesRepeater" class="input-box" style="margin-top: 6px;">
-                                    <option value="Yes">Uses Middleman Repeater</option>
-                                    <option value="No">Direct Link Only</option>
-                                </select>
-                            </div>
-                            
-                            <div style="margin-top: 8px;">
-                                <label style="color:#94a3b8; font-size:12px; font-weight:500;">10. Device Deployed Date:</label>
-                                <input type="date" id="assignDeployDate" class="input-box" style="margin-top: 6px;">
-                            </div>
+                        <select id="assignTypeInput" class="input-box">
+                            <option value="Household">House Hold</option>
+                            <option value="Commercial">Commercial</option>
+                        </select>
+                        
+                        <input type="text" id="assignNameInput" class="input-box" placeholder="3. Name (Family Name / Org Name)">
+                        
+                        <input type="email" id="assignEmailInput" class="input-box" placeholder="4. Customer Email (Optional Admin Ref)">
+                        <input type="text" id="assignPassInput" class="input-box" placeholder="5. Customer Password (Optional Admin Ref)">
+                        
+                        <input type="text" id="assignRadioTech" class="input-box" placeholder="6. RF Module (Manual Override)">
+                        <input type="text" id="assignRadioChannel" class="input-box" placeholder="7. RF Channel (Manual Override)">
+                        <input type="text" id="assignRadioRate" class="input-box" placeholder="8. Data Rate (Manual Override)">
+                        
+                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">9. Network Topology:</label>
+                        <select id="assignUsesRepeater" class="input-box">
+                            <option value="Yes">Uses Middleman Repeater</option>
+                            <option value="No">Direct Link Only</option>
+                        </select>
+                        
+                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">10. Device Deployed Date:</label>
+                        <input type="date" id="assignDeployDate" class="input-box">
 
-                            <div style="margin-top: 8px;">
-                                <label style="color:#94a3b8; font-size:12px; font-weight:500;">11. Hardware Infrastructure:</label>
-                                <input type="text" id="assignRooftopBoard" class="input-box" style="margin-top: 6px;" placeholder="Rooftop Board (e.g., Arduino Nano)">
-                                <input type="text" id="assignMiddlemanBoard" class="input-box" style="margin-top: 10px;" placeholder="Middleman Board (e.g., ESP32)">
-                            </div>
-                        </div>
+                        <label style="color:#ccc; font-size:12px; margin-top:10px; display:block;">11. Hardware Infrastructure:</label>
+                        <input type="text" id="assignRooftopBoard" class="input-box" placeholder="Rooftop Board (e.g., Arduino Nano)">
+                        <input type="text" id="assignMiddlemanBoard" class="input-box" placeholder="Middleman Board (e.g., ESP32)">
 
-                        <button class="btn-login" style="background:#22c55e; color:white; margin-top:24px; box-shadow: none;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
+                        <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="assignDeviceToUser()">Save Device Config 🔗</button>
                     </div>
 
-                    <hr style="border: 1px solid #1e293b; margin: 32px 0 24px 0;">
-                    <button class="btn-danger" style="background:transparent; border:1px dashed #ef4444; color: #ef4444; margin-top:0; box-shadow: none;" onclick="deleteDeviceProfile()">🗑️ Permanently Delete Device Data</button>
+                    <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                    <button class="btn-danger" style="background:rgba(255, 71, 87, 0.4); border:1px solid #ff4757; margin-top:0px;" onclick="deleteDeviceProfile()">🗑️ Permanently Delete Device Data</button>
                     
                 </div>
             </div>
@@ -1676,7 +1650,7 @@
                 document.getElementById('loggedInEmail').innerText = user.email;
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
-                    document.getElementById('topBarTitle').innerHTML = 'Admin Dashboard <span id="assignedNameDisplay" style="color:#38bdf8; font-size:16px; font-weight:600; margin-left:12px;"></span>';
+                    document.getElementById('topBarTitle').innerHTML = 'Admin Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>';
                     document.getElementById('creditText').innerHTML = "This is admin portal used by <strong>ANISH.</strong>";
                     
                     document.getElementById('customerMarquee').style.display = 'none';
@@ -1686,15 +1660,13 @@
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
                     
-                    document.getElementById('adminLinkedDevicesCard').style.display = 'block';
-                    
                     database.ref('/AdminConfig/MasterPIN').on('value', (s) => {
                         if (s.exists()) window.adminPin = s.val();
                     });
 
                     startAdminInboxListener(); 
                 } else {
-                    document.getElementById('topBarTitle').innerHTML = 'Dashboard <span id="assignedNameDisplay" style="color:#38bdf8; font-size:16px; font-weight:600; margin-left:12px;"></span>';
+                    document.getElementById('topBarTitle').innerHTML = 'Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>';
                     document.getElementById('creditText').innerHTML = "This system is developed by <strong>ANISH.</strong>";
                     
                     document.getElementById('customerMarquee').style.display = 'block';
@@ -1703,8 +1675,6 @@
                     
                     document.getElementById('adminCommandCenter').style.display = 'none';
                     document.getElementById('mainDashboardView').style.display = 'flex';
-                    
-                    document.getElementById('adminLinkedDevicesCard').style.display = 'none'; 
                     
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
@@ -1741,7 +1711,6 @@
                     database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
-                    database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -1777,24 +1746,24 @@
                         if(devData.mobileLogins) {
                             for(let key in devData.mobileLogins) {
                                 mobileCount++;
-                                mobileList += `<div style="font-size: 11px; color: #38bdf8; padding-left: 10px; margin-top:4px;">📱 ${devData.mobileLogins[key].modelName} <span style="color:#64748b; font-size:10px;">(Last: ${devData.mobileLogins[key].lastSeen})</span></div>`;
+                                mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${devData.mobileLogins[key].modelName} <span style="color:#666; font-size:10px;">(Last: ${devData.mobileLogins[key].lastSeen})</span></div>`;
                             }
                         }
-                        if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #64748b; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
+                        if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
 
-                        listHtml += `<div style="padding: 14px; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; margin-bottom: 12px;">
+                        listHtml += `<div style="padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
-                                    <strong style="color:#f8fafc; font-size:14px;">${child.key}</strong><br>
-                                    <span style="color:#94a3b8; font-size:12px;">${name}</span>
+                                    <strong style="color:#00d2ff; font-size:14px;">${child.key}</strong><br>
+                                    <span style="color:#aaa; font-size:11px;">${name}</span>
                                 </div>
                                 <div style="text-align:right;">
-                                    <span style="color:#38bdf8; font-size:12px; font-weight:600;">${model}</span><br>
+                                    <span style="color:#feca57; font-size:12px; font-weight:bold;">${model}</span><br>
                                     <span style="font-size:11px;">${status}</span>
                                 </div>
                             </div>
-                            <div style="border-top: 1px solid #1e293b; margin-top: 12px; padding-top: 10px;">
-                                <span style="color:#4ade80; font-size:11px; font-weight:600;">Logged-in Devices (${mobileCount}):</span>
+                            <div style="border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 10px; padding-top: 8px;">
+                                <span style="color:#7bed9f; font-size:11px; font-weight:bold;">Logged-in Devices (${mobileCount}):</span>
                                 ${mobileList}
                             </div>
                         </div>`;
@@ -1805,9 +1774,10 @@
                 if(count === 0) {
                     finalHtml = "No devices found.";
                 } else {
-                    finalHtml = `<div style="margin-bottom:16px; font-weight:600; color:#f8fafc; font-size: 14px;">Total Connected Devices: <span style="color:#4ade80; font-size:18px;">${count}</span></div>` + listHtml;
+                    finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
                 
+                // Only inject into the Admin list to prevent permissions errors
                 const adminList = document.querySelector('#adminCommandCenter .linked-devices-list');
                 if(adminList) adminList.innerHTML = finalHtml;
             });
@@ -1988,7 +1958,7 @@
                 
                 hasDevices = true;
                 const data = adminInboxData[devId];
-                let color = "#22c55e"; 
+                let color = "#2ed573"; 
                 let displayStatus = data.status || "UNKNOWN STATUS";
                 let displayMsg = data.message || "No message available.";
                 let isDead = false;
@@ -2000,30 +1970,29 @@
                 }
 
                 if (isDead) {
-                    color = "#ef4444"; 
+                    color = "#ff4757"; 
                     displayStatus = "❌ OFFLINE";
                     displayMsg = "Machine is unresponsive.";
                     if (devId === currentDeviceId) {
                         currentConnectedDeviceFaultMessage = `Machine [${devId}] went completely Offline. Power supply or connection lost Momently.`;
                     }
                 } else if(displayStatus.includes("FAULT") || displayStatus.includes("ERROR")) {
-                    color = "#ef4444";
+                    color = "#ff4757";
                     if (devId === currentDeviceId) {
                         currentConnectedDeviceFaultMessage = `[${devId}] ${displayStatus}: ${displayMsg}`;
                     }
                 } else if(displayStatus.includes("OTA SUCCESS")) {
-                    color = "#f59e0b";
+                    color = "#feca57";
                 } else if(displayStatus.includes("OTA")) {
-                    color = "#38bdf8";
+                    color = "#00d2ff";
                 }
 
                 let formattedName = assignedNameStrRaw ? `(${assignedNameStrRaw})` : "";
 
-                htmlStr += `<div class="inbox-card" style="border-left: 4px solid ${color};">
-                    <div style="position:absolute; top:12px; right:12px; cursor:pointer; font-size:20px; color:#64748b; font-weight:bold; user-select:none; line-height: 1;" onclick="openInboxMenu('${devId}', event)" title="Device Options">⋮</div>
-                    <strong style="color:${color}; font-size: 14px;">${devId} <span style="color:#f8fafc; font-weight: normal;">${formattedName}</span></strong> <span style="font-size:11px; color:#64748b;">[${devType}]</span>
-                    <div style="margin-top:8px; font-weight:600; color:#f8fafc;">${displayStatus}</div>
-                    <span style="display:block; margin-top:4px; color:#94a3b8; width: 90%; font-size: 12px;">${displayMsg}</span>
+                htmlStr += `<div class="inbox-card" style="border-left: 4px solid ${color}; position:relative;">
+                    <div style="position:absolute; top:8px; right:10px; cursor:pointer; font-size:18px; color:#00d2ff; font-weight:bold; user-select:none;" onclick="openInboxMenu('${devId}', event)" title="Device Options">⋮</div>
+                    <strong style="color:${color}">${devId} <span style="color:#fff;">${formattedName}</span></strong> <span style="font-size:10px; color:#aaa;">[${devType}]</span> - <span style="font-weight:bold; color:white;">${displayStatus}</span>
+                    <span style="display:block; margin-top:4px; color:#ccc; width: 90%;">${displayMsg}</span>
                 </div>`;
             }
 
@@ -2042,7 +2011,7 @@
             if(hasDevices) {
                 inboxDiv.innerHTML = htmlStr;
             } else {
-                inboxDiv.innerHTML = '<div style="text-align:left; color:#64748b; font-size:13px; margin-top:20px;">No devices matched or no active alerts.</div>';
+                inboxDiv.innerHTML = '<div style="text-align:left; color:#ccc; font-size:13px; margin-top:20px;">No devices matched or no active alerts.</div>';
             }
         }
 
@@ -2119,7 +2088,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                 database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
-                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
+                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off(); // Clean up new listener
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -2164,7 +2133,7 @@
             
             if (document.getElementById('dailyUsageText')) {
                 document.getElementById('dailyUsageText').innerText = '0.0%';
-                document.getElementById('dailyUsageText').style.color = '#38bdf8';
+                document.getElementById('dailyUsageText').style.color = '#00d2ff';
             }
             
             document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = 'Scanning account data...');
@@ -2199,7 +2168,7 @@
             btn.style.opacity = "1";
             
             const badge = document.getElementById('connStatus');
-            badge.style.background = "#f59e0b";
+            badge.style.background = "#ffa502";
             badge.innerText = "CONNECTING...";
             
             lastHeartbeatTime = Date.now(); 
@@ -2432,6 +2401,7 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
+            // --- NEW FIX: SHOW CUSTOMER LOGIN DEVICES ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
                 const currentUser = firebase.auth().currentUser;
                 const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
@@ -2442,11 +2412,11 @@
                     snapshot.forEach(child => {
                         mobileCount++;
                         let loginData = child.val();
-                        mobileList += `<div style="font-size: 11px; color: #38bdf8; padding-left: 10px; margin-top:4px;">📱 ${loginData.modelName} <span style="color:#64748b; font-size:10px;">(Last: ${loginData.lastSeen})</span></div>`;
+                        mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${loginData.modelName} <span style="color:#666; font-size:10px;">(Last: ${loginData.lastSeen})</span></div>`;
                     });
-                    if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #64748b; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
+                    if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
                     
-                    let finalHtml = `<div style="margin-bottom:12px; font-weight:600; color:#f8fafc; font-size: 14px;">Active Logins: <span style="color:#4ade80; font-size:18px;">${mobileCount}</span></div>` + mobileList;
+                    let finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Active Logins: <span style="color:#7bed9f; font-size:18px;">${mobileCount}</span></div>` + mobileList;
                     
                     const customerList = document.querySelector('#mainDashboardView .linked-devices-list');
                     if (customerList) customerList.innerHTML = finalHtml;
@@ -2554,14 +2524,14 @@
                 if (usageTextEl) {
                     usageTextEl.innerText = localDailyUsage.toFixed(1) + '%';
                     
-                    let usageColor = "#22c55e"; 
+                    let usageColor = "#2ed573"; 
                     let popupMsg = `💧 Good job! Today's water usage is low: ${localDailyUsage.toFixed(1)}%`;
                     
                     if (localDailyUsage >= 5.0 && localDailyUsage <= 7.0) {
-                        usageColor = "#f59e0b"; 
+                        usageColor = "#feca57"; 
                         popupMsg = `⚠️ Moderate water usage today: ${localDailyUsage.toFixed(1)}%`;
                     } else if (localDailyUsage > 7.0) {
-                        usageColor = "#ef4444"; 
+                        usageColor = "#ff4757"; 
                         popupMsg = `🚨 High water usage warning: ${localDailyUsage.toFixed(1)}%!`;
                     }
                     
@@ -2612,7 +2582,7 @@
                         if (isOtaMode || pendingOtaDevice === currentDeviceId) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             const badge = document.getElementById('connStatus');
-                            badge.style.background = "#38bdf8";
+                            badge.style.background = "#00d2ff";
                             badge.innerText = "OTA DOWNLOADING...";
                             
                             const btn = document.getElementById('pumpToggleBtn');
@@ -2625,7 +2595,7 @@
                         } else {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             const badge = document.getElementById('connStatus');
-                            badge.style.background = "#ef4444";
+                            badge.style.background = "#ff4757";
                             badge.innerText = "OFFLINE";
                             
                             const btn = document.getElementById('pumpToggleBtn');
@@ -2663,7 +2633,6 @@
                         
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
-                            localPumpCommandTimeout = null;
                             updatePumpButtonUI();
                         }, 7000);
                     }
@@ -2725,6 +2694,8 @@
                         if (currentPct < lastWaterPercent && !currentPumpState) {
                             let drop = lastWaterPercent - currentPct;
                             
+                            // --- FIX: NOISE RESISTANT MATH ---
+                            // 1.5% threshold blocks false "ripples" from logging as fake water usage
                             if (drop > 1.5 && drop < 30) { 
                                 let todayDate = new Date().toDateString();
                                 database.ref(basePath + '/usageStats/today').once('value').then(s => {
@@ -2792,7 +2763,7 @@
                     const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
                     
                     if(state.fault) {
-                        badge.style.background = "#ef4444";
+                        badge.style.background = "#ff4757";
                         badge.innerText = "LINK FAULT";
                         
                         if(isCustomer) {
@@ -2802,10 +2773,10 @@
                         }
                     } else {
                         if (isOtaMode || pendingOtaDevice === currentDeviceId) {
-                            badge.style.background = "#38bdf8";
+                            badge.style.background = "#00d2ff";
                             badge.innerText = "OTA DOWNLOADING...";
                         } else {
-                            badge.style.background = "#22c55e";
+                            badge.style.background = "#2ed573";
                             badge.innerText = "ONLINE";
                         }
                         
@@ -2876,9 +2847,6 @@
             
             const newTrigger = Date.now(); 
 
-            lastCommandedState = desiredState;
-            lastSeenControlTrigger = newTrigger;
-
             database.ref('/Devices/' + currentDeviceId + '/control').update({
                 forceState: desiredState,
                 triggerId: newTrigger
@@ -2887,9 +2855,8 @@
             if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
             localPumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine) return;
-                localPumpCommandTimeout = null;
                 updatePumpButtonUI();
-                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please check device power or connection.");
+                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please try again.");
             }, 7000);
         }
 
