@@ -26,14 +26,14 @@
             overflow-x: hidden; 
         }
 
-        /* --- NEW: Robot Working Animation Overlay --- */
+        /* --- NEW: Active Robot Scanning Effect --- */
         body::after {
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100%; height: 200%;
             background: linear-gradient(to bottom, transparent, rgba(0, 210, 255, 0.05) 50%, transparent);
-            background-size: 100% 15px;
-            animation: robotScan 6s linear infinite;
+            background-size: 100% 12px;
+            animation: robotScan 7s linear infinite;
             pointer-events: none;
             z-index: 9999;
             mix-blend-mode: overlay;
@@ -460,32 +460,47 @@
             100% { transform: scale(2.8) translateY(2px); opacity: 0; }
         }
 
-        /* --- NEW: Fish Animations --- */
-        .fish {
+        /* --- NEW: Realistic Natural Fish Animation --- */
+        .fish-container {
             position: absolute;
-            font-size: 16px;
-            opacity: 0.85;
             z-index: 6;
-            white-space: nowrap;
+            pointer-events: none;
+        }
+        
+        .fish-body {
+            display: inline-block;
+            font-size: 16px;
             filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+            animation: fishWiggle 0.3s ease-in-out infinite alternate;
         }
-        .fish1 { top: 30%; animation: swimRight 14s linear infinite; }
-        .fish2 { top: 60%; animation: swimLeft 18s linear infinite; font-size: 12px; }
-        .fish3 { top: 85%; animation: swimRight 12s linear infinite reverse; font-size: 14px; transform: scaleX(-1); }
 
-        @keyframes swimRight {
-            0% { left: -15%; transform: scaleX(1); }
-            49% { left: 115%; transform: scaleX(1); }
-            50% { left: 115%; transform: scaleX(-1); }
-            99% { left: -15%; transform: scaleX(-1); }
-            100% { left: -15%; transform: scaleX(1); }
+        .fish1 { top: 30%; animation: swimPathRight 16s ease-in-out infinite; }
+        .fish2 { top: 60%; animation: swimPathLeft 20s ease-in-out infinite; font-size: 13px; }
+        .fish3 { top: 85%; animation: swimPathRight 14s ease-in-out infinite reverse; font-size: 15px; }
+
+        @keyframes fishWiggle {
+            0% { transform: scaleY(0.9) skewY(-5deg); }
+            100% { transform: scaleY(1.1) skewY(5deg); }
         }
-        @keyframes swimLeft {
-            0% { right: -15%; transform: scaleX(-1); }
-            49% { right: 115%; transform: scaleX(-1); }
-            50% { right: 115%; transform: scaleX(1); }
-            99% { right: -15%; transform: scaleX(1); }
-            100% { right: -15%; transform: scaleX(-1); }
+
+        @keyframes swimPathRight {
+            0%   { left: -20%; transform: scaleX(1) translateY(0); }
+            25%  { transform: scaleX(1) translateY(-10px); }
+            49%  { left: 115%; transform: scaleX(1) translateY(5px); }
+            50%  { left: 115%; transform: scaleX(-1) translateY(5px); }
+            75%  { transform: scaleX(-1) translateY(15px); }
+            99%  { left: -20%; transform: scaleX(-1) translateY(0); }
+            100% { left: -20%; transform: scaleX(1) translateY(0); }
+        }
+
+        @keyframes swimPathLeft {
+            0%   { right: -20%; transform: scaleX(-1) translateY(0); }
+            25%  { transform: scaleX(-1) translateY(10px); }
+            49%  { right: 115%; transform: scaleX(-1) translateY(-5px); }
+            50%  { right: 115%; transform: scaleX(1) translateY(-5px); }
+            75%  { transform: scaleX(1) translateY(-15px); }
+            99%  { right: -20%; transform: scaleX(1) translateY(0); }
+            100% { right: -20%; transform: scaleX(-1) translateY(0); }
         }
 
         .water-text { 
@@ -981,19 +996,19 @@
                         <div class="tank-wrapper">
                             <div class="tank-lid-handle"></div>
                             <div class="tank-lid"></div>
-                            <div class="tank-top-ellipse"></div> 
-                            <div class="tank-body">
+                            <div class="tank-top-ellipse"></div> <div class="tank-body">
                                 <div class="tank-pipe-int"></div>
                                 
                                 <div class="waterfall"></div>
                                 
                                 <div id="waterLevelFill" class="water-fill" style="height: 0%;">
                                     <div class="wave"></div>
-                                    <div class="dynamic-splash"></div> 
-                                    <!-- --- NEW: Fish --- -->
-                                    <div class="fish fish1">🐠</div>
-                                    <div class="fish fish2">🐟</div>
-                                    <div class="fish fish3">🐡</div>
+                                    <div class="dynamic-splash"></div>
+                                    
+                                    <!-- --- NEW: Realistic Fish Animation Elements --- -->
+                                    <div class="fish-container fish1"><div class="fish-body">🐠</div></div>
+                                    <div class="fish-container fish2"><div class="fish-body">🐟</div></div>
+                                    <div class="fish-container fish3"><div class="fish-body">🐡</div></div>
                                 </div>
                                 
                                 <div id="waterLevelText" class="water-text">--%</div>
@@ -1336,22 +1351,40 @@
 
     <script>
         // --- NEW: Helper function to safely format hardware logs ---
-        function formatHwLog(logStr) {
-            if (!logStr) return "";
-            let lines = logStr.split('\n');
+        const globalLogTimestamps = {};
+
+        function processAndFormatLog(logText, isHardware = false) {
+            if (!logText) return "";
+            let lines = logText.split('\n');
+            let formattedOutput = [];
+            
             for (let i = 0; i < lines.length; i++) {
-                if (lines[i].includes("Tank Nano:") || lines[i].includes("Middleman:") || lines[i].includes("ESP Hub:")) {
-                    if (lines[i].includes("OK")) {
-                        lines[i] = `<span style="color:#2ed573;">${lines[i]} ✅</span>`;
-                    } else {
-                        lines[i] = `<span style="color:#ff4757;">${lines[i]} ❌</span>`;
+                let line = lines[i].trim();
+                if (!line) continue;
+                
+                // If this exact string has never been seen before, assign it the EXACT time it arrived
+                if (!globalLogTimestamps[line]) {
+                    globalLogTimestamps[line] = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                }
+                let ts = globalLogTimestamps[line];
+                
+                let coloredLine = line;
+                if (isHardware) {
+                    if (coloredLine.includes("Tank Nano:") || coloredLine.includes("Middleman:") || coloredLine.includes("ESP Hub:")) {
+                        if (coloredLine.includes("OK")) {
+                            coloredLine = `<span style="color:#2ed573;">${coloredLine} ✅</span>`;
+                        } else {
+                            coloredLine = `<span style="color:#ff4757;">${coloredLine} ❌</span>`;
+                        }
+                    }
+                    if (coloredLine.includes("[Echo Active]")) {
+                        coloredLine = coloredLine.replace("[Echo Active]", "[Echo Active] 📡");
                     }
                 }
-                if (lines[i].includes("[Echo Active]")) {
-                    lines[i] = lines[i].replace("[Echo Active]", "[Echo Active] 📡");
-                }
+
+                formattedOutput.push(`<div style="cursor:pointer; display:block; width:100%; margin-bottom:4px;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${coloredLine}<span class="ts" style="display:none; color:#888; margin-left:8px; font-size:10px;">[${ts}]</span></div>`);
             }
-            return lines.join('\n');
+            return formattedOutput.join('');
         }
 
         function getMobileDeviceModel() {
@@ -2801,23 +2834,17 @@
                             if(espLogHistory.length > 5) espLogHistory.shift(); 
                         }
                         const logBox = document.getElementById('logConsole');
-                        logBox.innerHTML = espLogHistory.map(item => `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${item.text}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${item.time}]</span></div>`).join('\n\n-----------------\n\n');
+                        logBox.innerHTML = espLogHistory.map(item => `<div style="cursor:pointer; display:block; width:100%; margin-bottom:4px;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${item.text}<span class="ts" style="display:none; color:#888; margin-left:8px; font-size:10px;">[${item.time}]</span></div>`).join('');
                         logBox.scrollTop = logBox.scrollHeight; 
                     }
                     
                     if(data.nanoLog) {
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        const nanoBox = document.getElementById('nanoLogConsole');
-                        if (nanoBox.getAttribute('data-last') !== cleanNanoLog) {
-                            let timeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                            nanoBox.setAttribute('data-time', timeStr);
-                            nanoBox.setAttribute('data-last', cleanNanoLog);
-                        }
-                        nanoBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${cleanNanoLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${nanoBox.getAttribute('data-time')}]</span></div>`;
+                        document.getElementById('nanoLogConsole').innerHTML = processAndFormatLog(cleanNanoLog, false);
                     }
 
                     if(data.hardwareLog) {
-                        let formattedHwLog = formatHwLog(data.hardwareLog); // --- NEW: Applies formatting ---
+                        let formattedHwLog = formatHwLog(data.hardwareLog);
                         
                         const hwBox = document.getElementById('hwTerminalPanel');
                         if (hwBox) {
