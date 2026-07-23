@@ -25,6 +25,23 @@
             box-sizing: border-box;
             overflow-x: hidden; 
         }
+
+        /* --- NEW: Robot Working Animation Overlay --- */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 200%;
+            background: linear-gradient(to bottom, transparent, rgba(0, 210, 255, 0.05) 50%, transparent);
+            background-size: 100% 15px;
+            animation: robotScan 6s linear infinite;
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: overlay;
+        }
+        @keyframes robotScan {
+            0% { transform: translateY(-50%); }
+            100% { transform: translateY(0%); }
+        }
         
         .card { 
             background: rgba(20, 25, 35, 0.6); 
@@ -441,6 +458,34 @@
             0% { transform: scale(0.4) translateY(0); opacity: 1; }
             50% { transform: scale(1.6) translateY(-6px); opacity: 0.9; }
             100% { transform: scale(2.8) translateY(2px); opacity: 0; }
+        }
+
+        /* --- NEW: Fish Animations --- */
+        .fish {
+            position: absolute;
+            font-size: 16px;
+            opacity: 0.85;
+            z-index: 6;
+            white-space: nowrap;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+        }
+        .fish1 { top: 30%; animation: swimRight 14s linear infinite; }
+        .fish2 { top: 60%; animation: swimLeft 18s linear infinite; font-size: 12px; }
+        .fish3 { top: 85%; animation: swimRight 12s linear infinite reverse; font-size: 14px; transform: scaleX(-1); }
+
+        @keyframes swimRight {
+            0% { left: -15%; transform: scaleX(1); }
+            49% { left: 115%; transform: scaleX(1); }
+            50% { left: 115%; transform: scaleX(-1); }
+            99% { left: -15%; transform: scaleX(-1); }
+            100% { left: -15%; transform: scaleX(1); }
+        }
+        @keyframes swimLeft {
+            0% { right: -15%; transform: scaleX(-1); }
+            49% { right: 115%; transform: scaleX(-1); }
+            50% { right: 115%; transform: scaleX(1); }
+            99% { right: -15%; transform: scaleX(1); }
+            100% { right: -15%; transform: scaleX(-1); }
         }
 
         .water-text { 
@@ -936,14 +981,20 @@
                         <div class="tank-wrapper">
                             <div class="tank-lid-handle"></div>
                             <div class="tank-lid"></div>
-                            <div class="tank-top-ellipse"></div> <div class="tank-body">
+                            <div class="tank-top-ellipse"></div> 
+                            <div class="tank-body">
                                 <div class="tank-pipe-int"></div>
                                 
                                 <div class="waterfall"></div>
                                 
                                 <div id="waterLevelFill" class="water-fill" style="height: 0%;">
                                     <div class="wave"></div>
-                                    <div class="dynamic-splash"></div> </div>
+                                    <div class="dynamic-splash"></div> 
+                                    <!-- --- NEW: Fish --- -->
+                                    <div class="fish fish1">🐠</div>
+                                    <div class="fish fish2">🐟</div>
+                                    <div class="fish fish3">🐡</div>
+                                </div>
                                 
                                 <div id="waterLevelText" class="water-text">--%</div>
                             </div>
@@ -1284,6 +1335,25 @@
     </div>
 
     <script>
+        // --- NEW: Helper function to safely format hardware logs ---
+        function formatHwLog(logStr) {
+            if (!logStr) return "";
+            let lines = logStr.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes("Tank Nano:") || lines[i].includes("Middleman:") || lines[i].includes("ESP Hub:")) {
+                    if (lines[i].includes("OK")) {
+                        lines[i] = `<span style="color:#2ed573;">${lines[i]} ✅</span>`;
+                    } else {
+                        lines[i] = `<span style="color:#ff4757;">${lines[i]} ❌</span>`;
+                    }
+                }
+                if (lines[i].includes("[Echo Active]")) {
+                    lines[i] = lines[i].replace("[Echo Active]", "[Echo Active] 📡");
+                }
+            }
+            return lines.join('\n');
+        }
+
         function getMobileDeviceModel() {
             let ua = navigator.userAgent;
             let model = "Unknown Device";
@@ -1707,6 +1777,7 @@
                     database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
+                    database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -2746,6 +2817,8 @@
                     }
 
                     if(data.hardwareLog) {
+                        let formattedHwLog = formatHwLog(data.hardwareLog); // --- NEW: Applies formatting ---
+                        
                         const hwBox = document.getElementById('hwTerminalPanel');
                         if (hwBox) {
                             if (hwBox.getAttribute('data-last') !== data.hardwareLog) {
@@ -2753,7 +2826,7 @@
                                 hwBox.setAttribute('data-time', timeStr);
                                 hwBox.setAttribute('data-last', data.hardwareLog);
                             }
-                            hwBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${data.hardwareLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${hwBox.getAttribute('data-time')}]</span></div>`;
+                            hwBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${formattedHwLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${hwBox.getAttribute('data-time')}]</span></div>`;
                         }
 
                         const custHwBox = document.getElementById('customerHwTerminalPanel');
@@ -2763,7 +2836,7 @@
                                 custHwBox.setAttribute('data-time', timeStr);
                                 custHwBox.setAttribute('data-last', data.hardwareLog);
                             }
-                            custHwBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${data.hardwareLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${custHwBox.getAttribute('data-time')}]</span></div>`;
+                            custHwBox.innerHTML = `<div style="cursor:pointer; display:inline-block; width:100%;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${formattedHwLog}<span class="ts" style="display:none; color:#888; margin-left:8px;">[${custHwBox.getAttribute('data-time')}]</span></div>`;
                         }
                     }
                 }
