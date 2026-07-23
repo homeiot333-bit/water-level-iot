@@ -972,7 +972,7 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" id="adminLinkedDevicesCard" style="display:none;">
                     <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
                     <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
@@ -1141,10 +1141,10 @@
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Last OTA Update: <strong id="adminTxtLastOta" style="color:#feca57;">--</strong></span>
                             </div>
-                            <!-- --- NEW: Connection Tracking Row --- -->
+                            <!-- NEW FEATURE: Connection Times -->
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
-                                <span>Connected: <strong id="adminTxtLastConnect" style="color:#2ed573;">--</strong></span>
-                                <span>Disconnected: <strong id="adminTxtLastDisconnect" style="color:#ff4757;">--</strong></span>
+                                <span>Last Connected: <strong id="adminTxtLastConn" style="color:#2ed573;">--</strong></span>
+                                <span>Last Disconnect: <strong id="adminTxtLastDisconn" style="color:#ff4757;">--</strong></span>
                             </div>
                         </div>
 
@@ -1289,7 +1289,11 @@
     </div>
 
     <script>
-        // --- NEW: Helper function to safely format hardware logs ---
+        let isOtaMode = false;
+        
+        // --- NEW FEATURE GLOBALS ---
+        let localIsOnline = false;
+        let initialHeartbeatCheck = true;
         const globalLogTimestamps = {};
 
         function processAndFormatLog(logText, isHardware = false) {
@@ -1299,10 +1303,7 @@
             
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
-                if (!line || line.includes("----")) {
-                    if(line) formattedOutput.push(`<div style="color:#555; text-align:center; margin: 4px 0;">${line}</div>`);
-                    continue;
-                }
+                if (!line) continue;
                 
                 if (!globalLogTimestamps[line]) {
                     globalLogTimestamps[line] = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
@@ -1389,9 +1390,6 @@
         let currentPumpState = false;
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
-        
-        let isDeviceCurrentlyOnline = false;
-        let initialConnectionCheckDone = false;
 
         let espLogHistory = [];
         let lastWaterPercent = -1;
@@ -1401,8 +1399,6 @@
         let localPumpCommandTimeout = null; 
         let lastSeenControlTrigger = null;
         let lastCommandedState = false; 
-
-        let isOtaMode = false;
 
         window.manualRadioTech = null;
         window.manualRadioChan = null;
@@ -1755,7 +1751,6 @@
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                     database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
-                    database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -2132,8 +2127,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
                 database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
-                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
-                database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off(); // Clean up history listener
+                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off(); // Clean up new listener
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -2151,9 +2145,6 @@
             lastWaterPercent = -1;
             hasShownPopup = false;
             isOtaMode = false; 
-            
-            isDeviceCurrentlyOnline = false;
-            initialConnectionCheckDone = false;
 
             window.manualRadioTech = null;
             window.manualRadioChan = null;
@@ -2164,6 +2155,10 @@
             window.deviceDeployDate = null;
             window.deviceTopology = null;
             window.latestRawDistance = null;
+
+            // --- Reset Feature variables ---
+            localIsOnline = false;
+            initialHeartbeatCheck = true;
 
             document.getElementById('assignedNameDisplay').innerText = '';
             document.getElementById('criticalErrorBanner').style.display = "none";
@@ -2176,12 +2171,12 @@
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
             
-            if (document.getElementById('adminTxtLastConnect')) document.getElementById('adminTxtLastConnect').innerText = '--';
-            if (document.getElementById('adminTxtLastDisconnect')) document.getElementById('adminTxtLastDisconnect').innerText = '--';
-            
             if (document.getElementById('txtCustEmptyDist')) document.getElementById('txtCustEmptyDist').innerText = '-- cm';
             if (document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = '-- cm';
             
+            if (document.getElementById('adminTxtLastConn')) document.getElementById('adminTxtLastConn').innerText = '--';
+            if (document.getElementById('adminTxtLastDisconn')) document.getElementById('adminTxtLastDisconn').innerText = '--';
+
             if (document.getElementById('dailyUsageText')) {
                 document.getElementById('dailyUsageText').innerText = '0.0%';
                 document.getElementById('dailyUsageText').style.color = '#00d2ff';
@@ -2452,20 +2447,6 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            // --- NEW FIX: Connection History Listener ---
-            database.ref(basePath + '/connectionHistory').on('value', (snapshot) => {
-                const hist = snapshot.val();
-                if(hist) {
-                    if(document.getElementById('adminTxtLastConnect')) {
-                        document.getElementById('adminTxtLastConnect').innerText = hist.lastConnect || "--";
-                    }
-                    if(document.getElementById('adminTxtLastDisconnect')) {
-                        document.getElementById('adminTxtLastDisconnect').innerText = hist.lastDisconnect || "--";
-                    }
-                }
-            });
-
-            // --- NEW FIX: SHOW CUSTOMER LOGIN DEVICES ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
                 const currentUser = firebase.auth().currentUser;
                 const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
@@ -2620,17 +2601,17 @@
                 lastHeartbeat = statusData.heartbeat || 0;
                 lastHeartbeatTime = Date.now(); 
                 
+                if (statusData.lastConnect && document.getElementById('adminTxtLastConn')) {
+                    document.getElementById('adminTxtLastConn').innerText = statusData.lastConnect;
+                }
+                if (statusData.lastDisconnect && document.getElementById('adminTxtLastDisconn')) {
+                    document.getElementById('adminTxtLastDisconn').innerText = statusData.lastDisconnect;
+                }
+
                 if (!isOtaMode) {
                     document.getElementById('offlineOverlay').style.display = 'none'; 
                 }
                 
-                // --- NEW FIX: Capture the exact moment device comes back online ---
-                if (initialConnectionCheckDone && !isDeviceCurrentlyOnline) {
-                    isDeviceCurrentlyOnline = true;
-                    let cTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                    database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastConnect').set(cTime);
-                }
-
                 updateRuntimeUI();
 
                 if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
@@ -2646,19 +2627,27 @@
             });
 
             heartbeatTimer = setInterval(() => {
-                if(Date.now() - lastHeartbeatTime > 35000) { 
-                    
-                    // --- NEW FIX: Capture exact moment device goes offline ---
-                    if (initialConnectionCheckDone && isDeviceCurrentlyOnline) {
-                        isDeviceCurrentlyOnline = false;
-                        let dcTime = new Date(lastHeartbeatTime).toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                        database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(dcTime);
+                let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                const user = firebase.auth().currentUser;
+                const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
+                
+                if (isCurrentlyOnline !== localIsOnline) {
+                    if (!initialHeartbeatCheck) {
+                        let timestamp = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
+                        if (isCurrentlyOnline) {
+                            if (document.getElementById('adminTxtLastConn')) document.getElementById('adminTxtLastConn').innerText = timestamp;
+                            if (isAdmin && currentDeviceId) database.ref('/Devices/' + currentDeviceId + '/deviceStatus/lastConnect').set(timestamp);
+                        } else {
+                            if (document.getElementById('adminTxtLastDisconn')) document.getElementById('adminTxtLastDisconn').innerText = timestamp;
+                            if (isAdmin && currentDeviceId) database.ref('/Devices/' + currentDeviceId + '/deviceStatus/lastDisconnect').set(timestamp);
+                        }
                     }
-                    initialConnectionCheckDone = true;
+                    localIsOnline = isCurrentlyOnline;
+                }
+                initialHeartbeatCheck = false;
 
-                    const user = firebase.auth().currentUser;
-                    if(user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com")) {
-                        
+                if(!isCurrentlyOnline) { 
+                    if(isAdmin) {
                         if (isOtaMode || pendingOtaDevice === currentDeviceId) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             const badge = document.getElementById('connStatus');
@@ -2693,8 +2682,6 @@
                             document.getElementById('offlineOverlay').style.display = 'flex';
                         }
                     }
-                } else {
-                    initialConnectionCheckDone = true;
                 }
             }, 2000);
 
@@ -2795,7 +2782,6 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // --- NEW FIX: Processing logs correctly with proper clicks ---
                     if(data.log) {
                         if(data.log.includes("[OTA] Contacting GitHub...")) {
                             isOtaMode = true;
@@ -2812,23 +2798,23 @@
                         }
 
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        if(espLogHistory.length === 0 || !espLogHistory.includes(cleanEspLog)) {
+                        if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
                             espLogHistory.push(cleanEspLog);
                             if(espLogHistory.length > 5) espLogHistory.shift(); 
                         }
                         const logBox = document.getElementById('logConsole');
-                        logBox.innerHTML = espLogHistory.map(line => processAndFormatLog(line, false)).join('<div style="color:#555; text-align:center; margin: 4px 0;">---</div>');
+                        logBox.innerHTML = processAndFormatLog(espLogHistory.join('\n'), false);
                         logBox.scrollTop = logBox.scrollHeight; 
                     }
                     
                     if(data.nanoLog) {
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        document.getElementById('nanoLogConsole').innerHTML = processAndFormatLog(cleanNanoLog, false);
+                        const nanoBox = document.getElementById('nanoLogConsole');
+                        nanoBox.innerHTML = processAndFormatLog(cleanNanoLog, false);
                     }
 
                     if(data.hardwareLog) {
                         let formattedHwLog = processAndFormatLog(data.hardwareLog, true);
-                        
                         const hwBox = document.getElementById('hwTerminalPanel');
                         if (hwBox) hwBox.innerHTML = formattedHwLog;
 
