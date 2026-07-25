@@ -2483,7 +2483,12 @@
                         document.getElementById('adminTxtLastConnect').innerText = hist.lastConnect || "--";
                     }
                     if(document.getElementById('adminTxtLastDisconnect')) {
-                        document.getElementById('adminTxtLastDisconnect').innerText = hist.lastDisconnect || "--";
+                        let disc = hist.lastDisconnect || "--";
+                        if (disc.includes("Live")) {
+                            document.getElementById('adminTxtLastDisconnect').innerHTML = `<span style="color:#2ed573; font-weight:bold;">${disc}</span>`;
+                        } else {
+                            document.getElementById('adminTxtLastDisconnect').innerText = disc;
+                        }
                     }
                 }
             });
@@ -2662,6 +2667,7 @@
 
                 let activeHotspot = statusData.activeWiFi || statusData.connectedSSID || window.activeHotspotName || "--";
                 if (activeHotspot && activeHotspot !== "--") {
+                    window.activeHotspotName = activeHotspot;
                     if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = activeHotspot;
                     if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = activeHotspot;
                 }
@@ -2673,11 +2679,9 @@
                 updateRadioUI();
             });
 
-            // --- FLAWLESS CONNECT/DISCONNECT TIMER ---
             heartbeatTimer = setInterval(() => {
                 let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
                 
-                // Track transitions to capture exact time
                 if (prevOnlineState === null) {
                     prevOnlineState = isCurrentlyOnline;
                 } else if (prevOnlineState !== isCurrentlyOnline) {
@@ -2687,6 +2691,7 @@
                     if (currentDeviceId) {
                         if (isCurrentlyOnline) {
                             database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastConnect').set(transitionTime);
+                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set("Live Internet 🟢");
                         } else {
                             database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(transitionTime);
                         }
@@ -2759,7 +2764,7 @@
             });
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging telemetry pulse
+                lastHeartbeatTime = Date.now(); 
 
                 const data = snapshot.val();
                 if(data) {
@@ -2834,14 +2839,13 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
-                        // --- EXTRACT HOTSPOT FROM TERMINAL ---
                         let lines = data.log.split('\n');
                         for (let line of lines) {
                             let cleanLine = line.replace(/✅|❌|📡|\[.*?\]/g, '').trim();
                             let match = cleanLine.match(/(?:Connected to|SSID:|Joined)\s*([A-Za-z0-9_@\-\s]+)/i);
                             if (match && match[1]) {
                                 let ssidFound = match[1].trim();
-                                if (ssidFound.length > 1 && ssidFound.toLowerCase() !== "wifi") {
+                                if (ssidFound.length > 1 && !ssidFound.toLowerCase().includes("connecting") && ssidFound.toLowerCase() !== "wifi") {
                                     window.activeHotspotName = ssidFound;
                                     database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(window.activeHotspotName);
                                     
@@ -2892,7 +2896,7 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging state pulse
+                lastHeartbeatTime = Date.now(); 
 
                 const state = snapshot.val();
                 if(state) {
@@ -2902,6 +2906,7 @@
                     
                     let activeHotspot = state.activeWiFi || state.connectedSSID || state.currentWiFi || state.ssid || state.wifi || state.wifiSSID;
                     if (activeHotspot && activeHotspot !== "--") {
+                        window.activeHotspotName = activeHotspot;
                         if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = activeHotspot;
                         if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = activeHotspot;
                     }
