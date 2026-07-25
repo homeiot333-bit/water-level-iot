@@ -91,7 +91,7 @@
             width: 100%;
         }
 
-        /* --- FIX: Enforce text selection to allow pasting on mobile --- */
+        /* --- FIX: Allow Mobile Browsers to Paste Passwords --- */
         .input-box { 
             width: 100%; 
             padding: 12px; 
@@ -102,11 +102,10 @@
             box-sizing: border-box;
             background: rgba(255, 255, 255, 0.9);
             color: #111;
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-            user-select: text !important;
-            -webkit-touch-callout: default !important;
+            user-select: auto !important;
+            -webkit-user-select: auto !important;
+            -moz-user-select: auto !important;
+            -ms-user-select: auto !important;
         }
 
         select.input-box, input[type="date"].input-box {
@@ -978,10 +977,10 @@
                     </div>
                 </div>
 
-                <!-- --- FIX: Safely separated Customer Linked Devices --- -->
+                <!-- --- FIX: Safely display linked devices to the customer --- -->
                 <div class="card">
-                    <h3 style="text-align: left; margin-bottom: 15px;">🔗 Active Logins</h3>
-                    <div id="customerLinkedDevicesList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                    <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
+                    <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
 
                 <div id="advancedSection" style="display:none; width:100%;">
@@ -1148,10 +1147,6 @@
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Last OTA Update: <strong id="adminTxtLastOta" style="color:#feca57;">--</strong></span>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
-                                <span>Connected: <strong id="adminTxtLastConnect" style="color:#2ed573;">--</strong></span>
-                                <span>Disconnected: <strong id="adminTxtLastDisconnect" style="color:#ff4757;">--</strong></span>
-                            </div>
                         </div>
 
                         <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
@@ -1228,7 +1223,6 @@
                             </div>
                             
                             <div class="terminal-column" style="flex: 1.5;">
-                                <!-- --- FIX: Renamed Terminal --- -->
                                 <span id="nanoTerminalTitle" style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ROOF TOP (TANK)</span>
                                 <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left; height: 120px;">Awaiting Payload Link...</div>
                             </div>
@@ -1239,10 +1233,10 @@
                             <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
-                        <!-- --- FIX: Safely separated Admin Linked Devices --- -->
-                        <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
-                            <div id="adminLinkedDevicesList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                        <!-- --- FIX: Safely display linked devices to the Admin --- -->
+                        <div class="card" id="adminLinkedDevicesCard" style="margin-top: 20px;">
+                            <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
+                            <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                         </div>
                     </div>
 
@@ -1409,9 +1403,6 @@
         let currentPumpState = false;
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
-        
-        let isDeviceCurrentlyOnline = false;
-        let initialConnectionCheckDone = false;
 
         let espLogHistory = [];
         let lastWaterPercent = -1;
@@ -1775,7 +1766,6 @@
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                     database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
-                    database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -1784,13 +1774,12 @@
             }
         });
 
-        // --- FIX: Safely separate Admin list mapping ---
+        // --- FIX: Linked Account Devices strictly populated in all instances safely ---
         function fetchLinkedDevices(targetEmail) {
-            const adminListElement = document.getElementById('adminLinkedDevicesList');
-            if(!adminListElement) return;
-
+            const listElements = document.querySelectorAll('.linked-devices-list');
+            
             if(!targetEmail || targetEmail === "Not saved in DB") {
-                adminListElement.innerHTML = "No email linked to this account.";
+                listElements.forEach(el => el.innerHTML = "No email linked to this account.");
                 return;
             }
             
@@ -1844,7 +1833,7 @@
                     finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
                 
-                adminListElement.innerHTML = finalHtml;
+                listElements.forEach(el => el.innerHTML = finalHtml);
             });
         }
 
@@ -2154,7 +2143,6 @@
                 database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
-                database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -2172,10 +2160,6 @@
             lastWaterPercent = -1;
             hasShownPopup = false;
             isOtaMode = false; 
-            
-            isDeviceCurrentlyOnline = false;
-            initialConnectionCheckDone = false;
-            prevOnlineState = null;
 
             window.manualRadioTech = null;
             window.manualRadioChan = null;
@@ -2201,19 +2185,12 @@
             if (document.getElementById('txtCustEmptyDist')) document.getElementById('txtCustEmptyDist').innerText = '-- cm';
             if (document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = '-- cm';
             
-            if (document.getElementById('adminTxtLastConnect')) document.getElementById('adminTxtLastConnect').innerText = '--';
-            if (document.getElementById('adminTxtLastDisconnect')) document.getElementById('adminTxtLastDisconnect').innerText = '--';
-            
             if (document.getElementById('dailyUsageText')) {
                 document.getElementById('dailyUsageText').innerText = '0.0%';
                 document.getElementById('dailyUsageText').style.color = '#00d2ff';
             }
             
-            const custDevices = document.getElementById('customerLinkedDevicesList');
-            if(custDevices) custDevices.innerHTML = 'Scanning account data...';
-            
-            const adminDevices = document.getElementById('adminLinkedDevicesList');
-            if(adminDevices) adminDevices.innerHTML = 'Scanning account data...';
+            document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = 'Scanning account data...');
             
             document.getElementById('adminTxtRadio').innerText = 'nRF24L01'; 
             document.getElementById('adminTxtChannel').innerText = '--';
@@ -2479,40 +2456,6 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            database.ref(basePath + '/connectionHistory').on('value', (snapshot) => {
-                const hist = snapshot.val();
-                if(hist) {
-                    if(document.getElementById('adminTxtLastConnect')) {
-                        document.getElementById('adminTxtLastConnect').innerText = hist.lastConnect || "--";
-                    }
-                    if(document.getElementById('adminTxtLastDisconnect')) {
-                        document.getElementById('adminTxtLastDisconnect').innerText = hist.lastDisconnect || "--";
-                    }
-                }
-            });
-
-            // --- FIX: Safely retrieve active login data to Customer List ---
-            database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
-                const currentUser = firebase.auth().currentUser;
-                const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
-                
-                if (isCustomer) {
-                    let mobileCount = 0;
-                    let mobileList = "";
-                    snapshot.forEach(child => {
-                        mobileCount++;
-                        let loginData = child.val();
-                        mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${loginData.modelName} <span style="color:#666; font-size:10px;">(Last: ${loginData.lastSeen})</span></div>`;
-                    });
-                    if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
-                    
-                    let finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Active Logins: <span style="color:#7bed9f; font-size:18px;">${mobileCount}</span></div>` + mobileList;
-                    
-                    const customerList = document.getElementById('customerLinkedDevicesList');
-                    if (customerList) customerList.innerHTML = finalHtml;
-                }
-            });
-
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
                 const slots = snapshot.val();
                 if(slots) {
@@ -2553,8 +2496,7 @@
                     if(info.email) {
                         fetchLinkedDevices(info.email);
                     } else {
-                        const adminList = document.getElementById('adminLinkedDevicesList');
-                        if (adminList) adminList.innerHTML = "No email associated with this device.";
+                        document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = "No email associated with this device.");
                     }
 
                     window.manualRadioTech = info.radioTech || null;
@@ -2579,10 +2521,10 @@
                         document.getElementById('adminTxtLastOta').innerText = info.lastOtaDate || "Never Updated";
                     }
 
-                    // --- FIX: Dynamic terminal name ---
+                    // --- FIX: Dynamic terminal name handling ---
                     const nanoTitle = document.getElementById('nanoTerminalTitle');
                     if (nanoTitle) {
-                        nanoTitle.innerText = "ROOF TOP (TANK)"; 
+                        nanoTitle.innerText = (window.deviceTopology === "Yes") ? "ROOF TOP (TANK)" : "NANO (TANK)";
                     }
                     
                     updateRadioUI();
@@ -2594,9 +2536,7 @@
                     window.manualRadioRate = null;
                     window.deviceDeployDate = null;
                     window.deviceTopology = null;
-                    
-                    const adminList = document.getElementById('adminLinkedDevicesList');
-                    if (adminList) adminList.innerHTML = "No configuration found for this device.";
+                    document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = "No configuration found for this device.");
                     
                     if(document.getElementById('adminTxtTopology')) document.getElementById('adminTxtTopology').innerText = "Unknown";
                     if(document.getElementById('adminTxtDeployDate')) document.getElementById('adminTxtDeployDate').innerText = "Not Set";
@@ -2605,7 +2545,7 @@
                     if(document.getElementById('adminTxtLastOta')) document.getElementById('adminTxtLastOta').innerText = "Never Updated";
                     
                     const nanoTitle = document.getElementById('nanoTerminalTitle');
-                    if (nanoTitle) nanoTitle.innerText = "ROOF TOP (TANK)";
+                    if (nanoTitle) nanoTitle.innerText = "NANO (TANK)";
 
                     updateRadioUI();
                     updateRuntimeUI();
@@ -2677,28 +2617,10 @@
             });
 
             heartbeatTimer = setInterval(() => {
-                let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
-                const user = firebase.auth().currentUser;
-                const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
-                
-                // --- FIX: Securely track connect/disconnect times in Firebase based on transitions ---
-                if (prevOnlineState === null) {
-                    prevOnlineState = isCurrentlyOnline;
-                } else if (prevOnlineState !== isCurrentlyOnline) {
-                    prevOnlineState = isCurrentlyOnline;
-                    let transitionTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                    
-                    if (isAdmin && currentDeviceId) {
-                        if (isCurrentlyOnline) {
-                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastConnect').set(transitionTime);
-                        } else {
-                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(transitionTime);
-                        }
-                    }
-                }
-
-                if(!isCurrentlyOnline) { 
-                    if(isAdmin) {
+                if(Date.now() - lastHeartbeatTime > 35000) { 
+                    const user = firebase.auth().currentUser;
+                    if(user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com")) {
+                        
                         if (isOtaMode || pendingOtaDevice === currentDeviceId) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             const badge = document.getElementById('connStatus');
@@ -2753,7 +2675,6 @@
                         
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
-                            localPumpCommandTimeout = null;
                             updatePumpButtonUI();
                         }, 7000);
                     }
@@ -2833,7 +2754,7 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // --- FIX: Terminal data uses exact logic for timestamps and middleman hiding ---
+                    // --- FIX: Formatted Logging and Timestamps ---
                     if(data.log) {
                         if(data.log.includes("[OTA] Contacting GitHub...")) {
                             isOtaMode = true;
@@ -2850,7 +2771,6 @@
                         }
 
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        // Only add to history if it's new
                         if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
                             espLogHistory.push(cleanEspLog);
                             if(espLogHistory.length > 5) espLogHistory.shift(); 
@@ -2867,7 +2787,6 @@
 
                     if(data.hardwareLog) {
                         let formattedHwLog = processAndFormatLog(data.hardwareLog, true);
-                        
                         const hwBox = document.getElementById('hwTerminalPanel');
                         if (hwBox) hwBox.innerHTML = formattedHwLog;
 
@@ -2969,9 +2888,6 @@
             
             const newTrigger = Date.now(); 
 
-            lastCommandedState = desiredState;
-            lastSeenControlTrigger = newTrigger;
-
             database.ref('/Devices/' + currentDeviceId + '/control').update({
                 forceState: desiredState,
                 triggerId: newTrigger
@@ -2980,9 +2896,8 @@
             if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
             localPumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine) return;
-                localPumpCommandTimeout = null;
                 updatePumpButtonUI();
-                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please check device power or connection.");
+                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please try again.");
             }, 7000);
         }
 
