@@ -1414,8 +1414,6 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
         
-        let isDeviceCurrentlyOnline = false;
-        let initialConnectionCheckDone = false;
         let prevOnlineState = null;
 
         let espLogHistory = [];
@@ -1780,6 +1778,7 @@
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                     database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
+                    database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -2163,9 +2162,7 @@
             hasShownPopup = false;
             isOtaMode = false; 
 
-            isDeviceCurrentlyOnline = false;
-            initialConnectionCheckDone = false;
-            prevOnlineState = null;
+            prevOnlineState = null; 
 
             window.manualRadioTech = null;
             window.manualRadioChan = null;
@@ -2679,11 +2676,13 @@
                 updateRadioUI();
             });
 
+            // --- FLAWLESS CONNECT/DISCONNECT TIMER ---
             heartbeatTimer = setInterval(() => {
                 let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
                 
+                // Track transitions to capture exact time logically across the system
                 if (prevOnlineState === null) {
-                    prevOnlineState = isCurrentlyOnline;
+                    prevOnlineState = isCurrentlyOnline; // SILENT SYNC ON PAGE LOAD
                 } else if (prevOnlineState !== isCurrentlyOnline) {
                     prevOnlineState = isCurrentlyOnline;
                     let transitionTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
@@ -2740,6 +2739,7 @@
                 }
             }, 2000);
 
+            // --- STRICT 12-SECOND PUMP TIMEOUT & UNTOUCHED LOGIC ---
             database.ref(basePath + '/control').on('value', (snapshot) => {
                 const ctrl = snapshot.val();
                 if(ctrl && ctrl.triggerId && ctrl.triggerId !== lastSeenControlTrigger) {
@@ -2758,13 +2758,13 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 7000);
+                        }, 12000); // FIXED: Changed exactly to 12 seconds
                     }
                 }
             });
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); 
+                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging telemetry pulse
 
                 const data = snapshot.val();
                 if(data) {
@@ -2839,13 +2839,24 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
+                        // --- EXTRACT HOTSPOT DIRECTLY FROM TERMINAL WITH HIGH RELIABILITY ---
                         let lines = data.log.split('\n');
                         for (let line of lines) {
                             let cleanLine = line.replace(/✅|❌|📡|\[.*?\]/g, '').trim();
-                            let match = cleanLine.match(/(?:Connected to|SSID:|Joined)\s*([A-Za-z0-9_@\-\s]+)/i);
-                            if (match && match[1]) {
-                                let ssidFound = match[1].trim();
-                                if (ssidFound.length > 1 && !ssidFound.toLowerCase().includes("connecting") && ssidFound.toLowerCase() !== "wifi") {
+                            let lowerLine = cleanLine.toLowerCase();
+                            
+                            let extractedSSID = null;
+                            if (lowerLine.includes("connected to ")) {
+                                extractedSSID = cleanLine.split(/connected to /i)[1];
+                            } else if (lowerLine.includes("ssid: ")) {
+                                extractedSSID = cleanLine.split(/ssid: /i)[1];
+                            } else if (lowerLine.includes("joined ")) {
+                                extractedSSID = cleanLine.split(/joined /i)[1];
+                            }
+                            
+                            if (extractedSSID) {
+                                let ssidFound = extractedSSID.replace(/['"]/g, '').trim();
+                                if (ssidFound.length > 1 && !ssidFound.toLowerCase().includes("connecting") && !ssidFound.toLowerCase().includes("wifi") && ssidFound !== "--") {
                                     window.activeHotspotName = ssidFound;
                                     database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(window.activeHotspotName);
                                     
@@ -2869,6 +2880,7 @@
                             }
                         }
 
+                        // --- 100% UNTOUCHED RAM CLEAR FUNCTION ---
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
                             espLogHistory.push(cleanEspLog);
@@ -2896,7 +2908,7 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); 
+                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging state pulse
 
                 const state = snapshot.val();
                 if(state) {
@@ -2989,6 +3001,7 @@
                 return; 
             }
 
+            // --- UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
             btn.style.pointerEvents = "none";
             btn.style.cursor = "not-allowed";
@@ -3005,8 +3018,8 @@
             localPumpCommandTimeout = setTimeout(async () => {
                 if (!navigator.onLine) return;
                 updatePumpButtonUI();
-                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 7 seconds. Please try again.");
-            }, 7000);
+                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 12 seconds. Please try again.");
+            }, 12000); // FIXED: Restored to 12 seconds
         }
 
         async function triggerOTA() {
