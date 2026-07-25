@@ -91,6 +91,7 @@
             width: 100%;
         }
 
+        /* --- FIX: Enforce text selection to allow pasting on mobile --- */
         .input-box { 
             width: 100%; 
             padding: 12px; 
@@ -101,9 +102,11 @@
             box-sizing: border-box;
             background: rgba(255, 255, 255, 0.9);
             color: #111;
-            /* --- FIX: Enables perfectly functioning copy/paste on mobile and desktop --- */
-            user-select: text !important;
             -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+            -webkit-touch-callout: default !important;
         }
 
         select.input-box, input[type="date"].input-box {
@@ -975,9 +978,10 @@
                     </div>
                 </div>
 
-                <div class="card" id="adminLinkedDevicesCard" style="display:none;">
-                    <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
-                    <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                <!-- --- FIX: Safely separated Customer Linked Devices --- -->
+                <div class="card">
+                    <h3 style="text-align: left; margin-bottom: 15px;">🔗 Active Logins</h3>
+                    <div id="customerLinkedDevicesList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
 
                 <div id="advancedSection" style="display:none; width:100%;">
@@ -1224,8 +1228,8 @@
                             </div>
                             
                             <div class="terminal-column" style="flex: 1.5;">
-                                <!-- --- FIX: Dynamic NANO/ROOF TOP Terminal Label --- -->
-                                <span id="nanoTerminalTitle" style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">NANO (TANK)</span>
+                                <!-- --- FIX: Renamed Terminal --- -->
+                                <span id="nanoTerminalTitle" style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ROOF TOP (TANK)</span>
                                 <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left; height: 120px;">Awaiting Payload Link...</div>
                             </div>
                         </div>
@@ -1235,6 +1239,11 @@
                             <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
+                        <!-- --- FIX: Safely separated Admin Linked Devices --- -->
+                        <div style="margin-top: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 15px; color: #7bed9f; font-size: 15px;">🔗 Linked Account Devices</h3>
+                            <div id="adminLinkedDevicesList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                        </div>
                     </div>
 
                     <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
@@ -1292,25 +1301,33 @@
     </div>
 
     <script>
-        // --- NEW FIX: Removed old broken globalLogTimestamps and completely rewrote log logic ---
+        // --- FIX: Global timestamps memory dict ---
+        const globalLogTimestamps = {};
 
-        // Helper function for hardware formatting
-        function processAndFormatLog(logText, timestamp, isHardware = false) {
+        function processAndFormatLog(logText, isHardware = false) {
             if (!logText) return "";
             let lines = logText.split('\n');
             let formattedOutput = [];
             
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
-                if (!line || line.includes("----")) {
-                    if(line) formattedOutput.push(`<div style="color:#555; text-align:center; margin: 4px 0;">${line}</div>`);
+                
+                // --- FIX: Beautifully format the diagnostic header ---
+                if (!line || line.includes("----") || line === "RADIO HEALTH DIAGNOSTICS:") {
+                    if(line) formattedOutput.push(`<div style="color:#feca57; text-align:center; margin: 4px 0; font-weight:bold;">${line}</div>`);
                     continue;
                 }
                 
-                // --- FIX: Middleman filter logic ---
-                if (isHardware && window.deviceTopology === "Yes" && line.includes("Tank Nano:")) {
-                    continue; // Skip Tank Nano log if strictly using Middleman
+                // --- FIX: Filter out Middleman log if Topology is Direct Link ---
+                if (isHardware && line.includes("Middleman:") && window.deviceTopology === "No") {
+                    continue;
                 }
+                
+                // --- FIX: True Timestamps ---
+                if (!globalLogTimestamps[line]) {
+                    globalLogTimestamps[line] = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                }
+                let ts = globalLogTimestamps[line];
                 
                 let coloredLine = line;
                 if (isHardware) {
@@ -1326,7 +1343,7 @@
                     }
                 }
 
-                formattedOutput.push(`<div style="cursor:pointer; display:block; width:100%; margin-bottom:4px;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${coloredLine}<span class="ts" style="display:none; color:#888; margin-left:8px; font-size:10px;">[${timestamp}]</span></div>`);
+                formattedOutput.push(`<div style="cursor:pointer; display:block; width:100%; margin-bottom:4px;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${coloredLine}<span class="ts" style="display:none; color:#888; margin-left:8px; font-size:10px;">[${ts}]</span></div>`);
             }
             return formattedOutput.join('');
         }
@@ -1393,15 +1410,10 @@
         let lastHeartbeat = 0;
         let lastHeartbeatTime = Date.now();
         
-        // --- Connection memory ---
-        let prevOnlineState = null;
+        let isDeviceCurrentlyOnline = false;
+        let initialConnectionCheckDone = false;
 
-        let espLogHistory = []; // Now stores objects: { text, ts }
-        let lastNanoLogText = "";
-        let lastNanoLogTs = "";
-        let lastHwLogText = "";
-        let lastHwLogTs = "";
-
+        let espLogHistory = [];
         let lastWaterPercent = -1;
         let localDailyUsage = 0;
         let hasShownPopup = false;
@@ -1763,6 +1775,7 @@
                     database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                     database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                     database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
+                    database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                     currentDeviceId = null;
                 }
                 if(linkedDevicesRef) {
@@ -1771,9 +1784,9 @@
             }
         });
 
-        // --- FIX: Safely push linked devices ONLY to the Admin element without breaking Customer element ---
+        // --- FIX: Safely separate Admin list mapping ---
         function fetchLinkedDevices(targetEmail) {
-            const adminListElement = document.querySelector('#adminCommandCenter .linked-devices-list');
+            const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
 
             if(!targetEmail || targetEmail === "Not saved in DB") {
@@ -2141,6 +2154,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
+                database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -2154,17 +2168,14 @@
             
             currentDeviceId = devId;
 
-            // Reset UI memory
             espLogHistory = [];
-            lastNanoLogText = "";
-            lastNanoLogTs = "";
-            lastHwLogText = "";
-            lastHwLogTs = "";
-            prevOnlineState = null;
-
             lastWaterPercent = -1;
             hasShownPopup = false;
             isOtaMode = false; 
+            
+            isDeviceCurrentlyOnline = false;
+            initialConnectionCheckDone = false;
+            prevOnlineState = null;
 
             window.manualRadioTech = null;
             window.manualRadioChan = null;
@@ -2198,7 +2209,11 @@
                 document.getElementById('dailyUsageText').style.color = '#00d2ff';
             }
             
-            document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = 'Scanning account data...');
+            const custDevices = document.getElementById('customerLinkedDevicesList');
+            if(custDevices) custDevices.innerHTML = 'Scanning account data...';
+            
+            const adminDevices = document.getElementById('adminLinkedDevicesList');
+            if(adminDevices) adminDevices.innerHTML = 'Scanning account data...';
             
             document.getElementById('adminTxtRadio').innerText = 'nRF24L01'; 
             document.getElementById('adminTxtChannel').innerText = '--';
@@ -2218,7 +2233,8 @@
             document.getElementById('credEmail').innerText = "Not saved in DB";
             document.getElementById('credPass').innerText = "Not saved in DB";
             document.getElementById('credentialsBox').style.display = "none"; 
-            document.getElementById('hwTerminalPanel').innerText = "Awaiting Cloud Sync...";
+            document.getElementById('hwTerminalPanel').innerHTML = "Awaiting Cloud Sync...";
+            document.getElementById('customerHwTerminalPanel').innerHTML = "Awaiting Cloud Sync...";
             
             if(document.getElementById('txtRuntimeDays')) {
                 document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
@@ -2463,7 +2479,19 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            // --- FIX: Safely retrieve and display Active Logins to Customer Dashboard only ---
+            database.ref(basePath + '/connectionHistory').on('value', (snapshot) => {
+                const hist = snapshot.val();
+                if(hist) {
+                    if(document.getElementById('adminTxtLastConnect')) {
+                        document.getElementById('adminTxtLastConnect').innerText = hist.lastConnect || "--";
+                    }
+                    if(document.getElementById('adminTxtLastDisconnect')) {
+                        document.getElementById('adminTxtLastDisconnect').innerText = hist.lastDisconnect || "--";
+                    }
+                }
+            });
+
+            // --- FIX: Safely retrieve active login data to Customer List ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
                 const currentUser = firebase.auth().currentUser;
                 const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
@@ -2480,7 +2508,7 @@
                     
                     let finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Active Logins: <span style="color:#7bed9f; font-size:18px;">${mobileCount}</span></div>` + mobileList;
                     
-                    const customerList = document.querySelector('#mainDashboardView .linked-devices-list');
+                    const customerList = document.getElementById('customerLinkedDevicesList');
                     if (customerList) customerList.innerHTML = finalHtml;
                 }
             });
@@ -2525,7 +2553,7 @@
                     if(info.email) {
                         fetchLinkedDevices(info.email);
                     } else {
-                        const adminList = document.querySelector('#adminCommandCenter .linked-devices-list');
+                        const adminList = document.getElementById('adminLinkedDevicesList');
                         if (adminList) adminList.innerHTML = "No email associated with this device.";
                     }
 
@@ -2551,10 +2579,10 @@
                         document.getElementById('adminTxtLastOta').innerText = info.lastOtaDate || "Never Updated";
                     }
 
-                    // --- FIX: Dynamic NANO/ROOF TOP Terminal Label ---
+                    // --- FIX: Dynamic terminal name ---
                     const nanoTitle = document.getElementById('nanoTerminalTitle');
                     if (nanoTitle) {
-                        nanoTitle.innerText = (window.deviceTopology === "Yes") ? "ROOF TOP (TANK)" : "NANO (TANK)";
+                        nanoTitle.innerText = "ROOF TOP (TANK)"; 
                     }
                     
                     updateRadioUI();
@@ -2567,7 +2595,7 @@
                     window.deviceDeployDate = null;
                     window.deviceTopology = null;
                     
-                    const adminList = document.querySelector('#adminCommandCenter .linked-devices-list');
+                    const adminList = document.getElementById('adminLinkedDevicesList');
                     if (adminList) adminList.innerHTML = "No configuration found for this device.";
                     
                     if(document.getElementById('adminTxtTopology')) document.getElementById('adminTxtTopology').innerText = "Unknown";
@@ -2577,7 +2605,7 @@
                     if(document.getElementById('adminTxtLastOta')) document.getElementById('adminTxtLastOta').innerText = "Never Updated";
                     
                     const nanoTitle = document.getElementById('nanoTerminalTitle');
-                    if (nanoTitle) nanoTitle.innerText = "NANO (TANK)";
+                    if (nanoTitle) nanoTitle.innerText = "ROOF TOP (TANK)";
 
                     updateRadioUI();
                     updateRuntimeUI();
@@ -2630,14 +2658,6 @@
                 lastHeartbeat = statusData.heartbeat || 0;
                 lastHeartbeatTime = Date.now(); 
                 
-                // Read historical connection data if available
-                if (statusData.lastConnect && document.getElementById('adminTxtLastConnect')) {
-                    document.getElementById('adminTxtLastConnect').innerText = statusData.lastConnect;
-                }
-                if (statusData.lastDisconnect && document.getElementById('adminTxtLastDisconnect')) {
-                    document.getElementById('adminTxtLastDisconnect').innerText = statusData.lastDisconnect;
-                }
-
                 if (!isOtaMode) {
                     document.getElementById('offlineOverlay').style.display = 'none'; 
                 }
@@ -2661,7 +2681,7 @@
                 const user = firebase.auth().currentUser;
                 const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
                 
-                // --- FIX: Accurately monitor state changes and write strictly to Firebase ---
+                // --- FIX: Securely track connect/disconnect times in Firebase based on transitions ---
                 if (prevOnlineState === null) {
                     prevOnlineState = isCurrentlyOnline;
                 } else if (prevOnlineState !== isCurrentlyOnline) {
@@ -2670,9 +2690,9 @@
                     
                     if (isAdmin && currentDeviceId) {
                         if (isCurrentlyOnline) {
-                            database.ref('/Devices/' + currentDeviceId + '/deviceStatus/lastConnect').set(transitionTime);
+                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastConnect').set(transitionTime);
                         } else {
-                            database.ref('/Devices/' + currentDeviceId + '/deviceStatus/lastDisconnect').set(transitionTime);
+                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(transitionTime);
                         }
                     }
                 }
@@ -2813,7 +2833,7 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // --- FIX: True Timestamps ---
+                    // --- FIX: Terminal data uses exact logic for timestamps and middleman hiding ---
                     if(data.log) {
                         if(data.log.includes("[OTA] Contacting GitHub...")) {
                             isOtaMode = true;
@@ -2824,40 +2844,29 @@
                                 customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + currentDeviceId + "\n\nNew firmware downloaded and installed. Rebooting!");
                                 pendingOtaDevice = null;
                                 isOtaMode = false;
+                                
                                 database.ref('/Devices/' + currentDeviceId + '/customerInfo/lastOtaDate').set(new Date().toLocaleString());
                             }
                         }
 
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        // Store it with the absolute timestamp if it's genuinely new
-                        if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1].text !== cleanEspLog) {
-                            espLogHistory.push({
-                                text: cleanEspLog,
-                                ts: new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' })
-                            });
+                        // Only add to history if it's new
+                        if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
+                            espLogHistory.push(cleanEspLog);
                             if(espLogHistory.length > 5) espLogHistory.shift(); 
                         }
-                        
                         const logBox = document.getElementById('logConsole');
-                        logBox.innerHTML = espLogHistory.map(item => processAndFormatLog(item.text, item.ts, false)).join('<div style="color:#555; text-align:center; margin: 4px 0;">---</div>');
+                        logBox.innerHTML = processAndFormatLog(espLogHistory.join('\n'), false);
                         logBox.scrollTop = logBox.scrollHeight; 
                     }
                     
                     if(data.nanoLog) {
                         let cleanNanoLog = data.nanoLog.replace(/\[TX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        if (cleanNanoLog !== lastNanoLogText) {
-                            lastNanoLogText = cleanNanoLog;
-                            lastNanoLogTs = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                        }
-                        document.getElementById('nanoLogConsole').innerHTML = processAndFormatLog(lastNanoLogText, lastNanoLogTs, false);
+                        document.getElementById('nanoLogConsole').innerHTML = processAndFormatLog(cleanNanoLog, false);
                     }
 
                     if(data.hardwareLog) {
-                        if (data.hardwareLog !== lastHwLogText) {
-                            lastHwLogText = data.hardwareLog;
-                            lastHwLogTs = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                        }
-                        let formattedHwLog = processAndFormatLog(lastHwLogText, lastHwLogTs, true);
+                        let formattedHwLog = processAndFormatLog(data.hardwareLog, true);
                         
                         const hwBox = document.getElementById('hwTerminalPanel');
                         if (hwBox) hwBox.innerHTML = formattedHwLog;
