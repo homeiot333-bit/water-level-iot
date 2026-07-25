@@ -1316,6 +1316,21 @@
         window.dbLastDisconnect = "--";
         window.knownNetworkSlots = []; // Multi-layer WiFi memory
 
+        // Global function to securely lock in Active WiFi without ever clearing it to blank
+        function updateActiveWifiDisplay(ssid) {
+            if (!ssid || ssid.trim() === "" || ssid === "--" || ssid.toLowerCase() === "null" || ssid.toLowerCase() === "empty") return;
+            
+            if (window.activeHotspotName !== ssid && currentDeviceId) {
+                window.activeHotspotName = ssid;
+                database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(ssid);
+            } else {
+                window.activeHotspotName = ssid;
+            }
+            
+            if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
+            if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
+        }
+
         function processAndFormatLog(logText, isHardware = false) {
             if (!logText) return "";
             let lines = logText.split('\n');
@@ -2192,7 +2207,6 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
             
-            // Re-initialize Active States
             window.activeHotspotName = "--";
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
@@ -2211,7 +2225,7 @@
             if (document.getElementById('txtCustEmptyDist')) document.getElementById('txtCustEmptyDist').innerText = '-- cm';
             if (document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = '-- cm';
             
-            updateConnectionUI(false); // Reset connection UI dynamically
+            updateConnectionUI(false);
             
             if (document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = '--';
             if (document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = '--';
@@ -2523,27 +2537,27 @@
 
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
                 const slots = snapshot.val();
-                window.knownNetworkSlots = []; // Reset and rebuild memory
+                window.knownNetworkSlots = []; // Multi-layer memory rebuild
                 if(slots) {
                     if(slots.slot1 && slots.slot1 !== "Empty") {
                         document.getElementById('cust_slot1_name').innerText = slots.slot1;
                         document.getElementById('admin_slot1_name').innerText = slots.slot1;
-                        window.knownNetworkSlots.push(slots.slot1);
+                        window.knownNetworkSlots.push(slots.slot1.trim());
                     }
                     if(slots.slot2 && slots.slot2 !== "Empty") {
                         document.getElementById('cust_slot2_name').innerText = slots.slot2;
                         document.getElementById('admin_slot2_name').innerText = slots.slot2;
-                        window.knownNetworkSlots.push(slots.slot2);
+                        window.knownNetworkSlots.push(slots.slot2.trim());
                     }
                     if(slots.slot3 && slots.slot3 !== "Empty") {
                         document.getElementById('cust_slot3_name').innerText = slots.slot3;
                         document.getElementById('admin_slot3_name').innerText = slots.slot3;
-                        window.knownNetworkSlots.push(slots.slot3);
+                        window.knownNetworkSlots.push(slots.slot3.trim());
                     }
                     if(slots.slot4 && slots.slot4 !== "Empty") {
                         document.getElementById('cust_slot4_name').innerText = slots.slot4;
                         document.getElementById('admin_slot4_name').innerText = slots.slot4;
-                        window.knownNetworkSlots.push(slots.slot4);
+                        window.knownNetworkSlots.push(slots.slot4.trim());
                     }
                 }
             });
@@ -2690,11 +2704,9 @@
                     document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
                 }
 
-                let activeHotspot = statusData.activeWiFi || statusData.connectedSSID || window.activeHotspotName || "--";
-                if (activeHotspot && activeHotspot !== "--") {
-                    window.activeHotspotName = activeHotspot;
-                    if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = activeHotspot;
-                    if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = activeHotspot;
+                let activeHotspot = statusData.activeWiFi || statusData.connectedSSID;
+                if (activeHotspot && activeHotspot !== "--" && activeHotspot.trim() !== "") {
+                    updateActiveWifiDisplay(activeHotspot);
                 }
 
                 window.autoRadioTech = statusData.radioTech;
@@ -2787,7 +2799,7 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
+                        }, 12000); // FIXED: Kept exactly at 12 seconds
                     }
                 }
             });
@@ -2869,43 +2881,44 @@
 
                     if(data.log) {
                         // --- ADVANCED MULTI-LAYER WIFI LOG SCANNER ---
-                        let lines = data.log.split('\n');
-                        for (let line of lines) {
-                            // Method 1: Strict Check Against Stored WiFi Networks
+                        let allLogs = (data.log || "") + " " + (data.nanoLog || "") + " " + (data.hardwareLog || "");
+                        let foundWifi = false;
+
+                        // Method 1: Absolute Match Against User's Saved Slots
+                        if (window.knownNetworkSlots && window.knownNetworkSlots.length > 0) {
                             for (let known of window.knownNetworkSlots) {
-                                if (line.includes(known)) {
-                                    window.activeHotspotName = known;
-                                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(window.activeHotspotName);
+                                if (known && known.trim() !== "" && allLogs.includes(known)) {
+                                    updateActiveWifiDisplay(known);
+                                    foundWifi = true;
                                     break;
                                 }
                             }
-                            
-                            // Method 2: Aggressive Fallback Extraction
-                            let cleanLine = line.replace(/✅|❌|📡|\[.*?\]/g, '').trim();
-                            let lowerLine = cleanLine.toLowerCase();
-                            
-                            let extractedSSID = null;
-                            if (lowerLine.includes("connected to ")) {
-                                extractedSSID = cleanLine.split(/connected to /i)[1];
-                            } else if (lowerLine.includes("ssid: ")) {
-                                extractedSSID = cleanLine.split(/ssid: /i)[1];
-                            } else if (lowerLine.includes("joined ")) {
-                                extractedSSID = cleanLine.split(/joined /i)[1];
-                            }
-                            
-                            if (extractedSSID) {
-                                let ssidFound = extractedSSID.replace(/['"]/g, '').trim();
-                                if (ssidFound.length > 1 && !ssidFound.toLowerCase().includes("connecting") && !ssidFound.toLowerCase().includes("wifi") && ssidFound !== "--") {
-                                    window.activeHotspotName = ssidFound;
-                                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(window.activeHotspotName);
+                        }
+
+                        // Method 2: Aggressive Fallback Extraction (If Method 1 misses)
+                        if (!foundWifi) {
+                            let lines = data.log.split('\n');
+                            for (let line of lines) {
+                                let cleanLine = line.replace(/✅|❌|📡|\[.*?\]/g, '').trim();
+                                let lowerLine = cleanLine.toLowerCase();
+                                
+                                let extractedSSID = null;
+                                if (lowerLine.includes("connected to ")) {
+                                    extractedSSID = cleanLine.split(/connected to /i)[1];
+                                } else if (lowerLine.includes("ssid: ")) {
+                                    extractedSSID = cleanLine.split(/ssid: /i)[1];
+                                } else if (lowerLine.includes("joined ")) {
+                                    extractedSSID = cleanLine.split(/joined /i)[1];
+                                }
+                                
+                                if (extractedSSID) {
+                                    let ssidFound = extractedSSID.replace(/['"]/g, '').trim();
+                                    if (ssidFound.length > 1 && !ssidFound.toLowerCase().includes("connecting") && !ssidFound.toLowerCase().includes("wifi") && ssidFound !== "--") {
+                                        updateActiveWifiDisplay(ssidFound);
+                                        break;
+                                    }
                                 }
                             }
-                        }
-                        
-                        // Force UI injection of WiFi name
-                        if (window.activeHotspotName !== "--") {
-                            if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
-                            if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
                         }
 
                         if(data.log.includes("[OTA] Contacting GitHub...")) {
@@ -2922,7 +2935,7 @@
                             }
                         }
 
-                        // --- STRICT UNTOUCHED ADVANCED RAM CLEAR ---
+                        // --- 100% UNTOUCHED RAM CLEAR FUNCTION ---
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
                             espLogHistory.push(cleanEspLog);
@@ -2950,7 +2963,7 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); // Feed the heartbeat timer
+                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging state pulse
 
                 const state = snapshot.val();
                 if(state) {
@@ -2962,10 +2975,8 @@
                     updateConnectionUI(isCurrentlyOnline);
                     
                     let activeHotspot = state.activeWiFi || state.connectedSSID || state.currentWiFi || state.ssid || state.wifi || state.wifiSSID;
-                    if (activeHotspot && activeHotspot !== "--") {
-                        window.activeHotspotName = activeHotspot;
-                        if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = activeHotspot;
-                        if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = activeHotspot;
+                    if (activeHotspot && activeHotspot !== "--" && activeHotspot.trim() !== "") {
+                        updateActiveWifiDisplay(activeHotspot);
                     }
 
                     if(state.fault) {
