@@ -976,10 +976,9 @@
                     </div>
                 </div>
 
-                <!-- --- FIX: Solitary Linked Account Devices for Customer --- -->
                 <div class="card">
-                    <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
-                    <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                    <h3 style="text-align: left; margin-bottom: 15px;">📱 Active Device Logins</h3>
+                    <div id="customerMobileLoginsList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
 
                 <div id="advancedSection" style="display:none; width:100%;">
@@ -1014,7 +1013,6 @@
                                 Signal Quality
                                 <span id="txtSignalCustomer" class="stat-value" style="color:#7bed9f;">N/A</span>
                             </div>
-                            <!-- --- FIX: Customer Hotspot Display --- -->
                             <div class="stat-box" style="grid-column: span 2; border-color: #00d2ff;">
                                 Active WiFi
                                 <span id="txtActiveWifiCustomer" class="stat-value" style="color:#00d2ff;">--</span>
@@ -1151,7 +1149,6 @@
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Last OTA Update: <strong id="adminTxtLastOta" style="color:#feca57;">--</strong></span>
                             </div>
-                            <!-- --- FIX: Admin Hotspot Display --- -->
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Active WiFi: <strong id="adminTxtActiveWifi" style="color:#00d2ff;">--</strong></span>
                             </div>
@@ -1245,10 +1242,14 @@
                             <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
-                        <!-- --- FIX: Solitary Linked Account Devices for Admin --- -->
+                        <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+                            <h3 style="text-align: left; margin-bottom: 10px; color: #7bed9f; font-size: 14px;">📱 Active Mobile Logins</h3>
+                            <div id="adminMobileLoginsList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                        </div>
+
                         <div class="card" id="adminLinkedDevicesCard" style="margin-top: 20px;">
-                            <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
-                            <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
+                            <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Hardware Systems</h3>
+                            <div id="adminLinkedDevicesList" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                         </div>
                     </div>
 
@@ -1308,6 +1309,7 @@
 
     <script>
         const globalLogTimestamps = {};
+        window.activeHotspotName = "--";
 
         function processAndFormatLog(logText, isHardware = false) {
             if (!logText) return "";
@@ -1786,12 +1788,12 @@
             }
         });
 
-        // --- FIX: Safely display Linked hardware Devices AND Mobile Logins to Admin ---
         function fetchLinkedDevices(targetEmail) {
-            const listElements = document.querySelectorAll('.linked-devices-list');
-            
+            const adminListElement = document.getElementById('adminLinkedDevicesList');
+            if(!adminListElement) return;
+
             if(!targetEmail || targetEmail === "Not saved in DB") {
-                listElements.forEach(el => el.innerHTML = "No email linked to this account.");
+                adminListElement.innerHTML = "No email linked to this account.";
                 return;
             }
             
@@ -1808,16 +1810,6 @@
                         let model = devData.customerInfo.deviceType || "Unknown Model";
                         let name = devData.customerInfo.assignedName || "Unnamed Device";
                         let status = (devData.state && devData.state.fault) ? "🔴 Fault" : "🟢 Online";
-                        
-                        let mobileList = "";
-                        let mobileCount = 0;
-                        if(devData.mobileLogins) {
-                            for(let key in devData.mobileLogins) {
-                                mobileCount++;
-                                mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${devData.mobileLogins[key].modelName} <span style="color:#666; font-size:10px;">(Last: ${devData.mobileLogins[key].lastSeen})</span></div>`;
-                            }
-                        }
-                        if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
 
                         listHtml += `<div style="padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1830,10 +1822,6 @@
                                     <span style="font-size:11px;">${status}</span>
                                 </div>
                             </div>
-                            <div style="border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 10px; padding-top: 8px;">
-                                <span style="color:#7bed9f; font-size:11px; font-weight:bold;">Logged-in Devices (${mobileCount}):</span>
-                                ${mobileList}
-                            </div>
                         </div>`;
                     }
                 });
@@ -1845,7 +1833,7 @@
                     finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
                 
-                listElements.forEach(el => el.innerHTML = finalHtml);
+                adminListElement.innerHTML = finalHtml;
             });
         }
 
@@ -2155,6 +2143,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/usageStats/today').off();
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
+                database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -2186,6 +2175,7 @@
             window.deviceDeployDate = null;
             window.deviceTopology = null;
             window.latestRawDistance = null;
+            window.activeHotspotName = "--";
 
             document.getElementById('assignedNameDisplay').innerText = '';
             document.getElementById('criticalErrorBanner').style.display = "none";
@@ -2212,7 +2202,14 @@
                 document.getElementById('dailyUsageText').style.color = '#00d2ff';
             }
             
-            document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = 'Scanning account data...');
+            const custMobileList = document.getElementById('customerMobileLoginsList');
+            if (custMobileList) custMobileList.innerHTML = "Scanning account data...";
+            
+            const adminMobileList = document.getElementById('adminMobileLoginsList');
+            if (adminMobileList) adminMobileList.innerHTML = "Scanning account data...";
+
+            const adminDevices = document.getElementById('adminLinkedDevicesList');
+            if(adminDevices) adminDevices.innerHTML = 'Scanning account data...';
             
             document.getElementById('adminTxtRadio').innerText = 'nRF24L01'; 
             document.getElementById('adminTxtChannel').innerText = '--';
@@ -2490,6 +2487,26 @@
                 }
             });
 
+            // --- FIX: Safely retrieve active login data to unique IDs ---
+            database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
+                let mobileCount = 0;
+                let mobileList = "";
+                snapshot.forEach(child => {
+                    mobileCount++;
+                    let loginData = child.val();
+                    mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${loginData.modelName} <span style="color:#666; font-size:10px;">(Last: ${loginData.lastSeen})</span></div>`;
+                });
+                if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
+                
+                let finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Active Logins: <span style="color:#7bed9f; font-size:18px;">${mobileCount}</span></div>` + mobileList;
+                
+                const customerList = document.getElementById('customerMobileLoginsList');
+                if (customerList) customerList.innerHTML = finalHtml;
+                
+                const adminList = document.getElementById('adminMobileLoginsList');
+                if (adminList) adminList.innerHTML = finalHtml;
+            });
+
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
                 const slots = snapshot.val();
                 if(slots) {
@@ -2530,7 +2547,8 @@
                     if(info.email) {
                         fetchLinkedDevices(info.email);
                     } else {
-                        document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = "No email associated with this device.");
+                        const adminHardwareList = document.getElementById('adminLinkedDevicesList');
+                        if (adminHardwareList) adminHardwareList.innerHTML = "No email associated with this device.";
                     }
 
                     window.manualRadioTech = info.radioTech || null;
@@ -2569,7 +2587,9 @@
                     window.manualRadioRate = null;
                     window.deviceDeployDate = null;
                     window.deviceTopology = null;
-                    document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = "No configuration found for this device.");
+                    
+                    const adminHardwareList = document.getElementById('adminLinkedDevicesList');
+                    if (adminHardwareList) adminHardwareList.innerHTML = "No configuration found for this device.";
                     
                     if(document.getElementById('adminTxtTopology')) document.getElementById('adminTxtTopology').innerText = "Unknown";
                     if(document.getElementById('adminTxtDeployDate')) document.getElementById('adminTxtDeployDate').innerText = "Not Set";
@@ -2642,8 +2662,7 @@
                     document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
                 }
 
-                // --- FIX: Dynamic WiFi Display ---
-                let activeHotspot = statusData.activeWiFi || statusData.connectedSSID || statusData.currentWiFi || statusData.ssid || statusData.wifi || statusData.wifiSSID;
+                let activeHotspot = statusData.activeWiFi || statusData.connectedSSID || window.activeHotspotName || "--";
                 if (activeHotspot && activeHotspot !== "--") {
                     if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = activeHotspot;
                     if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = activeHotspot;
@@ -2659,10 +2678,8 @@
             // --- FIX: Bulletproof Connection State Tracking ---
             heartbeatTimer = setInterval(() => {
                 let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
-                const user = firebase.auth().currentUser;
-                const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
-
-                // Safely log offline/online transitions securely across any dashboard
+                
+                // Track transitions to capture exact time across all sessions
                 if (prevOnlineState === null) {
                     prevOnlineState = isCurrentlyOnline;
                 } else if (prevOnlineState !== isCurrentlyOnline) {
@@ -2679,6 +2696,9 @@
                 }
 
                 if(!isCurrentlyOnline) { 
+                    const user = firebase.auth().currentUser;
+                    const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
+
                     if(isAdmin) {
                         if (isOtaMode || pendingOtaDevice === currentDeviceId) {
                             document.getElementById('offlineOverlay').style.display = 'none';
@@ -2741,15 +2761,10 @@
             });
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
+                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging telemetry pulse
+
                 const data = snapshot.val();
                 if(data) {
-                    // --- FIX: Wide-Net WiFi Display Scanning ---
-                    let activeHotspot = data.ssid || data.activeWiFi || data.connectedSSID || data.currentWiFi || data.wifiSSID;
-                    if (activeHotspot && activeHotspot !== "--") {
-                        if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = activeHotspot;
-                        if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = activeHotspot;
-                    }
-
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
                     document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
                     document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
@@ -2821,6 +2836,23 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
+                        // --- EXTRACT HOTSPOT FROM TERMINAL ---
+                        let lines = data.log.split('\n');
+                        for (let line of lines) {
+                            let cleanLine = line.replace(/✅|❌|📡|\[.*?\]/g, '').trim();
+                            let match = cleanLine.match(/(?:Connected to|SSID:|Joined)\s*([A-Za-z0-9_@\-\s]+)/i);
+                            if (match && match[1]) {
+                                let ssidFound = match[1].trim();
+                                if (ssidFound.length > 1 && ssidFound.toLowerCase() !== "wifi") {
+                                    window.activeHotspotName = ssidFound;
+                                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(window.activeHotspotName);
+                                    
+                                    if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
+                                    if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
+                                }
+                            }
+                        }
+
                         if(data.log.includes("[OTA] Contacting GitHub...")) {
                             isOtaMode = true;
                         }
@@ -2862,13 +2894,14 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
+                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging state pulse
+
                 const state = snapshot.val();
                 if(state) {
                     const badge = document.getElementById('connStatus');
                     const currentUser = firebase.auth().currentUser;
                     const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
                     
-                    // --- FIX: Deep State WiFi Scan ---
                     let activeHotspot = state.activeWiFi || state.connectedSSID || state.currentWiFi || state.ssid || state.wifi || state.wifiSSID;
                     if (activeHotspot && activeHotspot !== "--") {
                         if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = activeHotspot;
