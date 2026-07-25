@@ -972,7 +972,7 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" id="adminLinkedDevicesCard" style="display:none;">
                     <h3 style="text-align: left; margin-bottom: 15px;">🔗 Linked Account Devices</h3>
                     <div class="linked-devices-list" style="font-size: 13px; color: #ccc;">Scanning account data...</div>
                 </div>
@@ -1141,7 +1141,7 @@
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Last OTA Update: <strong id="adminTxtLastOta" style="color:#feca57;">--</strong></span>
                             </div>
-                            <!-- --- NEW: Connection Tracking Row --- -->
+                            <!-- --- NEW FIX: Connection Tracking Row --- -->
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Connected: <strong id="adminTxtLastConnect" style="color:#2ed573;">--</strong></span>
                                 <span>Disconnected: <strong id="adminTxtLastDisconnect" style="color:#ff4757;">--</strong></span>
@@ -1822,8 +1822,8 @@
                     finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
                 
-                const adminList = document.querySelector('#adminCommandCenter .linked-devices-list');
-                if(adminList) adminList.innerHTML = finalHtml;
+                // --- FIX: Populate all linked-devices-list divs (Admin & Customer) ---
+                document.querySelectorAll('.linked-devices-list').forEach(el => el.innerHTML = finalHtml);
             });
         }
 
@@ -2152,7 +2152,8 @@
             hasShownPopup = false;
             isOtaMode = false; 
             
-            isDeviceCurrentlyOnline = false;
+            // --- Reset Feature variables ---
+            localIsOnline = false;
             initialConnectionCheckDone = false;
 
             window.manualRadioTech = null;
@@ -2176,11 +2177,11 @@
             document.getElementById('adminTxtEmptyDist').innerText = '-- cm';
             document.getElementById('adminTxtFullDist').innerText = '-- cm';
             
-            if (document.getElementById('adminTxtLastConnect')) document.getElementById('adminTxtLastConnect').innerText = '--';
-            if (document.getElementById('adminTxtLastDisconnect')) document.getElementById('adminTxtLastDisconnect').innerText = '--';
-            
             if (document.getElementById('txtCustEmptyDist')) document.getElementById('txtCustEmptyDist').innerText = '-- cm';
             if (document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = '-- cm';
+            
+            if (document.getElementById('adminTxtLastConnect')) document.getElementById('adminTxtLastConnect').innerText = '--';
+            if (document.getElementById('adminTxtLastDisconnect')) document.getElementById('adminTxtLastDisconnect').innerText = '--';
             
             if (document.getElementById('dailyUsageText')) {
                 document.getElementById('dailyUsageText').innerText = '0.0%';
@@ -2795,7 +2796,6 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // --- NEW FIX: Processing logs correctly with proper clicks ---
                     if(data.log) {
                         if(data.log.includes("[OTA] Contacting GitHub...")) {
                             isOtaMode = true;
@@ -2828,7 +2828,6 @@
 
                     if(data.hardwareLog) {
                         let formattedHwLog = processAndFormatLog(data.hardwareLog, true);
-                        
                         const hwBox = document.getElementById('hwTerminalPanel');
                         if (hwBox) hwBox.innerHTML = formattedHwLog;
 
