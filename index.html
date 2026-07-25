@@ -1788,6 +1788,7 @@
             }
         });
 
+        // --- HARDWARE LIST SCANNER (ADMIN ONLY) ---
         function fetchLinkedDevices(targetEmail) {
             const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
@@ -1830,7 +1831,7 @@
                 if(count === 0) {
                     finalHtml = "No devices found.";
                 } else {
-                    finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Devices: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
+                    finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Total Connected Hardware: <span style="color:#7bed9f; font-size:18px;">${count}</span></div>` + listHtml;
                 }
                 
                 adminListElement.innerHTML = finalHtml;
@@ -2487,7 +2488,7 @@
                 }
             });
 
-            // --- FIX: Safely retrieve active login data to unique IDs ---
+            // Dedicated Listener for Mobile Logins
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
                 let mobileCount = 0;
                 let mobileList = "";
@@ -2500,11 +2501,8 @@
                 
                 let finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Active Logins: <span style="color:#7bed9f; font-size:18px;">${mobileCount}</span></div>` + mobileList;
                 
-                const customerList = document.getElementById('customerMobileLoginsList');
-                if (customerList) customerList.innerHTML = finalHtml;
-                
-                const adminList = document.getElementById('adminMobileLoginsList');
-                if (adminList) adminList.innerHTML = finalHtml;
+                if(document.getElementById('customerMobileLoginsList')) document.getElementById('customerMobileLoginsList').innerHTML = finalHtml;
+                if(document.getElementById('adminMobileLoginsList')) document.getElementById('adminMobileLoginsList').innerHTML = finalHtml;
             });
 
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
@@ -2675,11 +2673,11 @@
                 updateRadioUI();
             });
 
-            // --- FIX: Bulletproof Connection State Tracking ---
+            // --- FLAWLESS CONNECT/DISCONNECT TIMER ---
             heartbeatTimer = setInterval(() => {
                 let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
                 
-                // Track transitions to capture exact time across all sessions
+                // Track transitions to capture exact time
                 if (prevOnlineState === null) {
                     prevOnlineState = isCurrentlyOnline;
                 } else if (prevOnlineState !== isCurrentlyOnline) {
