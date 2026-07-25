@@ -1309,7 +1309,12 @@
 
     <script>
         const globalLogTimestamps = {};
+        
+        // --- ADVANCED STATE VARIABLES ---
         window.activeHotspotName = "--";
+        window.dbLastConnect = "--";
+        window.dbLastDisconnect = "--";
+        window.knownNetworkSlots = []; // Multi-layer WiFi memory
 
         function processAndFormatLog(logText, isHardware = false) {
             if (!logText) return "";
@@ -1350,6 +1355,20 @@
                 formattedOutput.push(`<div style="cursor:pointer; display:block; width:100%; margin-bottom:4px;" onclick="const t = this.querySelector('.ts'); t.style.display = t.style.display === 'none' ? 'inline' : 'none'">${coloredLine}<span class="ts" style="display:none; color:#888; margin-left:8px; font-size:10px;">[${ts}]</span></div>`);
             }
             return formattedOutput.join('');
+        }
+
+        // --- DYNAMIC CONNECTION RENDERER ---
+        function updateConnectionUI(isOnline) {
+            if (document.getElementById('adminTxtLastConnect')) {
+                document.getElementById('adminTxtLastConnect').innerText = window.dbLastConnect;
+            }
+            if (document.getElementById('adminTxtLastDisconnect')) {
+                if (isOnline) {
+                    document.getElementById('adminTxtLastDisconnect').innerHTML = `<span style="color:#2ed573; font-weight:bold;">Live Internet 🟢</span>`;
+                } else {
+                    document.getElementById('adminTxtLastDisconnect').innerHTML = `<span style="color:#ff4757; font-weight:bold;">${window.dbLastDisconnect}</span>`;
+                }
+            }
         }
 
         function getMobileDeviceModel() {
@@ -1787,7 +1806,6 @@
             }
         });
 
-        // --- HARDWARE LIST SCANNER (ADMIN ONLY) ---
         function fetchLinkedDevices(targetEmail) {
             const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
@@ -2173,7 +2191,11 @@
             window.deviceDeployDate = null;
             window.deviceTopology = null;
             window.latestRawDistance = null;
+            
+            // Re-initialize Active States
             window.activeHotspotName = "--";
+            window.dbLastConnect = "--";
+            window.dbLastDisconnect = "--";
 
             document.getElementById('assignedNameDisplay').innerText = '';
             document.getElementById('criticalErrorBanner').style.display = "none";
@@ -2189,8 +2211,7 @@
             if (document.getElementById('txtCustEmptyDist')) document.getElementById('txtCustEmptyDist').innerText = '-- cm';
             if (document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = '-- cm';
             
-            if (document.getElementById('adminTxtLastConnect')) document.getElementById('adminTxtLastConnect').innerText = '--';
-            if (document.getElementById('adminTxtLastDisconnect')) document.getElementById('adminTxtLastDisconnect').innerText = '--';
+            updateConnectionUI(false); // Reset connection UI dynamically
             
             if (document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = '--';
             if (document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = '--';
@@ -2476,17 +2497,10 @@
             database.ref(basePath + '/connectionHistory').on('value', (snapshot) => {
                 const hist = snapshot.val();
                 if(hist) {
-                    if(document.getElementById('adminTxtLastConnect')) {
-                        document.getElementById('adminTxtLastConnect').innerText = hist.lastConnect || "--";
-                    }
-                    if(document.getElementById('adminTxtLastDisconnect')) {
-                        let disc = hist.lastDisconnect || "--";
-                        if (disc.includes("Live")) {
-                            document.getElementById('adminTxtLastDisconnect').innerHTML = `<span style="color:#2ed573; font-weight:bold;">${disc}</span>`;
-                        } else {
-                            document.getElementById('adminTxtLastDisconnect').innerText = disc;
-                        }
-                    }
+                    window.dbLastConnect = hist.lastConnect || "--";
+                    window.dbLastDisconnect = hist.lastDisconnect || "--";
+                    let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                    updateConnectionUI(isCurrentlyOnline);
                 }
             });
 
@@ -2509,16 +2523,28 @@
 
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
                 const slots = snapshot.val();
+                window.knownNetworkSlots = []; // Reset and rebuild memory
                 if(slots) {
-                    if(document.getElementById('cust_slot1_name')) document.getElementById('cust_slot1_name').innerText = slots.slot1 || "Empty";
-                    if(document.getElementById('cust_slot2_name')) document.getElementById('cust_slot2_name').innerText = slots.slot2 || "Empty";
-                    if(document.getElementById('cust_slot3_name')) document.getElementById('cust_slot3_name').innerText = slots.slot3 || "Empty";
-                    if(document.getElementById('cust_slot4_name')) document.getElementById('cust_slot4_name').innerText = slots.slot4 || "Empty";
-                    
-                    if(document.getElementById('admin_slot1_name')) document.getElementById('admin_slot1_name').innerText = slots.slot1 || "Empty";
-                    if(document.getElementById('admin_slot2_name')) document.getElementById('admin_slot2_name').innerText = slots.slot2 || "Empty";
-                    if(document.getElementById('admin_slot3_name')) document.getElementById('admin_slot3_name').innerText = slots.slot3 || "Empty";
-                    if(document.getElementById('admin_slot4_name')) document.getElementById('admin_slot4_name').innerText = slots.slot4 || "Empty";
+                    if(slots.slot1 && slots.slot1 !== "Empty") {
+                        document.getElementById('cust_slot1_name').innerText = slots.slot1;
+                        document.getElementById('admin_slot1_name').innerText = slots.slot1;
+                        window.knownNetworkSlots.push(slots.slot1);
+                    }
+                    if(slots.slot2 && slots.slot2 !== "Empty") {
+                        document.getElementById('cust_slot2_name').innerText = slots.slot2;
+                        document.getElementById('admin_slot2_name').innerText = slots.slot2;
+                        window.knownNetworkSlots.push(slots.slot2);
+                    }
+                    if(slots.slot3 && slots.slot3 !== "Empty") {
+                        document.getElementById('cust_slot3_name').innerText = slots.slot3;
+                        document.getElementById('admin_slot3_name').innerText = slots.slot3;
+                        window.knownNetworkSlots.push(slots.slot3);
+                    }
+                    if(slots.slot4 && slots.slot4 !== "Empty") {
+                        document.getElementById('cust_slot4_name').innerText = slots.slot4;
+                        document.getElementById('admin_slot4_name').innerText = slots.slot4;
+                        window.knownNetworkSlots.push(slots.slot4);
+                    }
                 }
             });
 
@@ -2655,6 +2681,8 @@
                     document.getElementById('offlineOverlay').style.display = 'none'; 
                 }
                 
+                let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                updateConnectionUI(isCurrentlyOnline);
                 updateRuntimeUI();
 
                 if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
@@ -2676,13 +2704,12 @@
                 updateRadioUI();
             });
 
-            // --- FLAWLESS CONNECT/DISCONNECT TIMER ---
+            // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER ---
             heartbeatTimer = setInterval(() => {
                 let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
                 
-                // Track transitions to capture exact time logically across the system
                 if (prevOnlineState === null) {
-                    prevOnlineState = isCurrentlyOnline; // SILENT SYNC ON PAGE LOAD
+                    prevOnlineState = isCurrentlyOnline; // Initialize safely
                 } else if (prevOnlineState !== isCurrentlyOnline) {
                     prevOnlineState = isCurrentlyOnline;
                     let transitionTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
@@ -2690,12 +2717,14 @@
                     if (currentDeviceId) {
                         if (isCurrentlyOnline) {
                             database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastConnect').set(transitionTime);
-                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set("Live Internet 🟢");
                         } else {
                             database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(transitionTime);
                         }
                     }
                 }
+                
+                // Force UI to dynamically refresh state independent of Firebase
+                updateConnectionUI(isCurrentlyOnline);
 
                 if(!isCurrentlyOnline) { 
                     const user = firebase.auth().currentUser;
@@ -2739,7 +2768,7 @@
                 }
             }, 2000);
 
-            // --- STRICT 12-SECOND PUMP TIMEOUT & UNTOUCHED LOGIC ---
+            // --- STRICT UNTOUCHED PUMP LOGIC & TIMEOUT ---
             database.ref(basePath + '/control').on('value', (snapshot) => {
                 const ctrl = snapshot.val();
                 if(ctrl && ctrl.triggerId && ctrl.triggerId !== lastSeenControlTrigger) {
@@ -2758,13 +2787,13 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // FIXED: Changed exactly to 12 seconds
+                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
                     }
                 }
             });
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging telemetry pulse
+                lastHeartbeatTime = Date.now(); // Feed the heartbeat timer
 
                 const data = snapshot.val();
                 if(data) {
@@ -2839,9 +2868,19 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
-                        // --- EXTRACT HOTSPOT DIRECTLY FROM TERMINAL WITH HIGH RELIABILITY ---
+                        // --- ADVANCED MULTI-LAYER WIFI LOG SCANNER ---
                         let lines = data.log.split('\n');
                         for (let line of lines) {
+                            // Method 1: Strict Check Against Stored WiFi Networks
+                            for (let known of window.knownNetworkSlots) {
+                                if (line.includes(known)) {
+                                    window.activeHotspotName = known;
+                                    database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(window.activeHotspotName);
+                                    break;
+                                }
+                            }
+                            
+                            // Method 2: Aggressive Fallback Extraction
                             let cleanLine = line.replace(/✅|❌|📡|\[.*?\]/g, '').trim();
                             let lowerLine = cleanLine.toLowerCase();
                             
@@ -2859,11 +2898,14 @@
                                 if (ssidFound.length > 1 && !ssidFound.toLowerCase().includes("connecting") && !ssidFound.toLowerCase().includes("wifi") && ssidFound !== "--") {
                                     window.activeHotspotName = ssidFound;
                                     database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(window.activeHotspotName);
-                                    
-                                    if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
-                                    if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
                                 }
                             }
+                        }
+                        
+                        // Force UI injection of WiFi name
+                        if (window.activeHotspotName !== "--") {
+                            if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
+                            if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
                         }
 
                         if(data.log.includes("[OTA] Contacting GitHub...")) {
@@ -2880,7 +2922,7 @@
                             }
                         }
 
-                        // --- 100% UNTOUCHED RAM CLEAR FUNCTION ---
+                        // --- STRICT UNTOUCHED ADVANCED RAM CLEAR ---
                         let cleanEspLog = data.log.replace(/\[RX\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
                         if(espLogHistory.length === 0 || espLogHistory[espLogHistory.length - 1] !== cleanEspLog) {
                             espLogHistory.push(cleanEspLog);
@@ -2908,13 +2950,16 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging state pulse
+                lastHeartbeatTime = Date.now(); // Feed the heartbeat timer
 
                 const state = snapshot.val();
                 if(state) {
                     const badge = document.getElementById('connStatus');
                     const currentUser = firebase.auth().currentUser;
                     const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
+                    
+                    let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                    updateConnectionUI(isCurrentlyOnline);
                     
                     let activeHotspot = state.activeWiFi || state.connectedSSID || state.currentWiFi || state.ssid || state.wifi || state.wifiSSID;
                     if (activeHotspot && activeHotspot !== "--") {
@@ -3001,7 +3046,7 @@
                 return; 
             }
 
-            // --- UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
+            // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
             btn.style.pointerEvents = "none";
             btn.style.cursor = "not-allowed";
@@ -3019,7 +3064,7 @@
                 if (!navigator.onLine) return;
                 updatePumpButtonUI();
                 await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 12 seconds. Please try again.");
-            }, 12000); // FIXED: Restored to 12 seconds
+            }, 12000); // FIXED: Kept exactly at 12 seconds
         }
 
         async function triggerOTA() {
