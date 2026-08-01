@@ -7,8 +7,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- Firebase Cloud Storage SDK for Automatic 5GB Archiving -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app-check.js"></script>
     
     <style>
@@ -1221,8 +1219,8 @@
                                 <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
                                     <strong style="color:#00d2ff; font-size:11px;">Slot 4:</strong> <span id="admin_slot4_name" style="color:#fff; font-size:11px;">--</span>
                                     <div style="display:flex; gap:5px; margin-top:5px;">
-                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
 
@@ -1313,39 +1311,6 @@
     </div>
 
     <script>
-        // --- AUTOMATIC BACKGROUND 5GB CLOUD STORAGE BACKUP ---
-        function autoBackupToCloudStorage() {
-            if(!currentDeviceId) return;
-            let lastAutoBackup = localStorage.getItem("lastAutoBackup_" + currentDeviceId);
-            let now = Date.now();
-            
-            // Runs silently once every 24 hours
-            if (!lastAutoBackup || (now - parseInt(lastAutoBackup)) > 86400000) {
-                database.ref('/Devices/' + currentDeviceId + '/connectionHistory').once('value').then(connSnap => {
-                    if(!connSnap.exists()) return;
-                    let backupPayload = {
-                        deviceId: currentDeviceId,
-                        backupDate: new Date().toLocaleString(),
-                        connectionHistory: connSnap.val() || {}
-                    };
-                    let jsonString = JSON.stringify(backupPayload, null, 2);
-                    let blob = new Blob([jsonString], {type: "application/json"});
-                    let fileName = "Auto_Archive_" + currentDeviceId + "_" + Date.now() + ".json";
-                    
-                    try {
-                        let storageRef = firebase.storage().ref();
-                        let backupRef = storageRef.child('AutoBackups/' + currentDeviceId + '/' + fileName);
-                        backupRef.put(blob).then(() => {
-                            localStorage.setItem("lastAutoBackup_" + currentDeviceId, now.toString());
-                            console.log("Silent Cloud Storage 5GB auto-backup completed.");
-                        }).catch(e => console.log("Storage Auto-Backup pending initialization:", e));
-                    } catch(e) {
-                        console.log("Storage SDK not ready:", e);
-                    }
-                });
-            }
-        }
-
         const globalLogTimestamps = {};
         
         // --- ADVANCED STATE VARIABLES ---
@@ -1941,6 +1906,7 @@
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
+            // --- FIX: RENDER NEWLY BUILT DEVICES INSTANTLY ---
             globalScannerTimer = setInterval(() => {
                 database.ref('/Devices').once('value').then((snapshot) => {
                     let currentKeys = {}; 
@@ -2273,6 +2239,7 @@
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
 
+            // Secure fetch of Active WiFi on page load
             database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
                     window.activeHotspotName = snap.val();
@@ -2460,7 +2427,7 @@
             if(updates) {
                 let msg = "✅ Manual settings successfully pushed to the device.";
                 if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi.";
-                await customAlert("✅ Manual settings pushed.");
+                await customAlert(msg);
                 document.getElementById('adminEmptyInput').value = "";
                 document.getElementById('adminFullInput').value = "";
                 for(let i=1; i<=4; i++) {
@@ -2577,9 +2544,6 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
-            // --- TRIGGER AUTOMATIC SILENT 5GB BACKUP ---
-            autoBackupToCloudStorage();
-
             database.ref(basePath + '/connectionHistory').on('value', (snapshot) => {
                 const hist = snapshot.val();
                 if(hist) {
@@ -2590,15 +2554,14 @@
                 }
             });
 
-            // --- DEDICATED LISTENER FOR MOBILE LOGINS (STRICT 5 MAX LIMIT & AUTO PRUNE) ---
+            // --- STRICT 5-LOG LIMIT & AUTO-PRUNING ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
-                let mobileList = "";
                 let logins = [];
                 snapshot.forEach(child => {
                     logins.push({ key: child.key, data: child.val() });
                 });
                 
-                // Automatically prune database if logins > 5 to keep DB clean
+                // Automatically prune database if logins > 5 to keep DB completely clean
                 if (logins.length > 5) {
                     let overflow = logins.length - 5;
                     for (let i = 0; i < overflow; i++) {
@@ -2608,6 +2571,7 @@
                 }
 
                 let mobileCount = logins.length;
+                let mobileList = "";
                 logins.forEach(item => {
                     let loginData = item.data;
                     mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${loginData.modelName} <span style="color:#666; font-size:10px;">(Last: ${loginData.lastSeen})</span></div>`;
@@ -2812,7 +2776,7 @@
                 let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 
                 if (prevOnlineState === null) {
-                    prevOnlineState = isCurrentlyOnline; 
+                    prevOnlineState = isCurrentlyOnline; // Initialize safely
                 } else if (prevOnlineState !== isCurrentlyOnline) {
                     prevOnlineState = isCurrentlyOnline;
                     let transitionTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
