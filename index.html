@@ -2210,7 +2210,6 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
             
-            // Re-initialize Active States
             window.activeHotspotName = "--";
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
@@ -2778,6 +2777,7 @@
                         
                         btn.className = "btn-round btn-off";
                         btn.innerText = "OFFLINE";
+                        btn.style.pointerEvents = "none"; // Safety lock
                         
                         if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION
                         
@@ -2791,9 +2791,16 @@
                     }
                 } else {
                     const badge = document.getElementById('connStatus');
+                    const btn = document.getElementById('pumpToggleBtn');
+                    
                     if (badge.innerText === "OFFLINE") {
                         badge.style.background = "#2ed573";
                         badge.innerText = "ONLINE";
+                    }
+                    
+                    // --- WAKE UP PUMP BUTTON FROM OFFLINE ---
+                    if (btn.innerText === "OFFLINE") {
+                        updatePumpButtonUI();
                     }
                 }
             }, 2000);
@@ -3049,7 +3056,7 @@
 
             const btn = document.getElementById('pumpToggleBtn');
             
-            if (btn.innerText.includes("WAIT")) return; 
+            if (btn.innerText.includes("WAIT") || btn.innerText === "OFFLINE") return; 
 
             if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
                 await customAlert("❌ Network Offline: Cannot send command right now.");
