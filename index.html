@@ -7,7 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- ADDED: Firebase Cloud Storage SDK to access the free 5GB Bucket -->
+    <!-- Firebase Cloud Storage SDK for Automatic 5GB Archiving -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app-check.js"></script>
     
@@ -1045,9 +1045,6 @@
 
                     <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
 
-                    <!-- ADDED: 5GB FREE CLOUD STORAGE BACKUP BUTTON -->
-                    <button class="btn-login" style="background:rgba(46, 213, 115, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="backupToCloudStorage()">☁️ Archive Old Data to 5GB Cloud Storage</button>
-
                     <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
                         <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
                         <label style="color:#fff; font-size:13px; margin-top:8px; display:block; cursor:pointer;"><input type="radio" name="searchMode" value="email" onchange="updateSearchPlaceholder()"> Search by Email</label>
@@ -1224,8 +1221,8 @@
                                 <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
                                     <strong style="color:#00d2ff; font-size:11px;">Slot 4:</strong> <span id="admin_slot4_name" style="color:#fff; font-size:11px;">--</span>
                                     <div style="display:flex; gap:5px; margin-top:5px;">
-                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
 
@@ -1316,55 +1313,38 @@
     </div>
 
     <script>
-        // --- ADDED: EXCLUSIVE FUNCTION FOR CLOUD STORAGE BACKUP ---
-        async function backupToCloudStorage() {
-            if(!currentDeviceId) {
-                await customAlert("❌ Please connect to a specific device first before backing up its data.");
-                return;
-            }
+        // --- AUTOMATIC BACKGROUND 5GB CLOUD STORAGE BACKUP ---
+        function autoBackupToCloudStorage() {
+            if(!currentDeviceId) return;
+            let lastAutoBackup = localStorage.getItem("lastAutoBackup_" + currentDeviceId);
+            let now = Date.now();
             
-            if(!await customConfirm("☁️ CLOUD STORAGE ARCHIVE\n\nThis tool will package the long historical data (like mobile logins and connection history) for " + currentDeviceId + " into a secure file, send it to your free 5 GB Firebase Storage bucket, and clean your Realtime Database to free up space.\n\nProceed with backup?")) {
-                return;
-            }
-            
-            try {
-                // Fetch the heavy data from RTDB
-                const mobileSnap = await database.ref('/Devices/' + currentDeviceId + '/mobileLogins').once('value');
-                const connSnap = await database.ref('/Devices/' + currentDeviceId + '/connectionHistory').once('value');
-                
-                const backupPayload = {
-                    deviceId: currentDeviceId,
-                    timestamp: new Date().toLocaleString(),
-                    mobileLogins: mobileSnap.val() || {},
-                    connectionHistory: connSnap.val() || {}
-                };
-                
-                // Convert to a File (Blob)
-                const jsonString = JSON.stringify(backupPayload, null, 2);
-                const blob = new Blob([jsonString], {type: "application/json"});
-                const fileName = "System_Archive_" + currentDeviceId + "_" + Date.now() + ".json";
-                
-                // Initialize Firebase Storage Reference
-                const storageRef = firebase.storage().ref();
-                const backupRef = storageRef.child('SystemBackups/' + currentDeviceId + '/' + fileName);
-                
-                await customAlert("⏳ Uploading to 5 GB Cloud Storage... Please do not close the window.");
-                
-                // Upload the File
-                await backupRef.put(blob);
-                
-                // Clean the Realtime Database to stay under 1GB!
-                // We leave 'lastConnect' intact so the UI doesn't break, just delete the heavy stuff
-                await database.ref('/Devices/' + currentDeviceId + '/mobileLogins').remove();
-                
-                await customAlert("✅ SUCCESS!\n\nYour data has been permanently secured in your 5 GB Cloud Storage bucket.\n\nYour 1 GB Realtime Database limit is protected.");
-                
-            } catch(error) {
-                console.error(error);
-                await customAlert("❌ UPLOAD FAILED!\n\nReason: " + error.message + "\n\nCRITICAL FIX: Ensure you went to your Firebase Console -> Build -> Storage and clicked 'Get Started' to enable your free 5GB bucket!");
+            // Runs silently once every 24 hours
+            if (!lastAutoBackup || (now - parseInt(lastAutoBackup)) > 86400000) {
+                database.ref('/Devices/' + currentDeviceId + '/connectionHistory').once('value').then(connSnap => {
+                    if(!connSnap.exists()) return;
+                    let backupPayload = {
+                        deviceId: currentDeviceId,
+                        backupDate: new Date().toLocaleString(),
+                        connectionHistory: connSnap.val() || {}
+                    };
+                    let jsonString = JSON.stringify(backupPayload, null, 2);
+                    let blob = new Blob([jsonString], {type: "application/json"});
+                    let fileName = "Auto_Archive_" + currentDeviceId + "_" + Date.now() + ".json";
+                    
+                    try {
+                        let storageRef = firebase.storage().ref();
+                        let backupRef = storageRef.child('AutoBackups/' + currentDeviceId + '/' + fileName);
+                        backupRef.put(blob).then(() => {
+                            localStorage.setItem("lastAutoBackup_" + currentDeviceId, now.toString());
+                            console.log("Silent Cloud Storage 5GB auto-backup completed.");
+                        }).catch(e => console.log("Storage Auto-Backup pending initialization:", e));
+                    } catch(e) {
+                        console.log("Storage SDK not ready:", e);
+                    }
+                });
             }
         }
-        // --------------------------------------------------------
 
         const globalLogTimestamps = {};
         
@@ -2480,7 +2460,7 @@
             if(updates) {
                 let msg = "✅ Manual settings successfully pushed to the device.";
                 if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi.";
-                await customAlert(msg);
+                await customAlert("✅ Manual settings pushed.");
                 document.getElementById('adminEmptyInput').value = "";
                 document.getElementById('adminFullInput').value = "";
                 for(let i=1; i<=4; i++) {
@@ -2597,6 +2577,9 @@
         function startListeners() {
             const basePath = '/Devices/' + currentDeviceId;
 
+            // --- TRIGGER AUTOMATIC SILENT 5GB BACKUP ---
+            autoBackupToCloudStorage();
+
             database.ref(basePath + '/connectionHistory').on('value', (snapshot) => {
                 const hist = snapshot.val();
                 if(hist) {
@@ -2607,15 +2590,29 @@
                 }
             });
 
-            // Dedicated Listener for Mobile Logins
+            // --- DEDICATED LISTENER FOR MOBILE LOGINS (STRICT 5 MAX LIMIT & AUTO PRUNE) ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
-                let mobileCount = 0;
                 let mobileList = "";
+                let logins = [];
                 snapshot.forEach(child => {
-                    mobileCount++;
-                    let loginData = child.val();
+                    logins.push({ key: child.key, data: child.val() });
+                });
+                
+                // Automatically prune database if logins > 5 to keep DB clean
+                if (logins.length > 5) {
+                    let overflow = logins.length - 5;
+                    for (let i = 0; i < overflow; i++) {
+                        database.ref(basePath + '/mobileLogins/' + logins[i].key).remove();
+                    }
+                    logins = logins.slice(overflow);
+                }
+
+                let mobileCount = logins.length;
+                logins.forEach(item => {
+                    let loginData = item.data;
                     mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${loginData.modelName} <span style="color:#666; font-size:10px;">(Last: ${loginData.lastSeen})</span></div>`;
                 });
+
                 if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
                 
                 let finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Active Logins: <span style="color:#7bed9f; font-size:18px;">${mobileCount}</span></div>` + mobileList;
