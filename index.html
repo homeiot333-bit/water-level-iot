@@ -1318,13 +1318,15 @@
 
         // Global function to securely lock in Active WiFi without ever clearing it to blank
         function updateActiveWifiDisplay(ssid) {
-            if (!ssid || ssid.trim() === "" || ssid === "--" || ssid.toLowerCase() === "null" || ssid.toLowerCase() === "empty") return;
+            if (!ssid || typeof ssid !== 'string') return;
+            let cleanSsid = ssid.trim();
+            if (cleanSsid === "" || cleanSsid === "--" || cleanSsid.toLowerCase() === "null" || cleanSsid.toLowerCase() === "empty") return;
             
-            if (window.activeHotspotName !== ssid && currentDeviceId) {
-                window.activeHotspotName = ssid;
-                database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(ssid);
+            if (window.activeHotspotName !== cleanSsid && currentDeviceId) {
+                window.activeHotspotName = cleanSsid;
+                database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').set(cleanSsid);
             } else {
-                window.activeHotspotName = ssid;
+                window.activeHotspotName = cleanSsid;
             }
             
             if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
@@ -1821,6 +1823,7 @@
             }
         });
 
+        // --- HARDWARE LIST SCANNER (ADMIN ONLY) ---
         function fetchLinkedDevices(targetEmail) {
             const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
@@ -2029,9 +2032,7 @@
             let hasDevices = false;
             let currentConnectedDeviceFaultMessage = null; 
 
-            for (const devId in adminInboxData) {
-                if (!globalDeviceState[devId]) continue;
-
+            for (const devId in globalDeviceState) {
                 let devType = globalDeviceState[devId].deviceType || "Unknown";
                 let assignedNameStrRaw = globalDeviceState[devId].assignedName || "";
                 
@@ -2044,16 +2045,14 @@
                 }
                 
                 hasDevices = true;
-                const data = adminInboxData[devId];
+                const data = adminInboxData[devId] || {};
                 let color = "#2ed573"; 
-                let displayStatus = data.status || "UNKNOWN STATUS";
-                let displayMsg = data.message || "No message available.";
+                let displayStatus = data.status || "NORMAL";
+                let displayMsg = data.message || "System operating normally.";
                 let isDead = false;
 
-                if(globalDeviceState[devId]) {
-                    if (Date.now() - globalDeviceState[devId].lastTime > 35000) { 
-                        isDead = true;
-                    }
+                if (Date.now() - globalDeviceState[devId].lastTime > 35000) { 
+                    isDead = true;
                 }
 
                 if (isDead) {
@@ -2742,40 +2741,44 @@
                     const user = firebase.auth().currentUser;
                     const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
 
-                    if(isAdmin) {
-                        if (isOtaMode || pendingOtaDevice === currentDeviceId) {
+                    // GLOBAL OFFLINE UI UPDATES (For BOTH Admin & Customer)
+                    const badge = document.getElementById('connStatus');
+                    const btn = document.getElementById('pumpToggleBtn');
+                    const tankModel = document.getElementById('waterTankModel'); 
+
+                    if (isOtaMode || pendingOtaDevice === currentDeviceId) {
+                        document.getElementById('offlineOverlay').style.display = 'none';
+                        badge.style.background = "#00d2ff";
+                        badge.innerText = "OTA DOWNLOADING...";
+                        
+                        btn.className = "btn-round btn-off";
+                        btn.innerText = "UPDATING";
+                        btn.style.opacity = "0.5";
+                        btn.style.pointerEvents = "none";
+                        
+                        if(isAdmin) document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
+                    } else {
+                        badge.style.background = "#ff4757";
+                        badge.innerText = "OFFLINE";
+                        
+                        btn.className = "btn-round btn-off";
+                        btn.innerText = "OFFLINE";
+                        
+                        if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION GLOBALLY
+                        
+                        if(isAdmin) {
                             document.getElementById('offlineOverlay').style.display = 'none';
-                            const badge = document.getElementById('connStatus');
-                            badge.style.background = "#00d2ff";
-                            badge.innerText = "OTA DOWNLOADING...";
-                            
-                            const btn = document.getElementById('pumpToggleBtn');
-                            btn.className = "btn-round btn-off";
-                            btn.innerText = "UPDATING";
-                            btn.style.opacity = "0.5";
-                            btn.style.pointerEvents = "none";
-                            
-                            document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
-                        } else {
-                            document.getElementById('offlineOverlay').style.display = 'none';
-                            const badge = document.getElementById('connStatus');
-                            badge.style.background = "#ff4757";
-                            badge.innerText = "OFFLINE";
-                            
-                            const btn = document.getElementById('pumpToggleBtn');
-                            btn.className = "btn-round btn-off";
-                            btn.innerText = "OFFLINE";
-                            
                             document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
                             document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
-                            
-                            const tankModel = document.getElementById('waterTankModel'); 
-                            if(tankModel) tankModel.classList.remove('pump-active'); 
+                        } else {
+                            document.getElementById('offlineOverlay').style.display = 'flex'; // SHOW OVERLAY FOR CUSTOMER
                         }
-                    } else {
-                        if (!isOtaMode && pendingOtaDevice !== currentDeviceId) {
-                            document.getElementById('offlineOverlay').style.display = 'flex';
-                        }
+                    }
+                } else {
+                    const badge = document.getElementById('connStatus');
+                    if (badge.innerText === "OFFLINE") {
+                        badge.style.background = "#2ed573";
+                        badge.innerText = "ONLINE";
                     }
                 }
             }, 2000);
@@ -2799,7 +2802,7 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // FIXED: Kept exactly at 12 seconds
+                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
                     }
                 }
             });
@@ -2912,6 +2915,9 @@
                                 }
                                 
                                 if (extractedSSID) {
+                                    let ipCutoff = extractedSSID.toLowerCase().indexOf(" ip");
+                                    if (ipCutoff > -1) extractedSSID = extractedSSID.substring(0, ipCutoff);
+                                    
                                     let ssidFound = extractedSSID.replace(/['"]/g, '').trim();
                                     if (ssidFound.length > 1 && !ssidFound.toLowerCase().includes("connecting") && !ssidFound.toLowerCase().includes("wifi") && ssidFound !== "--") {
                                         updateActiveWifiDisplay(ssidFound);
