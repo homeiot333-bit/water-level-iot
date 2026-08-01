@@ -1314,6 +1314,7 @@
         const globalLogTimestamps = {};
         
         // --- ADVANCED STATE VARIABLES ---
+        window.initialLocks = { telemetry: true, state: true, status: true };
         window.activeHotspotName = "--";
         window.dbLastConnect = "--";
         window.dbLastDisconnect = "--";
@@ -1451,7 +1452,7 @@
         let currentDeviceId = null;
         let currentPumpState = false;
         let lastHeartbeat = 0;
-        let lastHeartbeatTime = Date.now();
+        let lastHeartbeatTime = 0; // Starts strictly offline to block logic traps
         
         let prevOnlineState = null;
 
@@ -1902,41 +1903,64 @@
             }
         }
 
+        // --- GLOBAL INBOX FIX: PROPER OFFLINE TRACKING FOR NEW & DEAD DEVICES ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
-            // --- FIX: RENDER NEWLY BUILT DEVICES INSTANTLY ---
             globalScannerTimer = setInterval(() => {
                 database.ref('/Devices').once('value').then((snapshot) => {
-                    globalDeviceState = {}; 
+                    let currentKeys = {}; 
                     snapshot.forEach(child => {
                         let devId = child.key;
+                        currentKeys[devId] = true;
+                        
                         let val = child.val();
                         let hb = val.deviceStatus && val.deviceStatus.heartbeat ? val.deviceStatus.heartbeat : 0;
                         let devType = val.customerInfo && val.customerInfo.deviceType ? val.customerInfo.deviceType : "Unknown";
                         let assignedName = val.customerInfo && val.customerInfo.assignedName ? val.customerInfo.assignedName : "";
                         
+                        let telStr = JSON.stringify(val.telemetry || {});
+                        let stateStr = JSON.stringify(val.state || {});
+                        
                         if(val.customerInfo && val.customerInfo.email && val.customerInfo.accountCreated === false) {
                             let autoEmail = val.customerInfo.email;
                             let autoPass = val.customerInfo.password;
-                            
                             secondaryApp.auth().createUserWithEmailAndPassword(autoEmail, autoPass)
                             .then((userCred) => {
                                 secondaryApp.auth().signOut();
                                 database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
                                 let cleanUid = userCred.user.uid; 
                                 database.ref('/Users/' + cleanUid + '/deviceId').set(devId);
-                            })
-                            .catch(err => {
-                                console.log("Silent Auto-Provisioning Error:", err);
+                            }).catch(err => {
                                 if(err.code === "auth/email-already-in-use") {
                                     database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
                                 }
                             });
                         }
 
-                        globalDeviceState[devId] = { lastHb: hb, lastTime: Date.now(), deviceType: devType, assignedName: assignedName };
+                        // Robust state change detection (Fixes "Permanently Online" ghost bug)
+                        if (!globalDeviceState[devId]) {
+                            globalDeviceState[devId] = { 
+                                lastHb: hb, lastTel: telStr, lastState: stateStr,
+                                lastTime: 0, deviceType: devType, assignedName: assignedName 
+                            };
+                        } else {
+                            if (globalDeviceState[devId].lastHb !== hb || 
+                                globalDeviceState[devId].lastTel !== telStr || 
+                                globalDeviceState[devId].lastState !== stateStr) {
+                                globalDeviceState[devId].lastTime = Date.now();
+                                globalDeviceState[devId].lastHb = hb;
+                                globalDeviceState[devId].lastTel = telStr;
+                                globalDeviceState[devId].lastState = stateStr;
+                            }
+                            globalDeviceState[devId].deviceType = devType;
+                            globalDeviceState[devId].assignedName = assignedName;
+                        }
                     });
+                    
+                    for (let k in globalDeviceState) {
+                        if (!currentKeys[k]) delete globalDeviceState[k];
+                    }
                     renderAdminInbox();
                 });
             }, 2000);
@@ -2035,7 +2059,6 @@
             let hasDevices = false;
             let currentConnectedDeviceFaultMessage = null; 
 
-            // --- FIX: RENDER FROM GLOBAL STATE TO CATCH ALL NEW DEVICES ---
             for (const devId in globalDeviceState) {
                 let devType = globalDeviceState[devId].deviceType || "Unknown";
                 let assignedNameStrRaw = globalDeviceState[devId].assignedName || "";
@@ -2210,11 +2233,15 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
             
+            // --- FIX: Secure Initialization Lockout ---
+            window.initialLocks = { telemetry: true, state: true, status: true };
+            lastHeartbeatTime = 0; // Starts strictly OFFLINE
+            
             window.activeHotspotName = "--";
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
 
-            // --- FIX: Securely fetch Active WiFi on page load so it doesn't wipe ---
+            // Secure fetch of Active WiFi on page load
             database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
                     window.activeHotspotName = snap.val();
@@ -2283,14 +2310,13 @@
             
             const btn = document.getElementById('pumpToggleBtn');
             btn.className = "btn-round btn-off";
-            btn.innerText = "WAIT...";
-            btn.style.opacity = "1";
+            btn.innerText = "OFFLINE";
+            btn.style.pointerEvents = "none";
+            btn.style.opacity = "0.6";
             
             const badge = document.getElementById('connStatus');
-            badge.style.background = "#ffa502";
-            badge.innerText = "CONNECTING...";
-            
-            lastHeartbeatTime = Date.now(); 
+            badge.style.background = "#ff4757";
+            badge.innerText = "OFFLINE";
             
             document.getElementById('mainDashboardView').style.display = 'flex';
             document.getElementById('adminTerminalContainer').style.display = 'block';
@@ -2525,7 +2551,7 @@
                 if(hist) {
                     window.dbLastConnect = hist.lastConnect || "--";
                     window.dbLastDisconnect = hist.lastDisconnect || "--";
-                    let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                    let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                     updateConnectionUI(isCurrentlyOnline);
                 }
             });
@@ -2698,16 +2724,21 @@
             });
 
             database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
+                // --- FIX: Secure Initial Lockout ---
+                if (window.initialLocks.status) {
+                    window.initialLocks.status = false;
+                } else {
+                    lastHeartbeatTime = Date.now(); 
+                }
+
                 const statusData = snapshot.val() || {};
-                
                 lastHeartbeat = statusData.heartbeat || 0;
-                lastHeartbeatTime = Date.now(); 
                 
                 if (!isOtaMode) {
                     document.getElementById('offlineOverlay').style.display = 'none'; 
                 }
                 
-                let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 updateConnectionUI(isCurrentlyOnline);
                 updateRuntimeUI();
 
@@ -2730,10 +2761,10 @@
 
             // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER ---
             heartbeatTimer = setInterval(() => {
-                let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 
                 if (prevOnlineState === null) {
-                    prevOnlineState = isCurrentlyOnline; // Initialize safely
+                    prevOnlineState = isCurrentlyOnline; 
                 } else if (prevOnlineState !== isCurrentlyOnline) {
                     prevOnlineState = isCurrentlyOnline;
                     let transitionTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
@@ -2777,7 +2808,7 @@
                         
                         btn.className = "btn-round btn-off";
                         btn.innerText = "OFFLINE";
-                        btn.style.pointerEvents = "none"; // Safety lock
+                        btn.style.pointerEvents = "none"; 
                         
                         if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION
                         
@@ -2824,13 +2855,18 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
+                        }, 12000); // FIXED: Kept exactly at 12 seconds
                     }
                 }
             });
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); // Feed the heartbeat timer
+                // --- FIX: Secure Initial Lockout ---
+                if (window.initialLocks.telemetry) {
+                    window.initialLocks.telemetry = false;
+                } else {
+                    lastHeartbeatTime = Date.now(); 
+                }
 
                 const data = snapshot.val();
                 if(data) {
@@ -2991,7 +3027,12 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
-                lastHeartbeatTime = Date.now(); // Prevents false offline by acknowledging state pulse
+                // --- FIX: Secure Initial Lockout ---
+                if (window.initialLocks.state) {
+                    window.initialLocks.state = false;
+                } else {
+                    lastHeartbeatTime = Date.now(); 
+                }
 
                 const state = snapshot.val();
                 if(state) {
@@ -2999,7 +3040,7 @@
                     const currentUser = firebase.auth().currentUser;
                     const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
                     
-                    let isCurrentlyOnline = (Date.now() - lastHeartbeatTime <= 35000);
+                    let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                     updateConnectionUI(isCurrentlyOnline);
                     
                     let activeHotspot = state.activeWiFi || state.connectedSSID || state.currentWiFi || state.ssid || state.wifi || state.wifiSSID;
