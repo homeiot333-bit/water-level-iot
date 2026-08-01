@@ -815,8 +815,11 @@
         ⚠️<br><br>Machine is currently Offline
     </div>
 
-    <div id="loginScreen" class="card" style="max-width: 400px;">
-        <h2 style="text-align: center;">🔒 Security Gateway</h2>
+    <!-- --- LOGO ADDED TO LOGIN SCREEN --- -->
+    <div id="loginScreen" class="card" style="max-width: 400px; padding-top: 30px;">
+        <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="AKS Logo" style="height: 65px; margin-bottom: 10px; object-fit: contain;">
+        <h2 style="text-align: center; margin-top: 0;">🔒 Security Gateway</h2>
+        
         <div id="connIndicator" style="text-align:center; font-size:12px; color:#aaa;">
             Checking server connection...
         </div>
@@ -2210,6 +2213,15 @@
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
 
+            // Secure fetch of Active WiFi on page load so it doesn't wipe
+            database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
+                if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
+                    window.activeHotspotName = snap.val();
+                    if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
+                    if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
+                }
+            });
+
             document.getElementById('assignedNameDisplay').innerText = '';
             document.getElementById('criticalErrorBanner').style.display = "none";
             document.getElementById('waterLevelFill').style.height = '0%';
@@ -2737,11 +2749,11 @@
                 // Force UI to dynamically refresh state independent of Firebase
                 updateConnectionUI(isCurrentlyOnline);
 
+                // --- GLOBAL OFFLINE UI OVERRIDES ---
                 if(!isCurrentlyOnline) { 
                     const user = firebase.auth().currentUser;
                     const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
 
-                    // GLOBAL OFFLINE UI UPDATES (For BOTH Admin & Customer)
                     const badge = document.getElementById('connStatus');
                     const btn = document.getElementById('pumpToggleBtn');
                     const tankModel = document.getElementById('waterTankModel'); 
@@ -2758,20 +2770,21 @@
                         
                         if(isAdmin) document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
                     } else {
+                        // FORCIBLY SHOW OFFLINE EVERYWHERE
                         badge.style.background = "#ff4757";
                         badge.innerText = "OFFLINE";
                         
                         btn.className = "btn-round btn-off";
                         btn.innerText = "OFFLINE";
                         
-                        if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION GLOBALLY
+                        if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION
                         
                         if(isAdmin) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
                             document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
                         } else {
-                            document.getElementById('offlineOverlay').style.display = 'flex'; // SHOW OVERLAY FOR CUSTOMER
+                            document.getElementById('offlineOverlay').style.display = 'flex'; // CUSTOMER RED OVERLAY
                         }
                     }
                 } else {
@@ -2802,7 +2815,7 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
+                        }, 12000); // FIXED: Kept exactly at 12 seconds
                     }
                 }
             });
