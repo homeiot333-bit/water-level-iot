@@ -1826,7 +1826,6 @@
             }
         });
 
-        // --- HARDWARE LIST SCANNER (ADMIN ONLY) ---
         function fetchLinkedDevices(targetEmail) {
             const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
@@ -1906,6 +1905,7 @@
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
+            // --- FIX: RENDER NEWLY BUILT DEVICES INSTANTLY ---
             globalScannerTimer = setInterval(() => {
                 database.ref('/Devices').once('value').then((snapshot) => {
                     globalDeviceState = {}; 
@@ -2035,6 +2035,7 @@
             let hasDevices = false;
             let currentConnectedDeviceFaultMessage = null; 
 
+            // --- FIX: RENDER FROM GLOBAL STATE TO CATCH ALL NEW DEVICES ---
             for (const devId in globalDeviceState) {
                 let devType = globalDeviceState[devId].deviceType || "Unknown";
                 let assignedNameStrRaw = globalDeviceState[devId].assignedName || "";
@@ -2209,11 +2210,12 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
             
+            // Re-initialize Active States
             window.activeHotspotName = "--";
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
 
-            // Secure fetch of Active WiFi on page load so it doesn't wipe
+            // --- FIX: Securely fetch Active WiFi on page load so it doesn't wipe ---
             database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
                     window.activeHotspotName = snap.val();
@@ -2236,7 +2238,7 @@
             if (document.getElementById('txtCustEmptyDist')) document.getElementById('txtCustEmptyDist').innerText = '-- cm';
             if (document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = '-- cm';
             
-            updateConnectionUI(false);
+            updateConnectionUI(false); 
             
             if (document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = '--';
             if (document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = '--';
@@ -2815,7 +2817,7 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // FIXED: Kept exactly at 12 seconds
+                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
                     }
                 }
             });
