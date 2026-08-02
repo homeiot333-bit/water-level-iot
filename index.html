@@ -1335,10 +1335,12 @@
         const globalLogTimestamps = {};
         
         // --- ADVANCED STATE VARIABLES ---
+        window.latestDataPulseTime = 0; // Fixes Customer Portal offline lag
+        window.connectionCheckArmed = false; // Disables false ghost connections during load
         window.activeHotspotName = "--";
         window.dbLastConnect = "--";
         window.dbLastDisconnect = "--";
-        window.knownNetworkSlots = [];
+        window.knownNetworkSlots = []; 
 
         // Global function to securely lock in Active WiFi without ever clearing it to blank
         function updateActiveWifiDisplay(ssid) {
@@ -1471,12 +1473,8 @@
 
         let currentDeviceId = null;
         let currentPumpState = false;
+        
         let prevOnlineState = null;
-
-        // --- NEW: UNIFIED PULSE TRACKER (Fixes Customer/Admin Lag & Math) ---
-        window.latestDataPulseTime = 0; 
-        window.lastPayloads = { telemetry: null, state: null };
-        window.lastHeartbeatTracker = -1;
 
         let espLogHistory = [];
         let lastWaterPercent = -1;
@@ -1807,7 +1805,6 @@
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
                         if(devId) {
-                            // --- FIX: Customer Portal fully executes the connection engine ---
                             executeConnection(devId);
                             
                             let mDevice = getMobileDeviceModel();
@@ -1916,8 +1913,8 @@
                 let diffTime = Math.abs(Date.now() - deployed.getTime());
                 let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                 document.getElementById('txtRuntimeDays').innerText = `Running: ${diffDays} Days`;
-            } else if (lastHeartbeat > 0) {
-                let totalSeconds = Math.floor(lastHeartbeat * 1.5);
+            } else if (window.latestDataPulseTime > 0) {
+                let totalSeconds = Math.floor((Date.now() - window.latestDataPulseTime) / 1000);
                 let runningDays = Math.floor(totalSeconds / 86400);
                 document.getElementById('txtRuntimeDays').innerText = `Uptime: ${runningDays} Days`;
             } else {
@@ -2253,10 +2250,12 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
             
-            // --- FIX: Strict Offline Initialization to prevent ghost timestamps ---
-            window.latestDataPulseTime = 0;
+            window.latestDataPulseTime = 0; 
             window.lastPayloads = { telemetry: null, state: null };
             window.lastHeartbeatTracker = -1;
+            
+            window.connectionCheckArmed = false; 
+            setTimeout(() => { window.connectionCheckArmed = true; }, 4000); 
             
             window.deviceDbData = {};
             if(document.getElementById('dbSizeDisplay')) document.getElementById('dbSizeDisplay').innerText = "0.00 KB";
@@ -2265,7 +2264,6 @@
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
 
-            // Secure fetch of Active WiFi on page load
             database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
                     window.activeHotspotName = snap.val();
