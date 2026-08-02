@@ -1056,7 +1056,7 @@
                         
                         <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px; background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <!-- ADDED: DB SIZE TRACKER IN HEADER -->
+                                <!-- --- ADDED: DB SIZE TRACKER IN HEADER --- -->
                                 <h3 style="color: #fff; font-size: 15px; margin:0; text-align:left;">Live Diagnostics: <span id="termDevId"></span>
                                     <span style="color:#a29bfe; font-size:11px; font-weight:bold; padding:4px 8px; border-radius:6px; border:1px solid rgba(162,155,254,0.3); background:rgba(162,155,254,0.1); margin-left:10px; display:inline-block;">💾 Data: <span id="dbSizeDisplay">0.00 KB</span></span>
                                 </h3>
@@ -1316,7 +1316,6 @@
     <script>
         // --- ADDED: REAL-TIME BYTE SIZE CALCULATOR ---
         window.deviceDbData = {}; 
-        window.connectionCheckArmed = false; // Security delay to prevent ghost connections
 
         function updateDbSizeDisplay() {
             try {
@@ -1336,6 +1335,7 @@
         const globalLogTimestamps = {};
         
         // --- ADVANCED STATE VARIABLES ---
+        window.lastPayloads = { telemetry: null, state: null, status: null };
         window.activeHotspotName = "--";
         window.dbLastConnect = "--";
         window.dbLastDisconnect = "--";
@@ -1473,7 +1473,8 @@
         let currentDeviceId = null;
         let currentPumpState = false;
         let lastHeartbeat = 0;
-        let lastHeartbeatTime = 0; 
+        let lastHeartbeatTime = 0; // Starts strictly offline to block logic traps
+        
         let prevOnlineState = null;
 
         let espLogHistory = [];
@@ -1847,6 +1848,7 @@
             }
         });
 
+        // --- HARDWARE LIST SCANNER (ADMIN ONLY) ---
         function fetchLinkedDevices(targetEmail) {
             const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
@@ -1923,6 +1925,7 @@
             }
         }
 
+        // --- GLOBAL INBOX FIX: PROPER OFFLINE TRACKING FOR NEW & DEAD DEVICES ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
@@ -1957,6 +1960,7 @@
                             });
                         }
 
+                        // Robust state change detection (Fixes "Permanently Online" ghost bug)
                         if (!globalDeviceState[devId]) {
                             globalDeviceState[devId] = { 
                                 lastHb: hb, lastTel: telStr, lastState: stateStr,
@@ -2251,13 +2255,12 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
             
-            // --- FIX: Secure Arming Delay ---
+            // --- FIX: Secure Initialization Lockout ---
+            window.lastPayloads = { telemetry: null, state: null, status: null };
+            lastHeartbeatTime = 0; // Starts strictly OFFLINE
+            
             window.deviceDbData = {};
             if(document.getElementById('dbSizeDisplay')) document.getElementById('dbSizeDisplay').innerText = "0.00 KB";
-            
-            window.connectionCheckArmed = false; // Disables false ghost connections
-            setTimeout(() => { window.connectionCheckArmed = true; }, 5000); 
-            lastHeartbeatTime = 0; // Starts strictly OFFLINE
             
             window.activeHotspotName = "--";
             window.dbLastConnect = "--";
@@ -2332,14 +2335,13 @@
             
             const btn = document.getElementById('pumpToggleBtn');
             btn.className = "btn-round btn-off";
-            btn.innerText = "WAIT...";
-            btn.style.opacity = "1";
+            btn.innerText = "OFFLINE";
+            btn.style.pointerEvents = "none";
+            btn.style.opacity = "0.6";
             
             const badge = document.getElementById('connStatus');
-            badge.style.background = "#ffa502";
-            badge.innerText = "CONNECTING...";
-            
-            lastHeartbeatTime = Date.now(); 
+            badge.style.background = "#ff4757";
+            badge.innerText = "OFFLINE";
             
             document.getElementById('mainDashboardView').style.display = 'flex';
             document.getElementById('adminTerminalContainer').style.display = 'block';
@@ -2577,21 +2579,43 @@
                 if(hist) {
                     window.dbLastConnect = hist.lastConnect || "--";
                     window.dbLastDisconnect = hist.lastDisconnect || "--";
-                    
-                    // Only trust DB status if it aligns with our armed verification logic
-                    if (prevOnlineState === null && window.connectionCheckArmed) {
-                        let disc = hist.lastDisconnect || "";
-                        prevOnlineState = disc.includes("Live");
-                    }
-                    
                     let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                     updateConnectionUI(isCurrentlyOnline);
                 }
             });
 
+            // --- STRICT 5-LOG LIMIT & AUTO-PRUNING ---
             database.ref(basePath + '/mobileLogins').on('value', (snapshot) => {
                 window.deviceDbData['mobileLogins'] = snapshot.val();
                 updateDbSizeDisplay();
+                
+                let logins = [];
+                snapshot.forEach(child => {
+                    logins.push({ key: child.key, data: child.val() });
+                });
+                
+                // Automatically prune database if logins > 5 to keep DB completely clean
+                if (logins.length > 5) {
+                    let overflow = logins.length - 5;
+                    for (let i = 0; i < overflow; i++) {
+                        database.ref(basePath + '/mobileLogins/' + logins[i].key).remove();
+                    }
+                    logins = logins.slice(overflow);
+                }
+
+                let mobileCount = logins.length;
+                let mobileList = "";
+                logins.forEach(item => {
+                    let loginData = item.data;
+                    mobileList += `<div style="font-size: 11px; color: #00d2ff; padding-left: 10px; margin-top:4px;">📱 ${loginData.modelName} <span style="color:#666; font-size:10px;">(Last: ${loginData.lastSeen})</span></div>`;
+                });
+
+                if(mobileCount === 0) mobileList = `<div style="font-size: 11px; color: #aaa; padding-left: 10px; margin-top:4px;">No mobile devices logged in yet.</div>`;
+                
+                let finalHtml = `<div style="margin-bottom:12px; font-weight:bold; color:#fff; font-size: 14px;">Active Logins: <span style="color:#7bed9f; font-size:18px;">${mobileCount}</span></div>` + mobileList;
+                
+                if(document.getElementById('customerMobileLoginsList')) document.getElementById('customerMobileLoginsList').innerHTML = finalHtml;
+                if(document.getElementById('adminMobileLoginsList')) document.getElementById('adminMobileLoginsList').innerHTML = finalHtml;
             });
 
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
@@ -2758,8 +2782,15 @@
                 updateDbSizeDisplay();
                 
                 const statusData = snapshot.val() || {};
-                lastHeartbeat = statusData.heartbeat || 0;
-                lastHeartbeatTime = Date.now(); 
+                let currentPayload = JSON.stringify(statusData);
+                
+                // --- STRICT INITIALIZATION LOCK ---
+                if (window.lastPayloads.status === null) {
+                    window.lastPayloads.status = currentPayload;
+                } else if (window.lastPayloads.status !== currentPayload) {
+                    window.lastPayloads.status = currentPayload;
+                    lastHeartbeatTime = Date.now(); // Data actually changed physically!
+                }
                 
                 if (!isOtaMode) {
                     document.getElementById('offlineOverlay').style.display = 'none'; 
@@ -2788,13 +2819,10 @@
 
             // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER ---
             heartbeatTimer = setInterval(() => {
-                // If dashboard just loaded, skip ghost updates until hardware proves its state
-                if (!window.connectionCheckArmed) return;
-
                 let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 
                 if (prevOnlineState === null) {
-                    prevOnlineState = isCurrentlyOnline; 
+                    prevOnlineState = isCurrentlyOnline; // Initialize securely without false transitions
                 } else if (prevOnlineState !== isCurrentlyOnline) {
                     prevOnlineState = isCurrentlyOnline;
                     let transitionTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
@@ -2889,7 +2917,7 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // FIXED: Kept exactly at 12 seconds
+                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
                     }
                 }
             });
@@ -2898,9 +2926,17 @@
                 window.deviceDbData['telemetry'] = snapshot.val();
                 updateDbSizeDisplay();
                 
-                lastHeartbeatTime = Date.now(); // Feed the heartbeat timer
-
                 const data = snapshot.val();
+                let currentPayload = JSON.stringify(data || {});
+                
+                // --- STRICT INITIALIZATION LOCK ---
+                if (window.lastPayloads.telemetry === null) {
+                    window.lastPayloads.telemetry = currentPayload;
+                } else if (window.lastPayloads.telemetry !== currentPayload) {
+                    window.lastPayloads.telemetry = currentPayload;
+                    lastHeartbeatTime = Date.now(); // Data actually changed physically!
+                }
+
                 if(data) {
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
                     document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
@@ -3061,10 +3097,18 @@
             database.ref(basePath + '/state').on('value', (snapshot) => {
                 window.deviceDbData['state'] = snapshot.val();
                 updateDbSizeDisplay();
-                
-                lastHeartbeatTime = Date.now(); 
 
                 const state = snapshot.val();
+                let currentPayload = JSON.stringify(state || {});
+                
+                // --- STRICT INITIALIZATION LOCK ---
+                if (window.lastPayloads.state === null) {
+                    window.lastPayloads.state = currentPayload;
+                } else if (window.lastPayloads.state !== currentPayload) {
+                    window.lastPayloads.state = currentPayload;
+                    lastHeartbeatTime = Date.now(); // Data actually changed physically!
+                }
+
                 if(state) {
                     const badge = document.getElementById('connStatus');
                     const currentUser = firebase.auth().currentUser;
