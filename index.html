@@ -1338,7 +1338,7 @@
         window.activeHotspotName = "--";
         window.dbLastConnect = "--";
         window.dbLastDisconnect = "--";
-        window.knownNetworkSlots = []; // Multi-layer WiFi memory
+        window.knownNetworkSlots = [];
 
         // Global function to securely lock in Active WiFi without ever clearing it to blank
         function updateActiveWifiDisplay(ssid) {
@@ -1471,10 +1471,12 @@
 
         let currentDeviceId = null;
         let currentPumpState = false;
-        let lastHeartbeat = 0;
-        let lastHeartbeatTime = 0; // Strictly 0 so no ghost connection happens
-        
         let prevOnlineState = null;
+
+        // --- NEW: UNIFIED PULSE TRACKER (Fixes Customer/Admin Lag & Math) ---
+        window.latestDataPulseTime = 0; 
+        window.lastPayloads = { telemetry: null, state: null };
+        window.lastHeartbeatTracker = -1;
 
         let espLogHistory = [];
         let lastWaterPercent = -1;
@@ -1805,7 +1807,7 @@
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
                         if(devId) {
-                            // --- FIX: Customer Portal Now Executes Full Offline/Online Logic! ---
+                            // --- FIX: Customer Portal fully executes the connection engine ---
                             executeConnection(devId);
                             
                             let mDevice = getMobileDeviceModel();
@@ -1847,7 +1849,6 @@
             }
         });
 
-        // --- HARDWARE LIST SCANNER (ADMIN ONLY) ---
         function fetchLinkedDevices(targetEmail) {
             const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
@@ -2252,8 +2253,10 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
             
-            // --- FIX: lastHeartbeatTime remains 0 to prevent 35s ghost connections on load ---
-            lastHeartbeatTime = 0; 
+            // --- FIX: Strict Offline Initialization to prevent ghost timestamps ---
+            window.latestDataPulseTime = 0;
+            window.lastPayloads = { telemetry: null, state: null };
+            window.lastHeartbeatTracker = -1;
             
             window.deviceDbData = {};
             if(document.getElementById('dbSizeDisplay')) document.getElementById('dbSizeDisplay').innerText = "0.00 KB";
@@ -2575,7 +2578,7 @@
                     window.dbLastConnect = hist.lastConnect || "--";
                     window.dbLastDisconnect = hist.lastDisconnect || "--";
                     
-                    let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
+                    let isCurrentlyOnline = (window.latestDataPulseTime > 0 && (Date.now() - window.latestDataPulseTime <= 35000));
                     updateConnectionUI(isCurrentlyOnline);
                 }
             });
@@ -2590,7 +2593,6 @@
                     logins.push({ key: child.key, data: child.val() });
                 });
                 
-                // Automatically prune database if logins > 5 to keep DB completely clean
                 if (logins.length > 5) {
                     let overflow = logins.length - 5;
                     for (let i = 0; i < overflow; i++) {
@@ -2619,7 +2621,7 @@
                 updateDbSizeDisplay();
                 
                 const slots = snapshot.val();
-                window.knownNetworkSlots = []; // Multi-layer memory rebuild
+                window.knownNetworkSlots = [];
                 if(slots) {
                     if(slots.slot1 && slots.slot1 !== "Empty") {
                         document.getElementById('cust_slot1_name').innerText = slots.slot1;
@@ -2773,164 +2775,18 @@
                 }
             });
 
-            database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
-                window.deviceDbData['deviceStatus'] = snapshot.val();
-                updateDbSizeDisplay();
-                
-                const statusData = snapshot.val() || {};
-                lastHeartbeat = statusData.heartbeat || 0;
-                
-                // Only update physical lastHeartbeatTime if the actual heartbeat number ticked up
-                if (window.lastHeartbeatTracker !== lastHeartbeat) {
-                    window.lastHeartbeatTracker = lastHeartbeat;
-                    lastHeartbeatTime = Date.now(); 
-                }
-                
-                if (!isOtaMode) {
-                    document.getElementById('offlineOverlay').style.display = 'none'; 
-                }
-                
-                let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
-                updateConnectionUI(isCurrentlyOnline);
-                updateRuntimeUI();
-
-                if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
-                    document.getElementById('logConsole').innerText = "Signal restored. Fetching logs...";
-                    document.getElementById('nanoLogConsole').innerText = "Signal restored. Fetching logs...";
-                }
-
-                let activeHotspot = statusData.activeWiFi || statusData.connectedSSID;
-                if (activeHotspot && activeHotspot !== "--" && activeHotspot.trim() !== "") {
-                    updateActiveWifiDisplay(activeHotspot);
-                }
-
-                window.autoRadioTech = statusData.radioTech;
-                window.autoRadioChan = statusData.radioChannel;
-                window.autoRadioRate = statusData.radioDataRate;
-                
-                updateRadioUI();
-            });
-
-            // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER ---
-            heartbeatTimer = setInterval(() => {
-                let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
-                
-                // NO FAKE DB WRITES ON LOAD - Strict Observation Mode
-                if (prevOnlineState === null) {
-                    prevOnlineState = isCurrentlyOnline; 
-                } else if (prevOnlineState !== isCurrentlyOnline) {
-                    prevOnlineState = isCurrentlyOnline;
-                    let transitionTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                    
-                    if (currentDeviceId) {
-                        if (isCurrentlyOnline) {
-                            window.dbLastConnect = transitionTime;
-                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastConnect').set(transitionTime);
-                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set("Live Internet 🟢");
-                        } else {
-                            window.dbLastDisconnect = transitionTime;
-                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(transitionTime);
-                        }
-                    }
-                }
-                
-                updateConnectionUI(isCurrentlyOnline);
-
-                // --- GLOBAL OFFLINE UI OVERRIDES ---
-                if(!isCurrentlyOnline) { 
-                    
-                    // Fallback fix: If DB is stuck on "Live Internet" but machine is offline, override safely
-                    if (window.dbLastDisconnect && window.dbLastDisconnect.includes("Live Internet")) {
-                        let fallbackTime = "Connection Lost 🔴";
-                        if(currentDeviceId) database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(fallbackTime);
-                        window.dbLastDisconnect = fallbackTime;
-                    }
-                    
-                    const user = firebase.auth().currentUser;
-                    const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
-
-                    const badge = document.getElementById('connStatus');
-                    const btn = document.getElementById('pumpToggleBtn');
-                    const tankModel = document.getElementById('waterTankModel'); 
-
-                    if (isOtaMode || pendingOtaDevice === currentDeviceId) {
-                        document.getElementById('offlineOverlay').style.display = 'none';
-                        badge.style.background = "#00d2ff";
-                        badge.innerText = "OTA DOWNLOADING...";
-                        
-                        btn.className = "btn-round btn-off";
-                        btn.innerText = "UPDATING";
-                        btn.style.opacity = "0.5";
-                        btn.style.pointerEvents = "none";
-                        
-                        if(isAdmin) document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
-                    } else {
-                        // FORCIBLY SHOW OFFLINE EVERYWHERE
-                        badge.style.background = "#ff4757";
-                        badge.innerText = "OFFLINE";
-                        
-                        btn.className = "btn-round btn-off";
-                        btn.innerText = "OFFLINE";
-                        btn.style.pointerEvents = "none"; 
-                        
-                        if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION
-                        
-                        if(isAdmin) {
-                            document.getElementById('offlineOverlay').style.display = 'none';
-                            document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
-                            document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
-                        } else {
-                            document.getElementById('offlineOverlay').style.display = 'flex'; // CUSTOMER RED OVERLAY
-                        }
-                    }
-                } else {
-                    const badge = document.getElementById('connStatus');
-                    const btn = document.getElementById('pumpToggleBtn');
-                    
-                    if (badge.innerText === "OFFLINE") {
-                        badge.style.background = "#2ed573";
-                        badge.innerText = "ONLINE";
-                    }
-                    
-                    // --- WAKE UP PUMP BUTTON FROM OFFLINE ---
-                    if (btn.innerText === "OFFLINE") {
-                        updatePumpButtonUI();
-                    }
-                }
-            }, 2000);
-
-            // --- STRICT UNTOUCHED PUMP LOGIC & TIMEOUT ---
-            database.ref(basePath + '/control').on('value', (snapshot) => {
-                window.deviceDbData['control'] = snapshot.val();
-                updateDbSizeDisplay();
-                
-                const ctrl = snapshot.val();
-                if(ctrl && ctrl.triggerId && ctrl.triggerId !== lastSeenControlTrigger) {
-                    lastSeenControlTrigger = ctrl.triggerId;
-                    lastCommandedState = ctrl.forceState; 
-                    
-                    if (currentPumpState !== ctrl.forceState) {
-                        const btn = document.getElementById('pumpToggleBtn');
-                        btn.innerText = "WAIT...";
-                        btn.style.pointerEvents = "none";
-                        btn.style.cursor = "not-allowed";
-                        btn.style.opacity = "0.6";
-
-                        if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
-                        
-                        localPumpCommandTimeout = setTimeout(async () => {
-                            if (!navigator.onLine) return;
-                            updatePumpButtonUI();
-                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
-                    }
-                }
-            });
-
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
                 window.deviceDbData['telemetry'] = snapshot.val();
                 updateDbSizeDisplay();
                 
                 const data = snapshot.val();
+                let currentPayload = JSON.stringify(data || {});
+                
+                // --- FIX: UNIFIED PULSE TRACKER ---
+                if (window.lastPayloads.telemetry !== currentPayload) {
+                    window.lastPayloads.telemetry = currentPayload;
+                    window.latestDataPulseTime = Date.now(); 
+                }
 
                 if(data) {
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
@@ -3004,11 +2860,9 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
-                        // --- ADVANCED MULTI-LAYER WIFI LOG SCANNER ---
                         let allLogs = (data.log || "") + " " + (data.nanoLog || "") + " " + (data.hardwareLog || "");
                         let foundWifi = false;
 
-                        // Method 1: Absolute Match Against User's Saved Slots
                         if (window.knownNetworkSlots && window.knownNetworkSlots.length > 0) {
                             for (let known of window.knownNetworkSlots) {
                                 if (known && known.trim() !== "" && allLogs.includes(known)) {
@@ -3019,7 +2873,6 @@
                             }
                         }
 
-                        // Method 2: Aggressive Fallback Extraction (If Method 1 misses)
                         if (!foundWifi) {
                             let lines = data.log.split('\n');
                             for (let line of lines) {
@@ -3089,45 +2942,48 @@
                 }
             });
 
+            database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
+                window.deviceDbData['deviceStatus'] = snapshot.val();
+                updateDbSizeDisplay();
+                
+                const statusData = snapshot.val() || {};
+                let hb = statusData.heartbeat || 0;
+                
+                // --- FIX: UNIFIED PULSE TRACKER ---
+                if (window.lastHeartbeatTracker !== hb) {
+                    window.lastHeartbeatTracker = hb;
+                    window.latestDataPulseTime = Date.now(); 
+                }
+                
+                let activeHotspot = statusData.activeWiFi || statusData.connectedSSID;
+                if (activeHotspot && activeHotspot !== "--" && activeHotspot.trim() !== "") {
+                    updateActiveWifiDisplay(activeHotspot);
+                }
+
+                window.autoRadioTech = statusData.radioTech;
+                window.autoRadioChan = statusData.radioChannel;
+                window.autoRadioRate = statusData.radioDataRate;
+                
+                updateRadioUI();
+            });
+
             database.ref(basePath + '/state').on('value', (snapshot) => {
                 window.deviceDbData['state'] = snapshot.val();
                 updateDbSizeDisplay();
 
                 const state = snapshot.val();
+                let currentPayload = JSON.stringify(state || {});
+                
+                // --- FIX: UNIFIED PULSE TRACKER ---
+                if (window.lastPayloads.state !== currentPayload) {
+                    window.lastPayloads.state = currentPayload;
+                    window.latestDataPulseTime = Date.now(); 
+                }
+
                 if(state) {
-                    const badge = document.getElementById('connStatus');
-                    const currentUser = firebase.auth().currentUser;
-                    const isCustomer = currentUser && currentUser.email !== "adminanish@gmail.com" && currentUser.email !== "homeiot@gmail.com";
-                    
-                    let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
-                    updateConnectionUI(isCurrentlyOnline);
-                    
                     let activeHotspot = state.activeWiFi || state.connectedSSID || state.currentWiFi || state.ssid || state.wifi || state.wifiSSID;
                     if (activeHotspot && activeHotspot !== "--" && activeHotspot.trim() !== "") {
                         updateActiveWifiDisplay(activeHotspot);
-                    }
-
-                    if(state.fault) {
-                        badge.style.background = "#ff4757";
-                        badge.innerText = "LINK FAULT";
-                        
-                        if(isCustomer) {
-                            const errBanner = document.getElementById('criticalErrorBanner');
-                            errBanner.style.display = "block";
-                            errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
-                        }
-                    } else {
-                        if (isOtaMode || pendingOtaDevice === currentDeviceId) {
-                            badge.style.background = "#00d2ff";
-                            badge.innerText = "OTA DOWNLOADING...";
-                        } else {
-                            badge.style.background = "#2ed573";
-                            badge.innerText = "ONLINE";
-                        }
-                        
-                        if(isCustomer) {
-                            document.getElementById('criticalErrorBanner').style.display = "none";
-                        }
                     }
                     
                     if(state.automationBypassed) {
@@ -3143,12 +2999,123 @@
                             clearTimeout(localPumpCommandTimeout);
                             localPumpCommandTimeout = null;
                         }
-                        updatePumpButtonUI();
-                    } else if (!localPumpCommandTimeout) {
-                        updatePumpButtonUI();
                     }
                 }
             });
+
+            // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER (1:1 with Global Box) ---
+            heartbeatTimer = setInterval(() => {
+                
+                let isCurrentlyOnline = (window.latestDataPulseTime > 0 && (Date.now() - window.latestDataPulseTime <= 35000));
+                
+                if (prevOnlineState === null) {
+                    prevOnlineState = isCurrentlyOnline; 
+                    
+                    // --- ORPHAN CLEANUP: Fix false "Live" flags from closed portals ---
+                    if (!isCurrentlyOnline && window.dbLastDisconnect && window.dbLastDisconnect.includes("Live")) {
+                        let fallbackTime = "Connection Lost 🔴";
+                        if(currentDeviceId) database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(fallbackTime);
+                        window.dbLastDisconnect = fallbackTime;
+                    }
+                } 
+                else if (prevOnlineState !== isCurrentlyOnline) {
+                    prevOnlineState = isCurrentlyOnline;
+                    
+                    if (isCurrentlyOnline) {
+                        // DEVICE CAME ONLINE: Write the exact time NOW
+                        let connectTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                        window.dbLastConnect = connectTime;
+                        window.dbLastDisconnect = "Live Internet 🟢";
+                        if (currentDeviceId) {
+                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastConnect').set(connectTime);
+                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set("Live Internet 🟢");
+                        }
+                    } else {
+                        // DEVICE WENT OFFLINE: Write the exact time it died (35s ago)
+                        let exactDropTime = new Date(Date.now() - 35000).toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                        window.dbLastDisconnect = exactDropTime;
+                        if (currentDeviceId) {
+                            database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastDisconnect').set(exactDropTime);
+                        }
+                    }
+                }
+                
+                // --- RENDER UI IN REAL TIME ---
+                updateConnectionUI(isCurrentlyOnline);
+                updateRuntimeUI();
+
+                const user = firebase.auth().currentUser;
+                const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
+
+                const badge = document.getElementById('connStatus');
+                const btn = document.getElementById('pumpToggleBtn');
+                const tankModel = document.getElementById('waterTankModel'); 
+
+                if(!isCurrentlyOnline) { 
+                    if (isOtaMode || pendingOtaDevice === currentDeviceId) {
+                        document.getElementById('offlineOverlay').style.display = 'none';
+                        badge.style.background = "#00d2ff";
+                        badge.innerText = "OTA DOWNLOADING...";
+                        
+                        btn.className = "btn-round btn-off";
+                        btn.innerText = "UPDATING";
+                        btn.style.opacity = "0.5";
+                        btn.style.pointerEvents = "none";
+                        
+                        if(isAdmin) document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
+                    } else {
+                        // STATE: OFFLINE
+                        badge.style.background = "#ff4757";
+                        
+                        // Only update fault badge if Firebase marked it as faulted
+                        if (window.deviceDbData['state'] && window.deviceDbData['state'].fault) {
+                            badge.innerText = "LINK FAULT";
+                            if (!isAdmin) {
+                                const errBanner = document.getElementById('criticalErrorBanner');
+                                errBanner.style.display = "block";
+                                errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
+                            }
+                        } else {
+                            badge.innerText = "OFFLINE";
+                        }
+                        
+                        btn.className = "btn-round btn-off";
+                        btn.innerText = "OFFLINE";
+                        btn.style.pointerEvents = "none"; 
+                        
+                        if(tankModel) tankModel.classList.remove('pump-active'); 
+                        
+                        if(isAdmin) {
+                            document.getElementById('offlineOverlay').style.display = 'none';
+                            document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
+                            document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
+                        } else {
+                            document.getElementById('offlineOverlay').style.display = 'flex'; 
+                        }
+                    }
+                } else {
+                    // STATE: ONLINE
+                    document.getElementById('offlineOverlay').style.display = 'none'; 
+                    
+                    if (window.deviceDbData['state'] && window.deviceDbData['state'].fault) {
+                        badge.style.background = "#ff4757";
+                        badge.innerText = "LINK FAULT";
+                        if (!isAdmin) {
+                            const errBanner = document.getElementById('criticalErrorBanner');
+                            errBanner.style.display = "block";
+                            errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
+                        }
+                    } else {
+                        badge.style.background = "#2ed573";
+                        badge.innerText = "ONLINE";
+                        if (!isAdmin) document.getElementById('criticalErrorBanner').style.display = "none";
+                    }
+                    
+                    if (btn.innerText === "OFFLINE" || btn.innerText === "WAIT..." || btn.innerText === "Loading...") {
+                        updatePumpButtonUI();
+                    }
+                }
+            }, 2000);
         }
 
         async function togglePump() {
