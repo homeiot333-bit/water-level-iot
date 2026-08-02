@@ -1336,7 +1336,6 @@
         
         // --- ADVANCED STATE VARIABLES ---
         window.latestDataPulseTime = 0; // Fixes Customer Portal offline lag
-        window.connectionCheckArmed = false; // Disables false ghost connections during load
         window.activeHotspotName = "--";
         window.dbLastConnect = "--";
         window.dbLastDisconnect = "--";
@@ -1473,7 +1472,6 @@
 
         let currentDeviceId = null;
         let currentPumpState = false;
-        
         let prevOnlineState = null;
 
         let espLogHistory = [];
@@ -1805,6 +1803,7 @@
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
                         if(devId) {
+                            // --- CUSTOMER PORTAL SYNC FIX ---
                             executeConnection(devId);
                             
                             let mDevice = getMobileDeviceModel();
@@ -1846,6 +1845,7 @@
             }
         });
 
+        // --- HARDWARE LIST SCANNER (ADMIN ONLY) ---
         function fetchLinkedDevices(targetEmail) {
             const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
@@ -1922,6 +1922,7 @@
             }
         }
 
+        // --- GLOBAL INBOX FIX: STRICT 0 INITIALIZATION TO DESTROY GHOST CONNECTIONS ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
@@ -1959,7 +1960,7 @@
                         if (!globalDeviceState[devId]) {
                             globalDeviceState[devId] = { 
                                 lastHb: hb, lastTel: telStr, lastState: stateStr,
-                                lastTime: Date.now(), deviceType: devType, assignedName: assignedName 
+                                lastTime: 0, deviceType: devType, assignedName: assignedName 
                             };
                         } else {
                             if (globalDeviceState[devId].lastHb !== hb || 
@@ -2254,9 +2255,6 @@
             window.lastPayloads = { telemetry: null, state: null };
             window.lastHeartbeatTracker = -1;
             
-            window.connectionCheckArmed = false; 
-            setTimeout(() => { window.connectionCheckArmed = true; }, 4000); 
-            
             window.deviceDbData = {};
             if(document.getElementById('dbSizeDisplay')) document.getElementById('dbSizeDisplay').innerText = "0.00 KB";
             
@@ -2264,6 +2262,7 @@
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
 
+            // Secure fetch of Active WiFi on page load
             database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
                     window.activeHotspotName = snap.val();
@@ -2780,10 +2779,10 @@
                 const data = snapshot.val();
                 let currentPayload = JSON.stringify(data || {});
                 
-                // --- FIX: UNIFIED PULSE TRACKER ---
+                let isInitialTel = (window.lastPayloads.telemetry === null);
                 if (window.lastPayloads.telemetry !== currentPayload) {
                     window.lastPayloads.telemetry = currentPayload;
-                    window.latestDataPulseTime = Date.now(); 
+                    if (!isInitialTel) window.latestDataPulseTime = Date.now(); 
                 }
 
                 if(data) {
@@ -2858,9 +2857,11 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
+                        // --- ADVANCED MULTI-LAYER WIFI LOG SCANNER ---
                         let allLogs = (data.log || "") + " " + (data.nanoLog || "") + " " + (data.hardwareLog || "");
                         let foundWifi = false;
 
+                        // Method 1: Absolute Match Against User's Saved Slots
                         if (window.knownNetworkSlots && window.knownNetworkSlots.length > 0) {
                             for (let known of window.knownNetworkSlots) {
                                 if (known && known.trim() !== "" && allLogs.includes(known)) {
@@ -2871,6 +2872,7 @@
                             }
                         }
 
+                        // Method 2: Aggressive Fallback Extraction (If Method 1 misses)
                         if (!foundWifi) {
                             let lines = data.log.split('\n');
                             for (let line of lines) {
@@ -2947,10 +2949,10 @@
                 const statusData = snapshot.val() || {};
                 let hb = statusData.heartbeat || 0;
                 
-                // --- FIX: UNIFIED PULSE TRACKER ---
+                let isInitialStatus = (window.lastHeartbeatTracker === -1);
                 if (window.lastHeartbeatTracker !== hb) {
                     window.lastHeartbeatTracker = hb;
-                    window.latestDataPulseTime = Date.now(); 
+                    if (!isInitialStatus) window.latestDataPulseTime = Date.now(); 
                 }
                 
                 let activeHotspot = statusData.activeWiFi || statusData.connectedSSID;
@@ -2972,10 +2974,10 @@
                 const state = snapshot.val();
                 let currentPayload = JSON.stringify(state || {});
                 
-                // --- FIX: UNIFIED PULSE TRACKER ---
+                let isInitialState = (window.lastPayloads.state === null);
                 if (window.lastPayloads.state !== currentPayload) {
                     window.lastPayloads.state = currentPayload;
-                    window.latestDataPulseTime = Date.now(); 
+                    if (!isInitialState) window.latestDataPulseTime = Date.now(); 
                 }
 
                 if(state) {
@@ -3001,11 +3003,11 @@
                 }
             });
 
-            // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER (1:1 with Global Box) ---
+            // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER ---
             heartbeatTimer = setInterval(() => {
-                
                 let isCurrentlyOnline = (window.latestDataPulseTime > 0 && (Date.now() - window.latestDataPulseTime <= 35000));
                 
+                // NO FAKE DB WRITES ON LOAD - Strict Observation Mode
                 if (prevOnlineState === null) {
                     prevOnlineState = isCurrentlyOnline; 
                     
@@ -3081,14 +3083,14 @@
                         btn.innerText = "OFFLINE";
                         btn.style.pointerEvents = "none"; 
                         
-                        if(tankModel) tankModel.classList.remove('pump-active'); 
+                        if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION
                         
                         if(isAdmin) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
                             document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
                         } else {
-                            document.getElementById('offlineOverlay').style.display = 'flex'; 
+                            document.getElementById('offlineOverlay').style.display = 'flex'; // CUSTOMER RED OVERLAY
                         }
                     }
                 } else {
@@ -3114,6 +3116,33 @@
                     }
                 }
             }, 2000);
+
+            // --- STRICT UNTOUCHED PUMP LOGIC & TIMEOUT ---
+            database.ref(basePath + '/control').on('value', (snapshot) => {
+                window.deviceDbData['control'] = snapshot.val();
+                updateDbSizeDisplay();
+                
+                const ctrl = snapshot.val();
+                if(ctrl && ctrl.triggerId && ctrl.triggerId !== lastSeenControlTrigger) {
+                    lastSeenControlTrigger = ctrl.triggerId;
+                    lastCommandedState = ctrl.forceState; 
+                    
+                    if (currentPumpState !== ctrl.forceState) {
+                        const btn = document.getElementById('pumpToggleBtn');
+                        btn.innerText = "WAIT...";
+                        btn.style.pointerEvents = "none";
+                        btn.style.cursor = "not-allowed";
+                        btn.style.opacity = "0.6";
+
+                        if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
+                        
+                        localPumpCommandTimeout = setTimeout(async () => {
+                            if (!navigator.onLine) return;
+                            updatePumpButtonUI();
+                        }, 12000); // 12 SECOND TIMEOUT RESTORED STRICTLY
+                    }
+                }
+            });
         }
 
         async function togglePump() {
