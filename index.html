@@ -1351,6 +1351,28 @@
             // Aggressive string matching for any pump action
             if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) return;
 
+            // --- INSTANT OPTIMISTIC UI RENDER (Zero Latency) ---
+            const listEl = document.getElementById('adminPumpHistoryList');
+            if (listEl) {
+                // Only inject if it's not already at the very top to avoid flicker
+                if (!listEl.innerHTML.substring(0, 150).includes(sysEvent)) {
+                    let color = (sysEvent.includes("OFF") || sysEvent.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                    let icon = sysEvent.includes("WEB") ? "🌐" : sysEvent.includes("MANUAL") ? "👆" : "🤖";
+                    let timeNow = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                    
+                    let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${timeNow}</div>
+                        <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent}</div>
+                    </div>`;
+                    
+                    if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
+                        listEl.innerHTML = instantHtml;
+                    } else {
+                        listEl.insertAdjacentHTML('afterbegin', instantHtml);
+                    }
+                }
+            }
+
             let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
             
             // Secure atomic transaction to prevent rapid double-clicks from corrupting the DB
@@ -1387,7 +1409,7 @@
                 return currentData;
             }, function(error, committed, snapshot) {
                 if(committed) {
-                    // Force UI Render immediately
+                    // Firebase Confirmation Render
                     let html = "";
                     let items = [];
                     snapshot.forEach(c => items.push(c.val()));
@@ -3251,13 +3273,19 @@
             }
             
             let desiredState;
+            let optLog = "";
             if (btn.innerText.includes("TURN\nON")) {
                 desiredState = true;
+                optLog = "[WEB COMMAND] -> Pump ON via Cloud.";
             } else if (btn.innerText.includes("TURN\nOFF")) {
                 desiredState = false;
+                optLog = "[WEB COMMAND] -> Pump OFF via Cloud.";
             } else {
                 return; 
             }
+
+            // --- INSTANT UI TRIGGER FOR HISTORY ---
+            updatePumpHistory(optLog);
 
             // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
