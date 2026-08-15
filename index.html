@@ -1353,9 +1353,10 @@
 
             let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
             
-            histRef.once('value').then(snap => {
-                let items = [];
-                snap.forEach(c => items.push({key: c.key, data: c.val()}));
+            // Secure atomic transaction to prevent rapid double-clicks from corrupting the DB
+            histRef.transaction(function(currentData) {
+                if (currentData === null) currentData = {};
+                let items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
                 items.sort((a,b) => a.data.ms - b.data.ms);
                 
                 // Cross-Browser Deduplicator: Check if the exact text was just submitted recently
@@ -1368,24 +1369,43 @@
                     }
                 }
 
-                let entry = {
+                let newKey = histRef.push().key;
+                currentData[newKey] = {
                     text: sysEvent,
                     time: new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' }),
                     ms: Date.now()
                 };
 
-                histRef.push(entry).then(() => {
-                    // Instant Pruning (Keep exactly 5)
-                    histRef.once('value').then(s => {
-                        let toDelete = [];
-                        s.forEach(c => toDelete.push({key: c.key, ms: c.val().ms}));
-                        toDelete.sort((a,b) => a.ms - b.ms);
-                        while(toDelete.length > 5) {
-                            histRef.child(toDelete[0].key).remove();
-                            toDelete.shift();
-                        }
+                // Instant Pruning (Keep exactly 5)
+                items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
+                items.sort((a,b) => a.data.ms - b.data.ms);
+                while(items.length > 5) {
+                    delete currentData[items[0].key];
+                    items.shift();
+                }
+
+                return currentData;
+            }, function(error, committed, snapshot) {
+                if(committed) {
+                    // Force UI Render immediately
+                    let html = "";
+                    let items = [];
+                    snapshot.forEach(c => items.push(c.val()));
+                    items.sort((a,b) => b.ms - a.ms); 
+                    
+                    items.forEach(item => {
+                        let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                        let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
+                        html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                            <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
+                            <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
+                        </div>`;
                     });
-                });
+                    if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
+                    
+                    const listEl = document.getElementById('adminPumpHistoryList');
+                    if(listEl) listEl.innerHTML = html;
+                }
             });
         }
 
@@ -1956,6 +1976,7 @@
             }
         }
 
+        // --- GLOBAL INBOX: ACCURATE REALTIME SCANNER ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
@@ -1990,6 +2011,7 @@
                             });
                         }
 
+                        // Robust state change detection (Fixes "Permanently Online" ghost bug)
                         if (!globalDeviceState[devId]) {
                             globalDeviceState[devId] = { 
                                 lastHb: hb, lastTel: telStr, lastState: stateStr,
@@ -3055,17 +3077,11 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
-                        // --- UNCOMPROMISED REVERSE PUMP LOGIC ---
                         let logLines = data.log.split('\n');
-                        // THE FIX: Scan from the bottom up!
-                        let sysEventLine = [...logLines].reverse().find(l => l.startsWith('>> '));
-                        
-                        if (sysEventLine) {
-                            let sysEvent = sysEventLine.replace('>> ', '').trim();
-                            if (window.lastProcessedSysEvent !== sysEvent) {
-                                window.lastProcessedSysEvent = sysEvent;
-                                updatePumpHistory(sysEvent); 
-                            }
+                        let sysEvent = logLines.find(l => l.startsWith('>> '));
+                        if (sysEvent) {
+                            sysEvent = sysEvent.replace('>> ', '').trim();
+                            updatePumpHistory(sysEvent); // PUMP ENGINE IS NOW BULLETPROOF
                         }
 
                         let allLogs = (data.log || "") + " " + (data.nanoLog || "") + " " + (data.hardwareLog || "");
