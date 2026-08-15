@@ -1219,8 +1219,8 @@
                                 <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; border:1px solid rgba(255,255,255,0.1);">
                                     <strong style="color:#00d2ff; font-size:11px;">Slot 4:</strong> <span id="admin_slot4_name" style="color:#fff; font-size:11px;">--</span>
                                     <div style="display:flex; gap:5px; margin-top:5px;">
-                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
-                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:8px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
+                                        <input type="text" id="adminWifiSSID_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New SSID">
+                                        <input type="password" id="adminWifiPass_4" class="input-box" style="padding:6px; margin:0; flex:1; font-size:12px;" placeholder="New Pass">
                                     </div>
                                 </div>
 
@@ -1245,7 +1245,7 @@
                             <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
-                        <!-- --- NEW: LAST 5 PUMP ACTIONS HISTORY (ADMIN ONLY) --- -->
+                        <!-- --- LAST 5 PUMP ACTIONS HISTORY (ADMIN ONLY) --- -->
                         <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
                             <h3 style="text-align: left; margin-bottom: 10px; color: #7bed9f; font-size: 14px;">🚰 Last 5 Pump Actions</h3>
                             <div id="adminPumpHistoryList" style="font-size: 12px; color: #ccc;">Awaiting history fetch...</div>
@@ -1323,9 +1323,10 @@
         window.activeHotspotName = "--";
         window.dbLastConnect = "--";
         window.dbLastDisconnect = "--";
-        window.knownNetworkSlots = []; // Multi-layer WiFi memory
-        window.lastProcessedSysEvent = ""; // Dedicated tracker for pump history engine
-        window.lastKnownHeartbeat = -1; // Fixes "Ghost Load" fake data pulses
+        window.knownNetworkSlots = []; 
+        window.lastProcessedSysEvent = ""; 
+        window.lastKnownHeartbeat = -1; 
+        window.liveHeartbeatReceived = false; 
 
         // Global function to securely lock in Active WiFi without ever clearing it to blank
         function updateActiveWifiDisplay(ssid) {
@@ -1344,9 +1345,9 @@
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
         }
 
-        // --- NEW: DEDICATED PUMP HISTORY EXTRACTION ENGINE ---
+        // --- DEDICATED PUMP HISTORY EXTRACTION ENGINE ---
         function updatePumpHistory(sysEvent) {
-            if (!sysEvent || !currentDeviceId) return;
+            if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
             if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) return;
 
             let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
@@ -1357,7 +1358,7 @@
                 
                 // Strict deduplication: Blocks exact string duplicates infinitely
                 if (items.length > 0 && items[items.length - 1].text === sysEvent) {
-                    return; // IT'S A CACHED DUPLICATE, IGNORE FOREVER.
+                    return; 
                 }
 
                 let entry = {
@@ -1367,7 +1368,6 @@
                 };
                 
                 histRef.push(entry).then(() => {
-                    // Prune cleanly to 5 items to protect database size
                     histRef.once('value').then(s => {
                         let toDelete = [];
                         s.forEach(c => toDelete.push({key: c.key, ms: c.val().ms}));
@@ -1496,7 +1496,7 @@
         let currentDeviceId = null;
         let currentPumpState = false;
         let lastHeartbeat = 0;
-        let lastHeartbeatTime = 0; // Starts strictly offline to block logic traps
+        let lastHeartbeatTime = 0; 
         
         let prevOnlineState = null;
 
@@ -1948,7 +1948,7 @@
             }
         }
 
-        // --- GLOBAL INBOX FIX: PROPER OFFLINE TRACKING FOR NEW & DEAD DEVICES ---
+        // --- GLOBAL INBOX: ACCURATE REALTIME SCANNER ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
@@ -1983,7 +1983,6 @@
                             });
                         }
 
-                        // Robust state change detection (Fixes "Permanently Online" ghost bug)
                         if (!globalDeviceState[devId]) {
                             globalDeviceState[devId] = { 
                                 lastHb: hb, lastTel: telStr, lastState: stateStr,
@@ -2279,10 +2278,11 @@
             window.deviceTopology = null;
             window.latestRawDistance = null;
             
-            // --- FIX: Secure Initialization Lockout ---
+            // --- STRICT OFFLINE START: Zero False Triggers ---
             window.lastKnownHeartbeat = -1; 
+            window.liveHeartbeatReceived = false;
             window.lastProcessedSysEvent = ""; 
-            lastHeartbeatTime = 0; // Starts strictly OFFLINE
+            lastHeartbeatTime = 0; 
             
             window.activeHotspotName = "--";
             window.dbLastConnect = "--";
@@ -2812,15 +2812,22 @@
                 }
             });
 
+            // --- BULLETPROOF HEARTBEAT DETECTOR ---
             database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
                 const statusData = snapshot.val() || {};
                 let hb = statusData.heartbeat || 0;
                 
                 if (window.lastKnownHeartbeat === -1) {
-                    window.lastKnownHeartbeat = hb; 
+                    window.lastKnownHeartbeat = hb;
+                    // Check if global scanner saw it live within 35 seconds
+                    if (globalDeviceState[currentDeviceId] && (Date.now() - globalDeviceState[currentDeviceId].lastTime <= 35000) && globalDeviceState[currentDeviceId].lastTime > 0) {
+                        lastHeartbeatTime = globalDeviceState[currentDeviceId].lastTime;
+                        window.liveHeartbeatReceived = true;
+                    }
                 } else if (hb !== window.lastKnownHeartbeat) {
                     window.lastKnownHeartbeat = hb;
-                    lastHeartbeatTime = Date.now(); 
+                    lastHeartbeatTime = Date.now();
+                    window.liveHeartbeatReceived = true;
                 }
                 
                 if (!isOtaMode) {
@@ -2848,7 +2855,7 @@
                 updateRadioUI();
             });
 
-            // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER ---
+            // --- FLAWLESS CONNECT/DISCONNECT TIMER ---
             heartbeatTimer = setInterval(() => {
                 let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 
@@ -2858,7 +2865,7 @@
                     prevOnlineState = isCurrentlyOnline;
                     let transitionTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
                     
-                    if (currentDeviceId) {
+                    if (currentDeviceId && window.liveHeartbeatReceived) {
                         if (isCurrentlyOnline) {
                             database.ref('/Devices/' + currentDeviceId + '/connectionHistory/lastConnect').set(transitionTime);
                         } else {
@@ -2867,10 +2874,8 @@
                     }
                 }
                 
-                // Force UI to dynamically refresh state independent of Firebase
                 updateConnectionUI(isCurrentlyOnline);
 
-                // --- GLOBAL OFFLINE UI OVERRIDES ---
                 if(!isCurrentlyOnline) { 
                     const user = firebase.auth().currentUser;
                     const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
@@ -2891,7 +2896,6 @@
                         
                         if(isAdmin) document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
                     } else {
-                        // FORCIBLY SHOW OFFLINE EVERYWHERE
                         badge.style.background = "#ff4757";
                         badge.innerText = "OFFLINE";
                         
@@ -2899,14 +2903,14 @@
                         btn.innerText = "OFFLINE";
                         btn.style.pointerEvents = "none"; 
                         
-                        if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION
+                        if(tankModel) tankModel.classList.remove('pump-active'); 
                         
                         if(isAdmin) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
                             document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
                         } else {
-                            document.getElementById('offlineOverlay').style.display = 'flex'; // CUSTOMER RED OVERLAY
+                            document.getElementById('offlineOverlay').style.display = 'flex'; 
                         }
                     }
                 } else {
@@ -2918,14 +2922,12 @@
                         badge.innerText = "ONLINE";
                     }
                     
-                    // --- WAKE UP PUMP BUTTON FROM OFFLINE ---
                     if (btn.innerText === "OFFLINE") {
                         updatePumpButtonUI();
                     }
                 }
             }, 2000);
 
-            // --- STRICT UNTOUCHED PUMP LOGIC & TIMEOUT ---
             database.ref(basePath + '/control').on('value', (snapshot) => {
                 const ctrl = snapshot.val();
                 if(ctrl && ctrl.triggerId && ctrl.triggerId !== lastSeenControlTrigger) {
@@ -2944,7 +2946,7 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // FIXED: Kept exactly at 12 seconds
+                        }, 12000); 
                     }
                 }
             });
@@ -3027,8 +3029,7 @@
                         let sysEvent = logLines.find(l => l.startsWith('>> '));
                         if (sysEvent) {
                             sysEvent = sysEvent.replace('>> ', '').trim();
-                            if (window.lastProcessedSysEvent !== sysEvent) {
-                                window.lastProcessedSysEvent = sysEvent;
+                            if (window.liveHeartbeatReceived) {
                                 updatePumpHistory(sysEvent); 
                             }
                         }
@@ -3208,7 +3209,6 @@
                 return; 
             }
 
-            // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
             btn.style.pointerEvents = "none";
             btn.style.cursor = "not-allowed";
