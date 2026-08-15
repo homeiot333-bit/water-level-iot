@@ -1323,7 +1323,7 @@
         window.dbLastConnect = "--";
         window.dbLastDisconnect = "--";
         window.knownNetworkSlots = []; 
-        window.lastSeenPumpEvent = ""; 
+        window.lastProcessedSysEvent = ""; 
         window.lastKnownHeartbeat = -1; 
         window.liveHeartbeatReceived = false; 
 
@@ -1344,42 +1344,68 @@
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
         }
 
-        // --- NEW: DEDICATED PUMP HISTORY EXTRACTION ENGINE ---
+        // --- NEW: BULLETPROOF PUMP HISTORY ENGINE ---
         function updatePumpHistory(sysEvent) {
             if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
+            
+            // Aggressive string matching for any pump action
+            if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) return;
 
             let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
-            histRef.once('value').then(snap => {
-                let items = [];
-                snap.forEach(c => items.push(c.val()));
-                items.sort((a,b) => a.ms - b.ms);
+            
+            // Secure atomic transaction to prevent rapid double-clicks from corrupting the DB
+            histRef.transaction(function(currentData) {
+                if (currentData === null) currentData = {};
+                let items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
+                items.sort((a,b) => a.data.ms - b.data.ms);
                 
-                // Strict deduplication: Blocks cross-browser multi-push
+                // Cross-Browser Deduplicator: Check if the exact text was just submitted recently
                 if (items.length > 0) {
-                    let lastItem = items[items.length - 1];
+                    let lastItem = items[items.length - 1].data;
                     if (lastItem.text === sysEvent) {
-                        let timeGap = Date.now() - lastItem.ms;
-                        if (timeGap < 5000) return; 
+                        if (Date.now() - lastItem.ms < 5000) {
+                            return; // Reject false duplicate
+                        }
                     }
                 }
 
-                let entry = {
+                let newKey = histRef.push().key;
+                currentData[newKey] = {
                     text: sysEvent,
                     time: new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' }),
                     ms: Date.now()
                 };
-                
-                histRef.push(entry).then(() => {
-                    histRef.once('value').then(s => {
-                        let toDelete = [];
-                        s.forEach(c => toDelete.push({key: c.key, ms: c.val().ms}));
-                        toDelete.sort((a,b) => a.ms - b.ms);
-                        while(toDelete.length > 5) {
-                            histRef.child(toDelete[0].key).remove();
-                            toDelete.shift();
-                        }
+
+                // Instant Pruning (Keep exactly 5)
+                items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
+                items.sort((a,b) => a.data.ms - b.data.ms);
+                while(items.length > 5) {
+                    delete currentData[items[0].key];
+                    items.shift();
+                }
+
+                return currentData;
+            }, function(error, committed, snapshot) {
+                if(committed) {
+                    // Force UI Render immediately
+                    let html = "";
+                    let items = [];
+                    snapshot.forEach(c => items.push(c.val()));
+                    items.sort((a,b) => b.ms - a.ms); 
+                    
+                    items.forEach(item => {
+                        let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                        let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
+                        html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                            <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
+                            <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
+                        </div>`;
                     });
-                });
+                    if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
+                    
+                    const listEl = document.getElementById('adminPumpHistoryList');
+                    if(listEl) listEl.innerHTML = html;
+                }
             });
         }
 
@@ -1950,6 +1976,7 @@
             }
         }
 
+        // --- GLOBAL INBOX: ACCURATE REALTIME SCANNER ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
@@ -1984,6 +2011,7 @@
                             });
                         }
 
+                        // Robust state change detection (Fixes "Permanently Online" ghost bug)
                         if (!globalDeviceState[devId]) {
                             globalDeviceState[devId] = { 
                                 lastHb: hb, lastTel: telStr, lastState: stateStr,
@@ -2282,7 +2310,7 @@
             // --- STRICT OFFLINE START: Zero False Triggers ---
             window.lastKnownHeartbeat = -1; 
             window.liveHeartbeatReceived = false;
-            window.lastSeenPumpEvent = ""; 
+            window.lastProcessedSysEvent = ""; 
             lastHeartbeatTime = 0; 
             
             window.activeHotspotName = "--";
@@ -2390,7 +2418,30 @@
             document.getElementById('nanoLogConsole').innerText = "Connecting...";
             
             renderAdminInbox();
+            
+            // --- REATTACH LISTENERS ---
             startListeners();
+            
+            // FORCE FETCH ONCE TO POPULATE LIST
+            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').once('value').then(snap => {
+                let html = "";
+                let items = [];
+                snap.forEach(c => items.push(c.val()));
+                items.sort((a,b) => b.ms - a.ms); 
+                
+                items.forEach(item => {
+                    let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                    let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
+                    html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
+                        <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
+                    </div>`;
+                });
+                if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
+                
+                const listEl = document.getElementById('adminPumpHistoryList');
+                if(listEl) listEl.innerHTML = html;
+            });
         }
 
         async function saveCustomerSettings() {
@@ -3026,21 +3077,11 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
-                        // --- UNCOMPROMISED PUMP EXTRACTION ---
                         let logLines = data.log.split('\n');
                         let sysEvent = logLines.find(l => l.startsWith('>> '));
-                        
                         if (sysEvent) {
                             sysEvent = sysEvent.replace('>> ', '').trim();
-                            
-                            if (sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) {
-                                if (sysEvent !== window.lastSeenPumpEvent) {
-                                    window.lastSeenPumpEvent = sysEvent;
-                                    if (window.liveHeartbeatReceived) {
-                                        updatePumpHistory(sysEvent); 
-                                    }
-                                }
-                            }
+                            updatePumpHistory(sysEvent); // PUMP ENGINE IS NOW BULLETPROOF
                         }
 
                         let allLogs = (data.log || "") + " " + (data.nanoLog || "") + " " + (data.hardwareLog || "");
