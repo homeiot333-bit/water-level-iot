@@ -1348,8 +1348,8 @@
         function updatePumpHistory(sysEvent) {
             if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
             
-            // Aggressive string matching for any pump action
-            if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) return;
+            // Aggressive string matching for any pump action or STATS log
+            if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active|\[STATS\])/i)) return;
 
             let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
             
@@ -1394,8 +1394,8 @@
                     items.sort((a,b) => b.ms - a.ms); 
                     
                     items.forEach(item => {
-                        let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                        let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
+                        let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : (item.text.includes("[STATS]")) ? "#00d2ff" : "#2ed573";
+                        let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : item.text.includes("[STATS]") ? "⏱️" : "🤖";
                         html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
                             <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
                             <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
@@ -1976,7 +1976,6 @@
             }
         }
 
-        // --- GLOBAL INBOX: ACCURATE REALTIME SCANNER ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
@@ -2011,7 +2010,6 @@
                             });
                         }
 
-                        // Robust state change detection (Fixes "Permanently Online" ghost bug)
                         if (!globalDeviceState[devId]) {
                             globalDeviceState[devId] = { 
                                 lastHb: hb, lastTel: telStr, lastState: stateStr,
@@ -2430,8 +2428,8 @@
                 items.sort((a,b) => b.ms - a.ms); 
                 
                 items.forEach(item => {
-                    let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                    let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
+                    let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : (item.text.includes("[STATS]")) ? "#00d2ff" : "#2ed573";
+                    let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : item.text.includes("[STATS]") ? "⏱️" : "🤖";
                     html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
                         <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
                         <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
@@ -2701,8 +2699,8 @@
                 items.sort((a,b) => b.ms - a.ms); 
                 
                 items.forEach(item => {
-                    let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                    let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
+                    let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : (item.text.includes("[STATS]")) ? "#00d2ff" : "#2ed573";
+                    let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : item.text.includes("[STATS]") ? "⏱️" : "🤖";
                     html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
                         <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
                         <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
