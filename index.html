@@ -1344,34 +1344,33 @@
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
         }
 
+        // --- INSTANT OPTIMISTIC UI (Does not write to Database) ---
+        function insertOptimisticHistory(sysEvent) {
+            const listEl = document.getElementById('adminPumpHistoryList');
+            if (listEl && !listEl.innerHTML.substring(0, 150).includes(sysEvent)) {
+                let color = (sysEvent.includes("OFF") || sysEvent.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                let icon = sysEvent.includes("WEB") ? "🌐" : sysEvent.includes("MANUAL") ? "👆" : "🤖";
+                let timeNow = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+                
+                let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px; opacity: 0.7;">
+                    <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${timeNow} ⏳</div>
+                    <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent} (Sending to hardware...)</div>
+                </div>`;
+                
+                if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
+                    listEl.innerHTML = instantHtml;
+                } else {
+                    listEl.insertAdjacentHTML('afterbegin', instantHtml);
+                }
+            }
+        }
+
         // --- NEW: BULLETPROOF PUMP HISTORY ENGINE ---
         function updatePumpHistory(sysEvent) {
             if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
             
             // Aggressive string matching for any pump action
             if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) return;
-
-            // --- INSTANT OPTIMISTIC UI RENDER (Zero Latency) ---
-            const listEl = document.getElementById('adminPumpHistoryList');
-            if (listEl) {
-                // Only inject if it's not already at the very top to avoid flicker
-                if (!listEl.innerHTML.substring(0, 150).includes(sysEvent)) {
-                    let color = (sysEvent.includes("OFF") || sysEvent.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                    let icon = sysEvent.includes("WEB") ? "🌐" : sysEvent.includes("MANUAL") ? "👆" : "🤖";
-                    let timeNow = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                    
-                    let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
-                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${timeNow}</div>
-                        <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent}</div>
-                    </div>`;
-                    
-                    if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
-                        listEl.innerHTML = instantHtml;
-                    } else {
-                        listEl.insertAdjacentHTML('afterbegin', instantHtml);
-                    }
-                }
-            }
 
             let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
             
@@ -1381,11 +1380,11 @@
                 let items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
                 items.sort((a,b) => a.data.ms - b.data.ms);
                 
-                // Cross-Browser Deduplicator: Check if the exact text was just submitted recently
+                // Cross-Browser Deduplicator: Now extremely aggressive (30 seconds) to catch delayed ESP32 echoes
                 if (items.length > 0) {
                     let lastItem = items[items.length - 1].data;
                     if (lastItem.text === sysEvent) {
-                        if (Date.now() - lastItem.ms < 5000) {
+                        if (Date.now() - lastItem.ms < 30000) {
                             return; // Reject false duplicate
                         }
                     }
@@ -3285,7 +3284,7 @@
             }
 
             // --- INSTANT UI TRIGGER FOR HISTORY ---
-            updatePumpHistory(optLog);
+            insertOptimisticHistory(optLog);
 
             // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
