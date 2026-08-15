@@ -1344,27 +1344,22 @@
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
         }
 
-        // --- NEW: BULLETPROOF PUMP HISTORY ENGINE ---
+        // --- NEW: DEDICATED PUMP HISTORY EXTRACTION ENGINE ---
         function updatePumpHistory(sysEvent) {
             if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
-            
-            // Aggressive string matching for any pump action
             if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) return;
 
             let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
-            
             histRef.once('value').then(snap => {
                 let items = [];
-                snap.forEach(c => items.push({key: c.key, data: c.val()}));
-                items.sort((a,b) => a.data.ms - b.data.ms);
+                snap.forEach(c => items.push(c.val()));
+                items.sort((a,b) => a.ms - b.ms);
                 
-                // Cross-Browser Deduplicator: Check if the exact text was just submitted recently
-                if (items.length > 0) {
-                    let lastItem = items[items.length - 1].data;
-                    if (lastItem.text === sysEvent) {
-                        if (Date.now() - lastItem.ms < 5000) {
-                            return; // Reject false duplicate
-                        }
+                // Smart deduplication across multiple admin portals using absolute string matching
+                if (items.length > 0 && items[items.length - 1].text === sysEvent) {
+                    let timeSinceLast = Date.now() - items[items.length - 1].ms;
+                    if (timeSinceLast < 10000) {
+                        return; // Skip multi-client duplicate within 10 seconds
                     }
                 }
 
@@ -1373,9 +1368,9 @@
                     time: new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' }),
                     ms: Date.now()
                 };
-
+                
                 histRef.push(entry).then(() => {
-                    // Instant Pruning (Keep exactly 5)
+                    // Prune cleanly to 5 items to protect database size
                     histRef.once('value').then(s => {
                         let toDelete = [];
                         s.forEach(c => toDelete.push({key: c.key, ms: c.val().ms}));
@@ -2281,14 +2276,15 @@
             window.autoRadioTech = null;
             window.autoRadioChan = null;
             window.autoRadioRate = null;
-            window.deviceDeployDate = null;
-            window.deviceTopology = null;
-            window.latestRawDistance = null;
+            window.deviceDeployDate = null; 
+            window.deviceTopology = null; 
+            window.latestRawDistance = null; 
             
             // --- STRICT OFFLINE START: Zero False Triggers ---
-            window.lastKnownHeartbeat = -1; 
-            window.liveHeartbeatReceived = false;
+            window.initialLocks = { telemetry: true, state: true, status: true };
             window.lastProcessedSysEvent = ""; 
+            window.lastKnownHeartbeat = -1; 
+            window.liveHeartbeatReceived = false; 
             lastHeartbeatTime = 0; 
             
             window.activeHotspotName = "--";
@@ -2396,30 +2392,7 @@
             document.getElementById('nanoLogConsole').innerText = "Connecting...";
             
             renderAdminInbox();
-            
-            // --- REATTACH LISTENERS ---
             startListeners();
-            
-            // FORCE FETCH ONCE TO POPULATE LIST
-            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').once('value').then(snap => {
-                let html = "";
-                let items = [];
-                snap.forEach(c => items.push(c.val()));
-                items.sort((a,b) => b.ms - a.ms); 
-                
-                items.forEach(item => {
-                    let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                    let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
-                    html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
-                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
-                        <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
-                    </div>`;
-                });
-                if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
-                
-                const listEl = document.getElementById('adminPumpHistoryList');
-                if(listEl) listEl.innerHTML = html;
-            });
         }
 
         async function saveCustomerSettings() {
@@ -3055,16 +3028,17 @@
                     lastWaterPercent = currentPct;
 
                     if(data.log) {
-                        // --- UNCOMPROMISED REVERSE PUMP LOGIC ---
                         let logLines = data.log.split('\n');
-                        // THE FIX: Scan from the bottom up!
-                        let sysEventLine = [...logLines].reverse().find(l => l.startsWith('>> '));
                         
+                        // --- THE FIX: SEARCH FROM THE BOTTOM TO CATCH THE NEWEST EVENTS ---
+                        let sysEventLine = logLines.slice().reverse().find(l => l.startsWith('>> '));
                         if (sysEventLine) {
                             let sysEvent = sysEventLine.replace('>> ', '').trim();
                             if (window.lastProcessedSysEvent !== sysEvent) {
                                 window.lastProcessedSysEvent = sysEvent;
-                                updatePumpHistory(sysEvent); 
+                                if (window.liveHeartbeatReceived) {
+                                    updatePumpHistory(sysEvent); 
+                                }
                             }
                         }
 
