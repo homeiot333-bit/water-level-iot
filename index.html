@@ -1320,12 +1320,12 @@
         const globalLogTimestamps = {};
         
         // --- ADVANCED STATE VARIABLES ---
-        window.initialLocks = { telemetry: true, state: true, status: true };
         window.activeHotspotName = "--";
         window.dbLastConnect = "--";
         window.dbLastDisconnect = "--";
         window.knownNetworkSlots = []; // Multi-layer WiFi memory
         window.lastProcessedSysEvent = ""; // Dedicated tracker for pump history engine
+        window.lastKnownHeartbeat = -1; // Fixes "Ghost Load" fake data pulses
 
         // Global function to securely lock in Active WiFi without ever clearing it to blank
         function updateActiveWifiDisplay(ssid) {
@@ -1355,12 +1355,9 @@
                 snap.forEach(c => items.push(c.val()));
                 items.sort((a,b) => a.ms - b.ms);
                 
-                // Smart deduplication: Block identical events from multiple clients, but ONLY within a 10-second window.
+                // Strict deduplication: Blocks exact string duplicates infinitely
                 if (items.length > 0 && items[items.length - 1].text === sysEvent) {
-                    let timeSinceLast = Date.now() - items[items.length - 1].ms;
-                    if (timeSinceLast < 10000) {
-                        return; // Skip multi-client duplicate
-                    }
+                    return; // IT'S A CACHED DUPLICATE, IGNORE FOREVER.
                 }
 
                 let entry = {
@@ -2283,8 +2280,8 @@
             window.latestRawDistance = null;
             
             // --- FIX: Secure Initialization Lockout ---
-            window.initialLocks = { telemetry: true, state: true, status: true };
-            window.lastProcessedSysEvent = ""; // Reset pump history tracker on switch
+            window.lastKnownHeartbeat = -1; 
+            window.lastProcessedSysEvent = ""; 
             lastHeartbeatTime = 0; // Starts strictly OFFLINE
             
             window.activeHotspotName = "--";
@@ -2816,14 +2813,15 @@
             });
 
             database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
-                if (window.initialLocks.status) {
-                    window.initialLocks.status = false;
-                } else {
+                const statusData = snapshot.val() || {};
+                let hb = statusData.heartbeat || 0;
+                
+                if (window.lastKnownHeartbeat === -1) {
+                    window.lastKnownHeartbeat = hb; 
+                } else if (hb !== window.lastKnownHeartbeat) {
+                    window.lastKnownHeartbeat = hb;
                     lastHeartbeatTime = Date.now(); 
                 }
-
-                const statusData = snapshot.val() || {};
-                lastHeartbeat = statusData.heartbeat || 0;
                 
                 if (!isOtaMode) {
                     document.getElementById('offlineOverlay').style.display = 'none'; 
@@ -2952,13 +2950,6 @@
             });
 
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
-                let isInitialTel = window.initialLocks.telemetry;
-                if (isInitialTel) {
-                    window.initialLocks.telemetry = false;
-                } else {
-                    lastHeartbeatTime = Date.now(); 
-                }
-
                 const data = snapshot.val();
                 if(data) {
                     document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
@@ -3036,13 +3027,9 @@
                         let sysEvent = logLines.find(l => l.startsWith('>> '));
                         if (sysEvent) {
                             sysEvent = sysEvent.replace('>> ', '').trim();
-                            if (!isInitialTel) {
-                                if (window.lastProcessedSysEvent !== sysEvent) {
-                                    window.lastProcessedSysEvent = sysEvent;
-                                    updatePumpHistory(sysEvent); 
-                                }
-                            } else {
+                            if (window.lastProcessedSysEvent !== sysEvent) {
                                 window.lastProcessedSysEvent = sysEvent;
+                                updatePumpHistory(sysEvent); 
                             }
                         }
 
@@ -3127,12 +3114,6 @@
             });
 
             database.ref(basePath + '/state').on('value', (snapshot) => {
-                if (window.initialLocks.state) {
-                    window.initialLocks.state = false;
-                } else {
-                    lastHeartbeatTime = Date.now(); 
-                }
-
                 const state = snapshot.val();
                 if(state) {
                     const badge = document.getElementById('connStatus');
@@ -3227,6 +3208,7 @@
                 return; 
             }
 
+            // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
             btn.style.pointerEvents = "none";
             btn.style.cursor = "not-allowed";
