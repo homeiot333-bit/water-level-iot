@@ -265,7 +265,7 @@ void triggerCommsSafetyShutdown(int faultType) {
   unsigned long currentMillis = millis();
   
   // --- FAST BLINK CONTROLLER ---
-  int blinkInterval = (activeFaultType == 3 || activeFaultType == 4) ? 30 : 500; 
+  int blinkInterval = (activeFaultType == 3 || activeFaultType == 4) ? 300 : 500; 
 
   if (currentMillis - signalBlinkMillis >= blinkInterval) { 
     signalBlinkMillis = currentMillis;
@@ -1191,6 +1191,16 @@ void loop() {
 
   if (currentMillis - lastPacketTime > watchdog_timeout) {
     triggerCommsSafetyShutdown(2);
+    
+    // --- MINOR AUTO-HEALING (Soft Recovery without hardware reset) ---
+    static unsigned long lastSoftHeal = 0;
+    if (currentMillis - lastSoftHeal >= 5000) { 
+        lastSoftHeal = currentMillis;
+        if (radio.isChipConnected()) {
+            radio.flush_rx();
+            radio.startListening();
+        }
+    }
   } else {
     if (pumpActive && !commsFaultActive) {
       if (currentMillis - prevBlinkMillis >= 300) { 
