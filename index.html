@@ -768,6 +768,44 @@
                 height: 100px; 
             }
         }
+
+        /* --- NEW FEATURE: TIMER STYLES --- */
+        .timer-badge {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(46, 213, 115, 0.4);
+            border-radius: 30px;
+            padding: 8px 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: none; 
+        }
+
+        .timer-badge.visible {
+            opacity: 1;
+        }
+
+        .timer-icon {
+            font-size: 16px;
+            animation: pulse-green 1.5s infinite;
+        }
+
+        .timer-text {
+            color: #7bed9f;
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        @keyframes pulse-green {
+            0% { text-shadow: 0 0 5px #2ed573; transform: scale(1); }
+            50% { text-shadow: 0 0 15px #2ed573; transform: scale(1.2); }
+            100% { text-shadow: 0 0 5px #2ed573; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -953,6 +991,14 @@
                                 
                                 <div id="waterLevelText" class="water-text">--%</div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- --- NEW FEATURE: MOTOR RUNTIME WIDGET (CUSTOMER) --- -->
+                    <div style="text-align: center; width: 100%;">
+                        <div id="customerTimerBadge" class="timer-badge">
+                            <span class="timer-icon">⚡</span>
+                            <span id="customerTimerText" class="timer-text">00:00</span>
                         </div>
                     </div>
                     
@@ -1158,6 +1204,14 @@
                                 <span>Connected: <strong id="adminTxtLastConnect" style="color:#2ed573;">--</strong></span>
                                 <span>Disconnected: <strong id="adminTxtLastDisconnect" style="color:#ff4757;">--</strong></span>
                             </div>
+
+                            <!-- --- NEW FEATURE: MOTOR RUNTIME WIDGET (ADMIN) --- -->
+                            <div style="text-align: center; width: 100%;">
+                                <div id="adminTimerBadge" class="timer-badge">
+                                    <span class="timer-icon">⚡</span>
+                                    <span id="adminTimerText" class="timer-text">00:00</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
@@ -1342,6 +1396,19 @@
             
             if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
+        }
+
+        // --- NEW FEATURE: TIMER FORMATTER ---
+        function formatRuntime(totalSeconds) {
+            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00";
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = Math.floor(totalSeconds % 60);
+            
+            if (h > 0) {
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
         // --- INSTANT OPTIMISTIC UI (Does not write to Database) ---
@@ -2324,9 +2391,9 @@
             window.autoRadioTech = null;
             window.autoRadioChan = null;
             window.autoRadioRate = null;
-            window.deviceDeployDate = null;
-            window.deviceTopology = null;
-            window.latestRawDistance = null;
+            window.deviceDeployDate = null; 
+            window.deviceTopology = null; 
+            window.latestRawDistance = null; 
             
             // --- STRICT OFFLINE START: Zero False Triggers ---
             window.lastKnownHeartbeat = -1; 
@@ -3199,6 +3266,29 @@
                     if (activeHotspot && activeHotspot !== "--" && activeHotspot.trim() !== "") {
                         updateActiveWifiDisplay(activeHotspot);
                     }
+
+                    // --- NEW FEATURE: UPDATE THE RUNTIME UI ---
+                    const custBadge = document.getElementById('customerTimerBadge');
+                    const adminBadge = document.getElementById('adminTimerBadge');
+                    const custText = document.getElementById('customerTimerText');
+                    const adminText = document.getElementById('adminTimerText');
+
+                    if (state.pumpActive && state.pumpRuntimeSecs !== undefined) {
+                        let formattedTime = formatRuntime(state.pumpRuntimeSecs);
+                        
+                        if (custBadge && custText) {
+                            custBadge.classList.add('visible');
+                            custText.innerText = formattedTime;
+                        }
+                        if (adminBadge && adminText) {
+                            adminBadge.classList.add('visible');
+                            adminText.innerText = formattedTime;
+                        }
+                    } else {
+                        if (custBadge) custBadge.classList.remove('visible');
+                        if (adminBadge) adminBadge.classList.remove('visible');
+                    }
+                    // -------------------------------------------
 
                     if (isCurrentlyOnline) {
                         if(state.fault) {
