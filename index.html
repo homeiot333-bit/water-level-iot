@@ -769,7 +769,7 @@
             }
         }
 
-        /* --- NEW FEATURE: TIMER STYLES --- */
+        /* --- NEW FEATURE: TIMER STYLES (ALWAYS VISIBLE) --- */
         .timer-badge {
             background: rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(46, 213, 115, 0.4);
@@ -779,18 +779,16 @@
             align-items: center;
             gap: 8px;
             margin-top: 10px;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
             pointer-events: none; 
         }
 
-        .timer-badge.visible {
-            opacity: 1;
+        /* Only pulse the icon when pump is actually active */
+        .pump-active-pulse .timer-icon {
+            animation: pulse-green 1.5s infinite;
         }
 
         .timer-icon {
             font-size: 16px;
-            animation: pulse-green 1.5s infinite;
         }
 
         .timer-text {
@@ -1432,39 +1430,43 @@
             }
         }
 
-        // --- NEW: BULLETPROOF PUMP HISTORY ENGINE ---
+        // --- FIXED: HISTORY UPDATE LOGIC ---
         function updatePumpHistory(sysEvent) {
             if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
             
-            // Aggressive string matching for any pump action
             if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) return;
 
             let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
             
-            // Secure atomic transaction to prevent rapid double-clicks from corrupting the DB
+            // Generate exact time right now
+            let newTimeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+            let nowMs = Date.now();
+
             histRef.transaction(function(currentData) {
                 if (currentData === null) currentData = {};
                 let items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
                 items.sort((a,b) => a.data.ms - b.data.ms);
                 
-                // Cross-Browser Deduplicator: Now extremely aggressive (30 seconds) to catch delayed ESP32 echoes
+                // Compare only the last item to prevent duplicates, ignore old items completely
                 if (items.length > 0) {
                     let lastItem = items[items.length - 1].data;
                     if (lastItem.text === sysEvent) {
-                        if (Date.now() - lastItem.ms < 30000) {
-                            return; // Reject false duplicate
+                        // Check if it happened recently (within 30 seconds)
+                        if (nowMs - lastItem.ms < 30000) {
+                            return; // It's a duplicate, abort transaction
                         }
                     }
                 }
 
+                // If not a duplicate, add the new record
                 let newKey = histRef.push().key;
                 currentData[newKey] = {
                     text: sysEvent,
-                    time: new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' }),
-                    ms: Date.now()
+                    time: newTimeStr,
+                    ms: nowMs
                 };
 
-                // Instant Pruning (Keep exactly 5)
+                // Prune array to keep exactly 5
                 items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
                 items.sort((a,b) => a.data.ms - b.data.ms);
                 while(items.length > 5) {
@@ -1473,27 +1475,6 @@
                 }
 
                 return currentData;
-            }, function(error, committed, snapshot) {
-                if(committed) {
-                    // Firebase Confirmation Render
-                    let html = "";
-                    let items = [];
-                    snapshot.forEach(c => items.push(c.val()));
-                    items.sort((a,b) => b.ms - a.ms); 
-                    
-                    items.forEach(item => {
-                        let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                        let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
-                        html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
-                            <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
-                            <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
-                        </div>`;
-                    });
-                    if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
-                    
-                    const listEl = document.getElementById('adminPumpHistoryList');
-                    if(listEl) listEl.innerHTML = html;
-                }
             });
         }
 
@@ -3267,26 +3248,40 @@
                         updateActiveWifiDisplay(activeHotspot);
                     }
 
-                    // --- NEW FEATURE: UPDATE THE RUNTIME UI ---
+                    // --- NEW FEATURE: UPDATE THE RUNTIME UI ALWAYS ---
                     const custBadge = document.getElementById('customerTimerBadge');
                     const adminBadge = document.getElementById('adminTimerBadge');
                     const custText = document.getElementById('customerTimerText');
                     const adminText = document.getElementById('adminTimerText');
 
-                    if (state.pumpActive && state.pumpRuntimeSecs !== undefined) {
+                    if (state.pumpRuntimeSecs !== undefined) {
                         let formattedTime = formatRuntime(state.pumpRuntimeSecs);
                         
                         if (custBadge && custText) {
-                            custBadge.classList.add('visible');
+                            // Always visible, but only pulse if pump is active
+                            if (state.pumpActive) {
+                                custBadge.classList.add('pump-active-pulse');
+                                custBadge.style.borderColor = "rgba(46, 213, 115, 0.8)";
+                                custText.style.color = "#7bed9f";
+                            } else {
+                                custBadge.classList.remove('pump-active-pulse');
+                                custBadge.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                                custText.style.color = "#ccc";
+                            }
                             custText.innerText = formattedTime;
                         }
                         if (adminBadge && adminText) {
-                            adminBadge.classList.add('visible');
+                            if (state.pumpActive) {
+                                adminBadge.classList.add('pump-active-pulse');
+                                adminBadge.style.borderColor = "rgba(46, 213, 115, 0.8)";
+                                adminText.style.color = "#7bed9f";
+                            } else {
+                                adminBadge.classList.remove('pump-active-pulse');
+                                adminBadge.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                                adminText.style.color = "#ccc";
+                            }
                             adminText.innerText = formattedTime;
                         }
-                    } else {
-                        if (custBadge) custBadge.classList.remove('visible');
-                        if (adminBadge) adminBadge.classList.remove('visible');
                     }
                     // -------------------------------------------
 
