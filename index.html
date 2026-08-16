@@ -1173,7 +1173,7 @@
                                 </div>
                                 
                                 <div style="display:flex; gap:12px; align-items:center;">
-                                    <!-- --- NEW FEATURE: MINIMAL INLINE ADMIN TIMER --- -->
+                                    <!-- --- MINIMAL INLINE ADMIN TIMER --- -->
                                     <div id="adminTimerBadge" class="sleek-admin-timer">
                                         <div style="display:flex; flex-direction:column; align-items:flex-end; padding-right:8px; border-right:1px solid rgba(255,255,255,0.1); margin-right:8px;">
                                             <span id="adminTimerTitle" style="font-size:9px; color:#aaa; font-weight:bold; letter-spacing:0.5px;">LAST RUN</span>
@@ -1468,7 +1468,7 @@
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
         }
 
-        // --- NEW FEATURE: TIMER FORMATTER ---
+        // --- TIMER FORMATTER ---
         function formatRuntime(totalSeconds) {
             if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00";
             const h = Math.floor(totalSeconds / 3600);
@@ -1481,7 +1481,7 @@
             return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
-        // --- INSTANT OPTIMISTIC UI (Does not write to Database) ---
+        // --- INSTANT OPTIMISTIC UI ---
         function insertOptimisticHistory(sysEvent) {
             const listEl = document.getElementById('adminPumpHistoryList');
             if (listEl && !listEl.innerHTML.substring(0, 150).includes(sysEvent)) {
@@ -1711,7 +1711,7 @@
         window.deviceTopology = null; 
         window.latestRawDistance = null; 
 
-        // --- NEW VARIABLES FOR RETAINING MOTOR RUNTIME ---
+        // --- VARIABLES FOR RETAINING MOTOR RUNTIME ---
         let localHighestRuntime = 0;
         let localLastRunDate = "Waiting for data...";
 
