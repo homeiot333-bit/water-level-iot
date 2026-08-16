@@ -771,38 +771,75 @@
 
         /* --- NEW FEATURE: TIMER STYLES (ALWAYS VISIBLE) --- */
         .timer-badge {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(46, 213, 115, 0.4);
-            border-radius: 30px;
-            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px 15px;
             display: inline-flex;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
-            margin-top: 10px;
-            pointer-events: none; 
+            justify-content: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 300px;
+            box-sizing: border-box;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
         }
 
-        /* Only pulse the icon when pump is actually active */
-        .pump-active-pulse .timer-icon {
-            animation: pulse-green 1.5s infinite;
+        .pump-active-pulse {
+            border-color: #00d2ff;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.3), inset 0 0 10px rgba(0, 210, 255, 0.1);
+        }
+
+        .timer-header {
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pump-active-pulse .timer-header {
+            color: #00d2ff;
         }
 
         .timer-icon {
-            font-size: 16px;
+            font-size: 12px;
+        }
+
+        .pump-active-pulse .timer-icon {
+            animation: pulse-blue 1.5s infinite;
         }
 
         .timer-text {
-            color: #7bed9f;
+            color: #fff;
             font-family: monospace;
-            font-size: 16px;
+            font-size: 24px;
             font-weight: bold;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 3px black;
         }
 
-        @keyframes pulse-green {
-            0% { text-shadow: 0 0 5px #2ed573; transform: scale(1); }
-            50% { text-shadow: 0 0 15px #2ed573; transform: scale(1.2); }
-            100% { text-shadow: 0 0 5px #2ed573; transform: scale(1); }
+        .pump-active-pulse .timer-text {
+            color: #fff;
+            text-shadow: 0 0 8px #00d2ff;
+        }
+
+        .timer-date {
+            font-size: 10px;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        @keyframes pulse-blue {
+            0% { text-shadow: 0 0 2px #00d2ff; transform: scale(1); }
+            50% { text-shadow: 0 0 10px #00d2ff; transform: scale(1.3); }
+            100% { text-shadow: 0 0 2px #00d2ff; transform: scale(1); }
         }
     </style>
 </head>
@@ -961,11 +998,21 @@
                     <button class="btn-login" style="background:#2ed573; color:black; margin-top:15px;" onclick="saveCustomerSettings()">Save Settings to Device</button>
                 </div>
 
-                <div class="card">
-                    <span id="connStatus" class="status-badge">ONLINE</span>
+                <div class="card" style="display: flex; flex-direction: column; align-items: center;">
+                    <span id="connStatus" class="status-badge" style="align-self: flex-start;">ONLINE</span>
                     <div id="customerMenuDots" class="menu-dots" onclick="toggleAdvanced()" title="Show/Hide Advanced Data" style="display:none; top: 15px; right: 20px;">⋮</div>
                     
                     <div style="clear:both;"></div>
+
+                    <!-- --- NEW FEATURE: MOTOR RUNTIME WIDGET (CUSTOMER) --- -->
+                    <div id="customerTimerBadge" class="timer-badge">
+                        <div class="timer-header">
+                            <span class="timer-icon">⚡</span>
+                            <span id="customerTimerTitle">LAST RUN TIME</span>
+                        </div>
+                        <span id="customerTimerText" class="timer-text">00:00:00</span>
+                        <span id="customerTimerDate" class="timer-date">Waiting for data...</span>
+                    </div>
                     
                     <div id="waterTankModel" class="system-wrapper">
                         <div class="motor-assembly">
@@ -989,14 +1036,6 @@
                                 
                                 <div id="waterLevelText" class="water-text">--%</div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- --- NEW FEATURE: MOTOR RUNTIME WIDGET (CUSTOMER) --- -->
-                    <div style="text-align: center; width: 100%;">
-                        <div id="customerTimerBadge" class="timer-badge">
-                            <span class="timer-icon">⚡</span>
-                            <span id="customerTimerText" class="timer-text">00:00</span>
                         </div>
                     </div>
                     
@@ -1074,17 +1113,27 @@
             </div>
 
             <div class="dash-col-right" id="adminCommandCenter" style="display:none;">
-                <div class="card" style="width:100%; border: 2px solid rgba(0, 210, 255, 0.5); position: relative;">
+                <div class="card" style="width:100%; border: 2px solid rgba(0, 210, 255, 0.5); position: relative; display: flex; flex-direction: column; align-items: center;">
                     
                     <div class="menu-dots" onclick="toggleSearchMenu()" title="Search Options" style="top: 20px; right: 20px;">⋮</div>
                     
-                    <h2>👑 Master Command Center</h2>
+                    <h2 style="align-self: flex-start;">👑 Master Command Center</h2>
 
-                    <button class="btn-login" style="background:rgba(0, 210, 255, 0.8); color:#fff; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
+                    <!-- --- NEW FEATURE: MOTOR RUNTIME WIDGET (ADMIN) --- -->
+                    <div id="adminTimerBadge" class="timer-badge">
+                        <div class="timer-header">
+                            <span class="timer-icon">⚡</span>
+                            <span id="adminTimerTitle">LAST RUN TIME</span>
+                        </div>
+                        <span id="adminTimerText" class="timer-text">00:00:00</span>
+                        <span id="adminTimerDate" class="timer-date">Waiting for data...</span>
+                    </div>
+
+                    <button class="btn-login" style="background:rgba(0, 210, 255, 0.8); color:#fff; margin-top:10px; margin-bottom:10px; font-size:14px; padding:10px; width: 100%;" onclick="toggleAdminPumpControl()">👁️ Show/Hide Pump Control</button>
                     
-                    <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
+                    <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px; width: 100%;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
-                    <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
+                    <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px; width: 100%;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
 
                     <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
                         <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
@@ -1092,7 +1141,7 @@
                     </div>
 
                     <input type="text" id="adminSearchInput" class="input-box" placeholder="e.g., a4e1 (MAC)">
-                    <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px;">Connect to Machine</button>
+                    <button class="btn-login" onclick="processAdminConnection()" style="margin-top:10px; width: 100%;">Connect to Machine</button>
                     
                     <div id="adminTerminalContainer" style="display:none; width:100%; margin-top:20px;">
                         <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
@@ -1201,14 +1250,6 @@
                             <div style="display:flex; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
                                 <span>Connected: <strong id="adminTxtLastConnect" style="color:#2ed573;">--</strong></span>
                                 <span>Disconnected: <strong id="adminTxtLastDisconnect" style="color:#ff4757;">--</strong></span>
-                            </div>
-
-                            <!-- --- NEW FEATURE: MOTOR RUNTIME WIDGET (ADMIN) --- -->
-                            <div style="text-align: center; width: 100%;">
-                                <div id="adminTimerBadge" class="timer-badge">
-                                    <span class="timer-icon">⚡</span>
-                                    <span id="adminTimerText" class="timer-text">00:00</span>
-                                </div>
                             </div>
                         </div>
 
@@ -1398,15 +1439,11 @@
 
         // --- NEW FEATURE: TIMER FORMATTER ---
         function formatRuntime(totalSeconds) {
-            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00";
+            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00:00";
             const h = Math.floor(totalSeconds / 3600);
             const m = Math.floor((totalSeconds % 3600) / 60);
             const s = Math.floor(totalSeconds % 60);
-            
-            if (h > 0) {
-                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-            }
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
         // --- INSTANT OPTIMISTIC UI (Does not write to Database) ---
@@ -1475,6 +1512,27 @@
                 }
 
                 return currentData;
+            }, function(error, committed, snapshot) {
+                 // --- FIXED: FORCE INSTANT RENDER ON LOCAL CLIENT ---
+                 if(committed && snapshot) {
+                     let html = "";
+                     let items = [];
+                     snapshot.forEach(c => items.push(c.val()));
+                     items.sort((a,b) => b.ms - a.ms); 
+                     
+                     items.forEach(item => {
+                         let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                         let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
+                         html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                             <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
+                             <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
+                         </div>`;
+                     });
+                     if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
+                     
+                     const listEl = document.getElementById('adminPumpHistoryList');
+                     if(listEl) listEl.innerHTML = html;
+                 }
             });
         }
 
@@ -2762,7 +2820,7 @@
                 if(document.getElementById('adminMobileLoginsList')) document.getElementById('adminMobileLoginsList').innerHTML = finalHtml;
             });
 
-            // --- RENDER DEDICATED PUMP HISTORY ---
+            // --- FIXED: INSTANT RENDER OF PUMP HISTORY ---
             database.ref(basePath + '/pumpHistory').on('value', snap => {
                 let html = "";
                 let items = [];
@@ -3253,32 +3311,52 @@
                     const adminBadge = document.getElementById('adminTimerBadge');
                     const custText = document.getElementById('customerTimerText');
                     const adminText = document.getElementById('adminTimerText');
+                    
+                    const custDate = document.getElementById('customerTimerDate');
+                    const adminDate = document.getElementById('adminTimerDate');
+                    
+                    const custTitle = document.getElementById('customerTimerTitle');
+                    const adminTitle = document.getElementById('adminTimerTitle');
 
                     if (state.pumpRuntimeSecs !== undefined) {
                         let formattedTime = formatRuntime(state.pumpRuntimeSecs);
-                        
-                        if (custBadge && custText) {
-                            // Always visible, but only pulse if pump is active
+                        let nowTime = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+
+                        if (custBadge && custText && custDate && custTitle) {
                             if (state.pumpActive) {
                                 custBadge.classList.add('pump-active-pulse');
                                 custBadge.style.borderColor = "rgba(46, 213, 115, 0.8)";
                                 custText.style.color = "#7bed9f";
+                                custTitle.innerText = "RUNNING";
+                                custDate.innerText = "Now";
                             } else {
                                 custBadge.classList.remove('pump-active-pulse');
                                 custBadge.style.borderColor = "rgba(255, 255, 255, 0.2)";
                                 custText.style.color = "#ccc";
+                                custTitle.innerText = "LAST RUN TIME";
+                                // Keep showing the last known date until the pump turns on again
+                                if (custDate.innerText === "Waiting for data..." || custDate.innerText === "Now") {
+                                    custDate.innerText = nowTime;
+                                }
                             }
                             custText.innerText = formattedTime;
                         }
-                        if (adminBadge && adminText) {
+                        if (adminBadge && adminText && adminDate && adminTitle) {
                             if (state.pumpActive) {
                                 adminBadge.classList.add('pump-active-pulse');
                                 adminBadge.style.borderColor = "rgba(46, 213, 115, 0.8)";
                                 adminText.style.color = "#7bed9f";
+                                adminTitle.innerText = "RUNNING";
+                                adminDate.innerText = "Now";
                             } else {
                                 adminBadge.classList.remove('pump-active-pulse');
                                 adminBadge.style.borderColor = "rgba(255, 255, 255, 0.2)";
                                 adminText.style.color = "#ccc";
+                                adminTitle.innerText = "LAST RUN TIME";
+                                // Keep showing the last known date until the pump turns on again
+                                if (adminDate.innerText === "Waiting for data..." || adminDate.innerText === "Now") {
+                                    adminDate.innerText = nowTime;
+                                }
                             }
                             adminText.innerText = formattedTime;
                         }
