@@ -1041,7 +1041,7 @@
                             <span id="customerTimerTitle" class="timer-header">LAST RUN TIME</span>
                             <span id="customerTimerDate" class="timer-date">Waiting for data...</span>
                         </div>
-                        <span id="customerTimerText" class="timer-time">00:00</span>
+                        <span id="customerTimerText" class="timer-time">00:00:00</span>
                     </div>
                     
                     <div id="waterTankModel" class="system-wrapper">
@@ -1173,13 +1173,13 @@
                                 </div>
                                 
                                 <div style="display:flex; gap:12px; align-items:center;">
-                                    <!-- --- MINIMAL INLINE ADMIN TIMER --- -->
+                                    <!-- --- NEW FEATURE: MINIMAL INLINE ADMIN TIMER --- -->
                                     <div id="adminTimerBadge" class="sleek-admin-timer">
                                         <div style="display:flex; flex-direction:column; align-items:flex-end; padding-right:8px; border-right:1px solid rgba(255,255,255,0.1); margin-right:8px;">
                                             <span id="adminTimerTitle" style="font-size:9px; color:#aaa; font-weight:bold; letter-spacing:0.5px;">LAST RUN</span>
                                             <span id="adminTimerDate" style="font-size:8px; color:#777; margin-top:2px;">Waiting...</span>
                                         </div>
-                                        <span id="adminTimerText" style="font-size:14px; color:#fff; font-family:monospace; font-weight:bold;">00:00</span>
+                                        <span id="adminTimerText" style="font-size:14px; color:#fff; font-family:monospace; font-weight:bold;">00:00:00</span>
                                     </div>
 
                                     <button class="btn-login" style="background:rgba(254, 202, 87, 0.8); color:#000; font-size:11px; padding:4px 8px; margin:0; width:auto;" onclick="toggleAdminEditConfig()">✏️ Edit Config</button>
@@ -1468,20 +1468,16 @@
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
         }
 
-        // --- TIMER FORMATTER ---
+        // --- NEW FEATURE: TIMER FORMATTER ---
         function formatRuntime(totalSeconds) {
-            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00";
+            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00:00";
             const h = Math.floor(totalSeconds / 3600);
             const m = Math.floor((totalSeconds % 3600) / 60);
             const s = Math.floor(totalSeconds % 60);
-            
-            if (h > 0) {
-                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-            }
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
-        // --- INSTANT OPTIMISTIC UI ---
+        // --- INSTANT OPTIMISTIC UI (Does not write to Database) ---
         function insertOptimisticHistory(sysEvent) {
             const listEl = document.getElementById('adminPumpHistoryList');
             if (listEl && !listEl.innerHTML.substring(0, 150).includes(sysEvent)) {
@@ -1502,72 +1498,63 @@
             }
         }
 
-        // --- FIXED: HISTORY UPDATE LOGIC ---
+        // --- FIXED: HIGH-SPEED HISTORY UPDATE LOGIC ---
         function updatePumpHistory(sysEvent) {
             if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
             
             if (!sysEvent.match(/(Pump ON|Pump OFF|Pump shutdown|Auto-Fill Active)/i)) return;
 
-            let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
-            
             // Generate exact time right now
             let newTimeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
             let nowMs = Date.now();
 
-            histRef.transaction(function(currentData) {
-                if (currentData === null) currentData = {};
-                let items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
-                items.sort((a,b) => a.data.ms - b.data.ms);
-                
-                // Compare only the last item to prevent duplicates, ignore old items completely
-                if (items.length > 0) {
-                    let lastItem = items[items.length - 1].data;
-                    if (lastItem.text === sysEvent) {
-                        // Check if it happened recently (within 30 seconds)
-                        if (nowMs - lastItem.ms < 30000) {
-                            return; // It's a duplicate, abort transaction
+            // 1. INSTANT LOCAL RENDER (Fixes the delay issue)
+            const listEl = document.getElementById('adminPumpHistoryList');
+            if (listEl) {
+                // Prevent showing duplicates from rapid ESP32 echoes
+                if (listEl.innerHTML.includes(sysEvent) && listEl.innerHTML.includes(newTimeStr.substring(0, 15))) {
+                    // Do nothing, we just rendered this
+                } else {
+                    let color = (sysEvent.includes("OFF") || sysEvent.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                    let icon = sysEvent.includes("WEB") ? "🌐" : sysEvent.includes("MANUAL") ? "👆" : "🤖";
+                    let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${newTimeStr}</div>
+                        <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent}</div>
+                    </div>`;
+
+                    if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
+                        listEl.innerHTML = instantHtml;
+                    } else {
+                        listEl.insertAdjacentHTML('afterbegin', instantHtml);
+                        // Optional: remove 6th child if UI gets too long before DB syncs
+                        if (listEl.children.length > 5) {
+                            listEl.removeChild(listEl.lastElementChild);
                         }
                     }
                 }
+            }
 
-                // If not a duplicate, add the new record
-                let newKey = histRef.push().key;
-                currentData[newKey] = {
-                    text: sysEvent,
-                    time: newTimeStr,
-                    ms: nowMs
-                };
+            // 2. BACKGROUND FIREBASE WRITE (No slow transaction)
+            let newKey = database.ref('/Devices/' + currentDeviceId + '/pumpHistory').push().key;
+            database.ref('/Devices/' + currentDeviceId + '/pumpHistory/' + newKey).set({
+                text: sysEvent,
+                time: newTimeStr,
+                ms: nowMs
+            });
 
-                // Prune array to keep exactly 5
-                items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
-                items.sort((a,b) => a.data.ms - b.data.ms);
-                while(items.length > 5) {
-                    delete currentData[items[0].key];
-                    items.shift();
+            // 3. BACKGROUND PRUNING (Keeps DB clean without slowing down the UI)
+            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').orderByChild('ms').once('value', snapshot => {
+                let count = snapshot.numChildren();
+                if (count > 5) {
+                    let items = [];
+                    snapshot.forEach(c => { items.push({key: c.key, ms: c.val().ms}); });
+                    items.sort((a,b) => a.ms - b.ms);
+                    
+                    let deleteCount = count - 5;
+                    for (let i = 0; i < deleteCount; i++) {
+                        database.ref('/Devices/' + currentDeviceId + '/pumpHistory/' + items[i].key).remove();
+                    }
                 }
-
-                return currentData;
-            }, function(error, committed, snapshot) {
-                 // --- FIXED: FORCE INSTANT RENDER ON LOCAL CLIENT ---
-                 if(committed && snapshot) {
-                     let html = "";
-                     let items = [];
-                     snapshot.forEach(c => items.push(c.val()));
-                     items.sort((a,b) => b.ms - a.ms); 
-                     
-                     items.forEach(item => {
-                         let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                         let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
-                         html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
-                             <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
-                             <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
-                         </div>`;
-                     });
-                     if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
-                     
-                     const listEl = document.getElementById('adminPumpHistoryList');
-                     if(listEl) listEl.innerHTML = html;
-                 }
             });
         }
 
@@ -1711,7 +1698,7 @@
         window.deviceTopology = null; 
         window.latestRawDistance = null; 
 
-        // --- VARIABLES FOR RETAINING MOTOR RUNTIME ---
+        // --- NEW VARIABLES FOR RETAINING MOTOR RUNTIME ---
         let localHighestRuntime = 0;
         let localLastRunDate = "Waiting for data...";
 
@@ -2442,6 +2429,8 @@
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
+                
+                // --- FIXED: ENSURE WE STOP LISTENING TO OLD HISTORY ---
                 database.ref('/Devices/' + currentDeviceId + '/pumpHistory').off();
             }
 
@@ -2592,8 +2581,8 @@
             // --- REATTACH LISTENERS ---
             startListeners();
             
-            // FORCE FETCH ONCE TO POPULATE LIST
-            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').once('value').then(snap => {
+            // --- FIXED: INSTANT FETCH FOR NEW CONNECTION ---
+            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').orderByChild('ms').limitToLast(5).once('value').then(snap => {
                 let html = "";
                 let items = [];
                 snap.forEach(c => items.push(c.val()));
@@ -2863,25 +2852,36 @@
                 if(document.getElementById('adminMobileLoginsList')) document.getElementById('adminMobileLoginsList').innerHTML = finalHtml;
             });
 
-            // --- FIXED: INSTANT RENDER OF PUMP HISTORY ---
-            database.ref(basePath + '/pumpHistory').on('value', snap => {
-                let html = "";
-                let items = [];
-                snap.forEach(c => items.push(c.val()));
-                items.sort((a,b) => b.ms - a.ms); 
-                
-                items.forEach(item => {
-                    let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                    let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
-                    html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
-                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
-                        <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
-                    </div>`;
-                });
-                if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
-                
+            // --- FIXED: INSTANT LISTENER FOR NEW ACTIONS ONLY ---
+            database.ref(basePath + '/pumpHistory').on('child_added', snap => {
+                let item = snap.val();
+                if (!item) return;
+
                 const listEl = document.getElementById('adminPumpHistoryList');
-                if(listEl) listEl.innerHTML = html;
+                if (!listEl) return;
+
+                // Make sure we aren't duplicating the optimistic UI or identical rapid logs
+                if (listEl.innerHTML.includes(item.text) && listEl.innerHTML.includes(item.time.substring(0, 15))) {
+                    return; 
+                }
+
+                let color = (item.text.includes("OFF") || item.text.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                let icon = item.text.includes("WEB") ? "🌐" : item.text.includes("MANUAL") ? "👆" : "🤖";
+                let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                    <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
+                    <div style="color:#fff; font-size:11px; margin-top:2px;">${item.text}</div>
+                </div>`;
+
+                if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
+                    listEl.innerHTML = instantHtml;
+                } else {
+                    listEl.insertAdjacentHTML('afterbegin', instantHtml);
+                }
+
+                // Clean up the DOM to show only the last 5
+                while (listEl.children.length > 5) {
+                    listEl.removeChild(listEl.lastElementChild);
+                }
             });
 
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
@@ -3251,7 +3251,7 @@
                         let sysEvent = logLines.find(l => l.startsWith('>> '));
                         if (sysEvent) {
                             sysEvent = sysEvent.replace('>> ', '').trim();
-                            updatePumpHistory(sysEvent); // PUMP ENGINE IS NOW BULLETPROOF
+                            updatePumpHistory(sysEvent); 
                         }
 
                         let allLogs = (data.log || "") + " " + (data.nanoLog || "") + " " + (data.hardwareLog || "");
