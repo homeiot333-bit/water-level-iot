@@ -1032,7 +1032,7 @@
                     
                     <div style="clear:both;"></div>
 
-                    <!-- --- NEW MINIMAL WIDGET (ABOVE TANK) --- -->
+                    <!-- --- MINIMAL WIDGET (ABOVE TANK) --- -->
                     <div id="customerTimerBadge" class="sleek-timer-badge">
                         <div class="timer-icon-wrap">
                             <span class="timer-icon">⚡</span>
@@ -1173,7 +1173,7 @@
                                 </div>
                                 
                                 <div style="display:flex; gap:12px; align-items:center;">
-                                    <!-- --- NEW FEATURE: MINIMAL INLINE ADMIN TIMER --- -->
+                                    <!-- --- MINIMAL INLINE ADMIN TIMER --- -->
                                     <div id="adminTimerBadge" class="sleek-admin-timer">
                                         <div style="display:flex; flex-direction:column; align-items:flex-end; padding-right:8px; border-right:1px solid rgba(255,255,255,0.1); margin-right:8px;">
                                             <span id="adminTimerTitle" style="font-size:9px; color:#aaa; font-weight:bold; letter-spacing:0.5px;">LAST RUN</span>
@@ -1453,11 +1453,6 @@
         let currentDeviceId = null;
         let currentPumpState = false;
         
-        // --- HISTORY TRACKER VARIABLES ---
-        window.lastPumpStatus = undefined; 
-        window.lastProcessedSysEvent = ""; 
-        window.lastSysEventTime = 0; 
-        
         let lastHeartbeat = 0;
         let lastHeartbeatTime = 0; 
         let prevOnlineState = null;
@@ -1558,44 +1553,6 @@
                 adminText.innerText = displayTime;
                 adminDate.innerText = dateStr;
             }
-        }
-
-        // --- FIXED: ROCK-SOLID DEDUPLICATING PUMP HISTORY ---
-        function updatePumpHistory(sysEvent) {
-            if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
-
-            // 1. Strict Local Cache Deduplication (Blocks exact duplicates for 10 seconds locally)
-            if (window.lastProcessedSysEvent === sysEvent && (Date.now() - window.lastSysEventTime < 10000)) {
-                return; 
-            }
-            window.lastProcessedSysEvent = sysEvent;
-            window.lastSysEventTime = Date.now();
-
-            let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
-            let nowMs = Date.now();
-            let newTimeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-            
-            // Generate a time-bucketed key (10 second resolution) to prevent multi-client spam
-            let timeKey = Math.floor(nowMs / 10000).toString();
-
-            // Set to Firebase
-            histRef.child(timeKey).set({
-                text: sysEvent,
-                time: newTimeStr,
-                ms: nowMs
-            }).then(() => {
-                // Prune array to keep exactly 5 entries in database
-                histRef.once('value').then(snap => {
-                    let items = [];
-                    snap.forEach(c => { items.push({key: c.key, ms: c.val().ms}); });
-                    items.sort((a,b) => a.ms - b.ms);
-                    if (items.length > 5) {
-                        for(let i=0; i < items.length - 5; i++) {
-                            histRef.child(items[i].key).remove();
-                        }
-                    }
-                });
-            });
         }
 
         function processAndFormatLog(logText, isHardware = false) {
@@ -2121,6 +2078,21 @@
             }
         }
 
+        function updateRuntimeUI() {
+            if (window.deviceDeployDate) {
+                let deployed = new Date(window.deviceDeployDate);
+                let diffTime = Math.abs(Date.now() - deployed.getTime());
+                let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                document.getElementById('txtRuntimeDays').innerText = `Running: ${diffDays} Days`;
+            } else if (lastHeartbeat > 0) {
+                let totalSeconds = Math.floor(lastHeartbeat * 1.5);
+                let runningDays = Math.floor(totalSeconds / 86400);
+                document.getElementById('txtRuntimeDays').innerText = `Uptime: ${runningDays} Days`;
+            } else {
+                document.getElementById('txtRuntimeDays').innerText = '-- Days';
+            }
+        }
+
         // --- GLOBAL INBOX: ACCURATE REALTIME SCANNER ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
@@ -2422,7 +2394,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                 
-                // Ensure we detach the correct listener for history
+                // --- FIXED: ENSURE WE STOP LISTENING TO OLD HISTORY ---
                 database.ref('/Devices/' + currentDeviceId + '/pumpHistory').off();
             }
 
@@ -2464,10 +2436,6 @@
             window.lastRuntimeSave = 0;
             
             // --- STRICT OFFLINE & HISTORY START ---
-            window.lastPumpStatus = undefined; 
-            window.lastProcessedSysEvent = ""; 
-            window.lastSysEventTime = 0;
-            
             window.lastKnownHeartbeat = -1; 
             window.liveHeartbeatReceived = false;
             lastHeartbeatTime = 0; 
@@ -2577,23 +2545,35 @@
             // --- REATTACH LISTENERS ---
             startListeners();
             
-            // --- FIXED: INSTANT FETCH FOR HISTORY (No spamming) ---
+            // --- PURE DEDICATED JSON LISTENER FOR HISTORY ---
+            // This strictly fetches the actual array/object the ESP32 pushes to /pumpHistory.
             database.ref('/Devices/' + currentDeviceId + '/pumpHistory').limitToLast(5).on('value', snap => {
                 let html = "";
                 let items = [];
                 snap.forEach(c => items.push(c.val()));
-                items.sort((a,b) => b.ms - a.ms); 
+                
+                // Sort backwards so the newest is at the top
+                items.sort((a,b) => {
+                    let timeA = a.ms || (new Date(a.time).getTime()) || 0;
+                    let timeB = b.ms || (new Date(b.time).getTime()) || 0;
+                    return timeB - timeA;
+                });
                 
                 items.forEach(item => {
                     let textStr = item.text || "";
+                    let timeStr = item.time || "";
                     let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
                     let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
+                    
                     html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
-                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
+                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${timeStr}</div>
                         <div style="color:#fff; font-size:11px; margin-top:2px;">${textStr}</div>
                     </div>`;
                 });
-                if (items.length === 0) html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
+                
+                if (items.length === 0) {
+                    html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
+                }
                 
                 const listEl = document.getElementById('adminPumpHistoryList');
                 if(listEl) listEl.innerHTML = html;
@@ -3222,7 +3202,7 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // WARNING: HISTORY LOGGING REMOVED FROM HERE. TERMINAL LOGIC ONLY.
+                    // WARNING: TERMINAL SCRAPING COMPLETELY REMOVED FROM HERE
                     if(data.log) {
                         let logLines = data.log.split('\n');
                         let allLogs = (data.log || "") + " " + (data.nanoLog || "") + " " + (data.hardwareLog || "");
@@ -3320,30 +3300,12 @@
                         updateActiveWifiDisplay(activeHotspot);
                     }
 
-                    // --- NEW PUMP HISTORY STATE TRACKER ---
-                    if (window.lastPumpStatus === undefined) {
-                        window.lastPumpStatus = state.pumpActive; 
-                    } else if (window.lastPumpStatus !== state.pumpActive) {
-                        window.lastPumpStatus = state.pumpActive;
-                        let actionText = "";
-                        
-                        if (state.pumpActive) {
-                            actionText = state.automationBypassed ? "🟢 Pump ON (Manual/Web Override)" : "🟢 Pump ON (Auto-Fill System)";
-                        } else {
-                            actionText = state.automationBypassed ? "🔴 Pump OFF (Manual/Web Override)" : "🔴 Pump OFF (Auto-Fill System)";
-                        }
-                        
-                        updatePumpHistory(actionText);
-                    }
-                    // ----------------------------------------
-
-                    // --- FIXED PERSISTENT RUNTIME LOGIC ---
+                    // --- SECURE PERSISTENT RUNTIME LOAD LOGIC ---
                     if (window.isFirstStateLoad) {
                         window.lastSavedRuntime = state.savedLastRuntime || 0;
                         window.lastSavedRunDate = state.savedLastRunDate || "Waiting for data...";
                         window.isFirstStateLoad = false;
                         
-                        // Force a UI refresh on page load if pump is off
                         if (!state.pumpActive) {
                             updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate !== "Waiting for data..." ? "Ended: " + window.lastSavedRunDate : "No recent data");
                         }
@@ -3362,8 +3324,8 @@
                             }, 1000);
                         }
                     } else {
-                        // The exact moment the pump turns off, freeze the clock and save to Firebase
-                        if (window.pumpStartTime) {
+                        // Crucial fix: Only write once when pump turns off to save the final time to DB
+                        if (currentPumpState === true) {
                             window.lastSavedRuntime = window.currentRuntimeSecs;
                             window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                             
@@ -3460,6 +3422,8 @@
             } else {
                 return; 
             }
+
+            // WARNING: OPTIMISTIC UI COMPLETELY REMOVED HERE. NO MORE SPAM.
 
             // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
