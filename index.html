@@ -1452,9 +1452,14 @@
 
         let currentDeviceId = null;
         let currentPumpState = false;
+        
+        // --- HISTORY TRACKER VARIABLES ---
+        window.lastPumpStatus = undefined; 
+        window.lastProcessedSysEvent = ""; 
+        window.lastSysEventTime = 0; 
+        
         let lastHeartbeat = 0;
         let lastHeartbeatTime = 0; 
-        
         let prevOnlineState = null;
 
         let espLogHistory = [];
@@ -1479,8 +1484,12 @@
         window.latestRawDistance = null; 
 
         // --- PERSISTENT RUNTIME VARIABLES ---
-        let localHighestRuntime = 0;
-        let localLastRunDate = "Waiting for data...";
+        window.pumpStartTime = 0;
+        window.pumpTimerInterval = null;
+        window.currentRuntimeSecs = 0;
+        window.lastSavedRuntime = 0;
+        window.lastSavedRunDate = "Waiting for data...";
+        window.isFirstStateLoad = true;
         window.lastRuntimeSave = 0;
 
         // Global function to securely lock in Active WiFi
@@ -1509,27 +1518,84 @@
             return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
-        // --- INSTANT OPTIMISTIC UI ---
-        function insertOptimisticHistory(sysEvent) {
-            const listEl = document.getElementById('adminPumpHistoryList');
-            if (listEl) {
-                let color = sysEvent.includes("Stopped") ? "#ff4757" : "#2ed573";
-                let timeNow = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-                
-                let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px; opacity: 0.7;">
-                    <div style="color:${color}; font-weight:bold; font-size:11px;">🌐 ${timeNow} ⏳</div>
-                    <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent}</div>
-                </div>`;
-                
-                if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
-                    listEl.innerHTML = instantHtml;
+        // --- NEW REAL-TIME TIMER UI FUNCTION ---
+        function updateTimerUI(isRunning, seconds, dateStr) {
+            let displayTime = formatRuntime(seconds);
+
+            const custBadge = document.getElementById('customerTimerBadge');
+            const adminBadge = document.getElementById('adminTimerBadge');
+            const custText = document.getElementById('customerTimerText');
+            const adminText = document.getElementById('adminTimerText');
+            const custDate = document.getElementById('customerTimerDate');
+            const adminDate = document.getElementById('adminTimerDate');
+            const custTitle = document.getElementById('customerTimerTitle');
+            const adminTitle = document.getElementById('adminTimerTitle');
+
+            if (custBadge && custText && custDate && custTitle) {
+                if (isRunning) {
+                    custBadge.classList.add('active');
+                    custTitle.innerText = "PUMP RUNNING";
                 } else {
-                    listEl.insertAdjacentHTML('afterbegin', instantHtml);
-                    if (listEl.children.length > 5) {
-                        listEl.removeChild(listEl.lastElementChild);
-                    }
+                    custBadge.classList.remove('active');
+                    custTitle.innerText = "LAST RUN TIME";
                 }
+                custText.innerText = displayTime;
+                custDate.innerText = dateStr;
             }
+
+            if (adminBadge && adminText && adminDate && adminTitle) {
+                if (isRunning) {
+                    adminBadge.style.borderColor = "rgba(46, 213, 115, 0.6)";
+                    adminTitle.style.color = "#2ed573";
+                    adminText.style.color = "#7bed9f";
+                    adminTitle.innerHTML = `<span style="animation: pulse-green 1.5s infinite;">⚡</span> RUNNING`;
+                } else {
+                    adminBadge.style.borderColor = "rgba(255, 255, 255, 0.05)";
+                    adminTitle.style.color = "#aaa";
+                    adminText.style.color = "#fff";
+                    adminTitle.innerText = "LAST RUN TIME";
+                }
+                adminText.innerText = displayTime;
+                adminDate.innerText = dateStr;
+            }
+        }
+
+        // --- FIXED: ROCK-SOLID DEDUPLICATING PUMP HISTORY ---
+        function updatePumpHistory(sysEvent) {
+            if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
+
+            // 1. Strict Local Cache Deduplication (Blocks exact duplicates for 10 seconds locally)
+            if (window.lastProcessedSysEvent === sysEvent && (Date.now() - window.lastSysEventTime < 10000)) {
+                return; 
+            }
+            window.lastProcessedSysEvent = sysEvent;
+            window.lastSysEventTime = Date.now();
+
+            let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
+            let nowMs = Date.now();
+            let newTimeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
+            
+            // Generate a time-bucketed key (10 second resolution) to prevent multi-client spam
+            let timeKey = Math.floor(nowMs / 10000).toString();
+
+            // Set to Firebase
+            histRef.child(timeKey).set({
+                text: sysEvent,
+                time: newTimeStr,
+                ms: nowMs
+            }).then(() => {
+                // Prune array to keep exactly 5 entries in database
+                histRef.once('value').then(snap => {
+                    let items = [];
+                    snap.forEach(c => { items.push({key: c.key, ms: c.val().ms}); });
+                    items.sort((a,b) => a.ms - b.ms);
+                    if (items.length > 5) {
+                        for(let i=0; i < items.length - 5; i++) {
+                            histRef.child(items[i].key).remove();
+                        }
+                    }
+                });
+            });
         }
 
         function processAndFormatLog(logText, isHardware = false) {
@@ -2055,21 +2121,6 @@
             }
         }
 
-        function updateRuntimeUI() {
-            if (window.deviceDeployDate) {
-                let deployed = new Date(window.deviceDeployDate);
-                let diffTime = Math.abs(Date.now() - deployed.getTime());
-                let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                document.getElementById('txtRuntimeDays').innerText = `Running: ${diffDays} Days`;
-            } else if (lastHeartbeat > 0) {
-                let totalSeconds = Math.floor(lastHeartbeat * 1.5);
-                let runningDays = Math.floor(totalSeconds / 86400);
-                document.getElementById('txtRuntimeDays').innerText = `Uptime: ${runningDays} Days`;
-            } else {
-                document.getElementById('txtRuntimeDays').innerText = '-- Days';
-            }
-        }
-
         // --- GLOBAL INBOX: ACCURATE REALTIME SCANNER ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
@@ -2370,10 +2421,13 @@
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
+                
+                // Ensure we detach the correct listener for history
                 database.ref('/Devices/' + currentDeviceId + '/pumpHistory').off();
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
+            if (window.pumpTimerInterval) clearInterval(window.pumpTimerInterval);
             
             if(localPumpCommandTimeout) {
                 clearTimeout(localPumpCommandTimeout);
@@ -2402,10 +2456,18 @@
             window.latestRawDistance = null; 
             
             // --- FIX FOR REFRESH BUG: CLEAR VARIABLES BEFORE LOAD ---
-            localHighestRuntime = 0;
-            localLastRunDate = "Waiting for data...";
+            window.pumpStartTime = 0;
+            window.currentRuntimeSecs = 0;
+            window.lastSavedRuntime = 0;
+            window.lastSavedRunDate = "Waiting for data...";
+            window.isFirstStateLoad = true;
+            window.lastRuntimeSave = 0;
             
             // --- STRICT OFFLINE & HISTORY START ---
+            window.lastPumpStatus = undefined; 
+            window.lastProcessedSysEvent = ""; 
+            window.lastSysEventTime = 0;
+            
             window.lastKnownHeartbeat = -1; 
             window.liveHeartbeatReceived = false;
             lastHeartbeatTime = 0; 
@@ -2483,10 +2545,6 @@
             document.getElementById('hwTerminalPanel').innerHTML = "Awaiting Cloud Sync...";
             document.getElementById('customerHwTerminalPanel').innerHTML = "Awaiting Cloud Sync...";
             
-            if(document.getElementById('txtRuntimeDays')) {
-                document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
-            }
-            
             const btn = document.getElementById('pumpToggleBtn');
             btn.className = "btn-round btn-off";
             btn.innerText = "OFFLINE";
@@ -2519,8 +2577,8 @@
             // --- REATTACH LISTENERS ---
             startListeners();
             
-            // --- STRICT 100% RELIABLE DB ONLY HISTORY FETCH ---
-            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').on('value', snap => {
+            // --- FIXED: INSTANT FETCH FOR HISTORY (No spamming) ---
+            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').limitToLast(5).on('value', snap => {
                 let html = "";
                 let items = [];
                 snap.forEach(c => items.push(c.val()));
@@ -2875,7 +2933,6 @@
                     }
                     
                     updateRadioUI();
-                    updateRuntimeUI();
                 } else {
                     document.getElementById('assignedNameDisplay').innerText = "";
                     window.manualRadioTech = null;
@@ -2897,7 +2954,6 @@
                     if (nanoTitle) nanoTitle.innerText = "NANO (TANK)";
 
                     updateRadioUI();
-                    updateRuntimeUI();
                 }
             });
 
@@ -2960,7 +3016,20 @@
                 
                 let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 updateConnectionUI(isCurrentlyOnline);
-                updateRuntimeUI();
+                
+                // Also update the uptime label here
+                if (window.deviceDeployDate) {
+                    let deployed = new Date(window.deviceDeployDate);
+                    let diffTime = Math.abs(Date.now() - deployed.getTime());
+                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    document.getElementById('txtRuntimeDays').innerText = `Running: ${diffDays} Days`;
+                } else if (lastHeartbeatTime > 0) {
+                    let totalSeconds = Math.floor(hb * 1.5);
+                    let runningDays = Math.floor(totalSeconds / 86400);
+                    document.getElementById('txtRuntimeDays').innerText = `Uptime: ${runningDays} Days`;
+                } else {
+                    document.getElementById('txtRuntimeDays').innerText = '-- Days';
+                }
 
                 if (document.getElementById('logConsole').innerText.includes("Connection lost")) {
                     document.getElementById('logConsole').innerText = "Signal restored. Fetching logs...";
@@ -3153,10 +3222,9 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // WARNING: NO MORE HISTORY PARSING IN LOGS
+                    // WARNING: HISTORY LOGGING REMOVED FROM HERE. TERMINAL LOGIC ONLY.
                     if(data.log) {
                         let logLines = data.log.split('\n');
-
                         let allLogs = (data.log || "") + " " + (data.nanoLog || "") + " " + (data.hardwareLog || "");
                         let foundWifi = false;
 
@@ -3252,69 +3320,63 @@
                         updateActiveWifiDisplay(activeHotspot);
                     }
 
-                    // --- SECURE PERSISTENT RUNTIME LOAD LOGIC ---
-                    if (state.savedLastRuntime !== undefined && localHighestRuntime === 0 && !state.pumpActive) {
-                        localHighestRuntime = state.savedLastRuntime;
-                        localLastRunDate = state.savedLastRunDate || "Unknown Date";
+                    // --- NEW PUMP HISTORY STATE TRACKER ---
+                    if (window.lastPumpStatus === undefined) {
+                        window.lastPumpStatus = state.pumpActive; 
+                    } else if (window.lastPumpStatus !== state.pumpActive) {
+                        window.lastPumpStatus = state.pumpActive;
+                        let actionText = "";
+                        
+                        if (state.pumpActive) {
+                            actionText = state.automationBypassed ? "🟢 Pump ON (Manual/Web Override)" : "🟢 Pump ON (Auto-Fill System)";
+                        } else {
+                            actionText = state.automationBypassed ? "🔴 Pump OFF (Manual/Web Override)" : "🔴 Pump OFF (Auto-Fill System)";
+                        }
+                        
+                        updatePumpHistory(actionText);
+                    }
+                    // ----------------------------------------
+
+                    // --- FIXED PERSISTENT RUNTIME LOGIC ---
+                    if (window.isFirstStateLoad) {
+                        window.lastSavedRuntime = state.savedLastRuntime || 0;
+                        window.lastSavedRunDate = state.savedLastRunDate || "Waiting for data...";
+                        window.isFirstStateLoad = false;
+                        
+                        // Force a UI refresh on page load if pump is off
+                        if (!state.pumpActive) {
+                            updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate !== "Waiting for data..." ? "Ended: " + window.lastSavedRunDate : "No recent data");
+                        }
                     }
 
                     if (state.pumpActive) {
-                        let currentRun = state.pumpRuntimeSecs || 0;
-                        if (currentRun > 0) {
-                            localHighestRuntime = currentRun;
-                            localLastRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+                        if (!window.pumpStartTime) {
+                            window.pumpStartTime = Date.now();
+                            window.currentRuntimeSecs = 0;
+                            if (window.pumpTimerInterval) clearInterval(window.pumpTimerInterval);
+                            
+                            // Spin up the live web clock
+                            window.pumpTimerInterval = setInterval(() => {
+                                window.currentRuntimeSecs = Math.floor((Date.now() - window.pumpStartTime) / 1000);
+                                updateTimerUI(true, window.currentRuntimeSecs, "Running Now");
+                            }, 1000);
                         }
                     } else {
-                        // Crucial fix: Only write once when pump turns off to save the final time to DB
-                        if (currentPumpState === true) {
+                        // The exact moment the pump turns off, freeze the clock and save to Firebase
+                        if (window.pumpStartTime) {
+                            window.lastSavedRuntime = window.currentRuntimeSecs;
+                            window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+                            
+                            clearInterval(window.pumpTimerInterval);
+                            window.pumpStartTime = 0;
+                            window.currentRuntimeSecs = 0;
+
                             database.ref('/Devices/' + currentDeviceId + '/state').update({
-                                savedLastRuntime: localHighestRuntime,
-                                savedLastRunDate: localLastRunDate
+                                savedLastRuntime: window.lastSavedRuntime,
+                                savedLastRunDate: window.lastSavedRunDate
                             });
-                        }
-                    }
-
-                    const custBadge = document.getElementById('customerTimerBadge');
-                    const adminBadge = document.getElementById('adminTimerBadge');
-                    const custText = document.getElementById('customerTimerText');
-                    const adminText = document.getElementById('adminTimerText');
-                    const custDate = document.getElementById('customerTimerDate');
-                    const adminDate = document.getElementById('adminTimerDate');
-                    const custTitle = document.getElementById('customerTimerTitle');
-                    const adminTitle = document.getElementById('adminTimerTitle');
-
-                    let displayTime = formatRuntime(state.pumpActive ? (state.pumpRuntimeSecs || 0) : localHighestRuntime);
-                    let displayDate = state.pumpActive ? "Running Now" : (localHighestRuntime > 0 ? "Ended: " + localLastRunDate : "No recent data");
-
-                    if (custBadge && custText && custDate && custTitle) {
-                        if (state.pumpActive) {
-                            custBadge.classList.add('active');
-                            custTitle.innerText = "PUMP RUNNING";
-                            custText.innerText = displayTime;
-                            custDate.innerText = displayDate;
-                        } else {
-                            custBadge.classList.remove('active');
-                            custTitle.innerText = "LAST RUN TIME";
-                            custText.innerText = displayTime;
-                            custDate.innerText = displayDate;
-                        }
-                    }
-
-                    if (adminBadge && adminText && adminDate && adminTitle) {
-                        if (state.pumpActive) {
-                            adminBadge.style.borderColor = "rgba(46, 213, 115, 0.6)";
-                            adminTitle.style.color = "#2ed573";
-                            adminText.style.color = "#7bed9f";
-                            adminTitle.innerHTML = `<span style="animation: pulse-green 1.5s infinite;">⚡</span> RUNNING`;
-                            adminText.innerText = displayTime;
-                            adminDate.innerText = displayDate;
-                        } else {
-                            adminBadge.style.borderColor = "rgba(255, 255, 255, 0.05)";
-                            adminTitle.style.color = "#aaa";
-                            adminText.style.color = "#fff";
-                            adminTitle.innerText = "LAST RUN TIME";
-                            adminText.innerText = displayTime;
-                            adminDate.innerText = displayDate;
+                            
+                            updateTimerUI(false, window.lastSavedRuntime, "Ended: " + window.lastSavedRunDate);
                         }
                     }
                     // -------------------------------------------
