@@ -1479,13 +1479,11 @@
         window.latestRawDistance = null; 
 
         // --- PERSISTENT RUNTIME VARIABLES ---
-        window.pumpStartTime = 0;
         window.pumpTimerInterval = null;
-        window.currentRuntimeSecs = 0;
+        window.maxRunSecs = 0;
         window.lastSavedRuntime = 0;
         window.lastSavedRunDate = "Waiting for data...";
         window.isFirstStateLoad = true;
-        window.lastRuntimeSave = 0;
 
         // Global function to securely lock in Active WiFi
         function updateActiveWifiDisplay(ssid) {
@@ -1506,11 +1504,15 @@
 
         // --- TIMER FORMATTER ---
         function formatRuntime(totalSeconds) {
-            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00:00";
+            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00";
             const h = Math.floor(totalSeconds / 3600);
             const m = Math.floor((totalSeconds % 3600) / 60);
             const s = Math.floor(totalSeconds % 60);
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            
+            if (h > 0) {
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
         // --- NEW PURE READ-ONLY TIMER UI FUNCTION ---
@@ -2401,7 +2403,10 @@
             }
 
             if (heartbeatTimer) clearInterval(heartbeatTimer);
-            if (window.pumpTimerInterval) clearInterval(window.pumpTimerInterval);
+            if (window.pumpTimerInterval) {
+                clearInterval(window.pumpTimerInterval);
+                window.pumpTimerInterval = null;
+            }
             
             if(localPumpCommandTimeout) {
                 clearTimeout(localPumpCommandTimeout);
@@ -2430,14 +2435,12 @@
             window.latestRawDistance = null; 
             
             // --- FIX FOR REFRESH BUG: CLEAR VARIABLES BEFORE LOAD ---
-            window.pumpStartTime = 0;
-            window.currentRuntimeSecs = 0;
+            window.maxRunSecs = 0;
             window.lastSavedRuntime = 0;
             window.lastSavedRunDate = "Waiting for data...";
             window.isFirstStateLoad = true;
-            window.lastRuntimeSave = 0;
             
-            // --- STRICT OFFLINE & HISTORY START ---
+            // --- STRICT OFFLINE START ---
             window.lastKnownHeartbeat = -1; 
             window.liveHeartbeatReceived = false;
             lastHeartbeatTime = 0; 
@@ -2515,6 +2518,10 @@
             document.getElementById('hwTerminalPanel').innerHTML = "Awaiting Cloud Sync...";
             document.getElementById('customerHwTerminalPanel').innerHTML = "Awaiting Cloud Sync...";
             
+            if(document.getElementById('txtRuntimeDays')) {
+                document.getElementById('txtRuntimeDays').innerText = '-- Days'; 
+            }
+            
             const btn = document.getElementById('pumpToggleBtn');
             btn.className = "btn-round btn-off";
             btn.innerText = "OFFLINE";
@@ -2548,7 +2555,6 @@
             startListeners();
             
             // --- PURE DEDICATED JSON LISTENER FOR HISTORY ---
-            // This strictly fetches the actual array/object the ESP32 pushes to /pumpHistory. No spam logic!
             database.ref('/Devices/' + currentDeviceId + '/pumpHistory').limitToLast(5).on('value', snap => {
                 let html = "";
                 let items = [];
@@ -2556,8 +2562,8 @@
                 
                 // Sort backwards so the newest is at the top
                 items.sort((a,b) => {
-                    let timeA = a.ms || (new Date(a.time).getTime()) || 0;
-                    let timeB = b.ms || (new Date(b.time).getTime()) || 0;
+                    let timeA = a.ms || 0;
+                    let timeB = b.ms || 0;
                     return timeB - timeA;
                 });
                 
@@ -2568,7 +2574,6 @@
                     let realWorldTime = item.time || "";
                     if (item.ms) {
                         let d = new Date(item.ms);
-                        // Convert exact Unix timestamp to local real-world time
                         realWorldTime = d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                     }
                     
@@ -3134,7 +3139,7 @@
                         localPumpCommandTimeout = setTimeout(async () => {
                             if (!navigator.onLine) return;
                             updatePumpButtonUI();
-                        }, 12000); // FIXED: Kept exactly at 12 seconds
+                        }, 12000); 
                     }
                 }
             });
@@ -3315,6 +3320,7 @@
                     if (window.isFirstStateLoad) {
                         window.lastSavedRuntime = state.savedLastRuntime || 0;
                         window.lastSavedRunDate = state.savedLastRunDate || "Waiting for data...";
+                        window.maxRunSecs = state.pumpRuntimeSecs || 0; 
                         window.isFirstStateLoad = false;
                         
                         if (!state.pumpActive) {
@@ -3323,26 +3329,32 @@
                     }
 
                     if (state.pumpActive) {
-                        if (!window.pumpStartTime) {
-                            window.pumpStartTime = Date.now();
-                            window.currentRuntimeSecs = 0;
-                            if (window.pumpTimerInterval) clearInterval(window.pumpTimerInterval);
-                            
-                            // Spin up the live web clock
+                        // ESP32 is the source of truth for runtime.
+                        let espRunSecs = state.pumpRuntimeSecs || 0;
+                        if (espRunSecs >= window.maxRunSecs) {
+                            window.maxRunSecs = espRunSecs;
+                        }
+                        
+                        if (!window.pumpTimerInterval) {
                             window.pumpTimerInterval = setInterval(() => {
-                                window.currentRuntimeSecs = Math.floor((Date.now() - window.pumpStartTime) / 1000);
-                                updateTimerUI(true, window.currentRuntimeSecs, "Live");
+                                window.maxRunSecs++;
+                                updateTimerUI(true, window.maxRunSecs, "Live");
                             }, 1000);
                         }
+                        updateTimerUI(true, window.maxRunSecs, "Live");
+                        
                     } else {
                         // Crucial fix: Only write once when pump turns off to save the final time to DB
                         if (currentPumpState === true) {
-                            window.lastSavedRuntime = window.currentRuntimeSecs;
+                            if (window.pumpTimerInterval) {
+                                clearInterval(window.pumpTimerInterval);
+                                window.pumpTimerInterval = null;
+                            }
+                            
+                            window.lastSavedRuntime = window.maxRunSecs;
                             window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                             
-                            clearInterval(window.pumpTimerInterval);
-                            window.pumpStartTime = 0;
-                            window.currentRuntimeSecs = 0;
+                            window.maxRunSecs = 0;
 
                             database.ref('/Devices/' + currentDeviceId + '/state').update({
                                 savedLastRuntime: window.lastSavedRuntime,
@@ -3351,7 +3363,7 @@
                             
                             updateTimerUI(false, window.lastSavedRuntime, "Ended: " + window.lastSavedRunDate);
                         } else if (!window.isFirstStateLoad) {
-                            // Keep UI in sync during minor network blips
+                            // Keep UI in sync during normal off state
                             updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate !== "Waiting for data..." ? "Ended: " + window.lastSavedRunDate : "No recent data");
                         }
                     }
@@ -3436,6 +3448,8 @@
             } else {
                 return; 
             }
+
+            // WARNING: OPTIMISTIC UI COMPLETELY REMOVED HERE. NO MORE SPAM.
 
             // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
