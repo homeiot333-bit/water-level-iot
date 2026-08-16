@@ -769,78 +769,99 @@
             }
         }
 
-        /* --- NEW FEATURE: SLEEK TIMER STYLES --- */
+        /* --- NEW FEATURE: MINIMAL ROUND TIMER STYLES --- */
         .sleek-timer-badge {
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(20, 25, 35, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 10px 20px;
-            display: flex;
-            flex-direction: column;
+            border-radius: 40px; /* Perfect round pill */
+            padding: 6px 16px; /* Minimal size */
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            margin: 5px auto 25px auto; 
-            min-width: 160px;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            margin-bottom: 25px; /* Above the tank */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             transition: all 0.3s ease;
-            z-index: 10;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         .sleek-timer-badge.active {
-            border-color: rgba(46, 213, 115, 0.8);
-            box-shadow: 0 0 15px rgba(46, 213, 115, 0.3), inset 0 0 10px rgba(46, 213, 115, 0.1);
+            border-color: rgba(46, 213, 115, 0.5);
+            box-shadow: 0 0 15px rgba(46, 213, 115, 0.2);
+        }
+
+        .timer-icon-wrap {
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+        }
+
+        .sleek-timer-badge.active .timer-icon-wrap {
+            background: rgba(46, 213, 115, 0.2);
+        }
+
+        .timer-icon {
+            font-size: 13px;
+        }
+
+        .sleek-timer-badge.active .timer-icon {
+            animation: pulse-green 1.5s infinite;
+        }
+
+        .timer-info-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding-right: 12px;
+            margin-right: 12px;
         }
 
         .timer-header {
-            font-size: 10px;
+            font-size: 9px;
             color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
             font-weight: bold;
+            letter-spacing: 1px;
         }
 
         .sleek-timer-badge.active .timer-header {
             color: #2ed573;
         }
 
-        .timer-icon { font-size: 12px; }
-        .sleek-timer-badge.active .timer-icon { animation: pulse-green 1.5s infinite; }
+        .timer-date {
+            font-size: 9px;
+            color: #777;
+            margin-top: 2px;
+            white-space: nowrap;
+        }
 
         .timer-time {
             color: #fff;
             font-family: monospace;
-            font-size: 22px;
+            font-size: 18px;
             font-weight: bold;
-            letter-spacing: 2px;
-            text-shadow: 1px 1px 3px black;
+            letter-spacing: 1px;
         }
 
         .sleek-timer-badge.active .timer-time {
             color: #7bed9f;
-            text-shadow: 0 0 8px rgba(123, 237, 159, 0.6);
-        }
-
-        .timer-date {
-            font-size: 10px;
-            color: #888;
-            margin-top: 4px;
-            font-style: italic;
+            text-shadow: 0 0 8px rgba(123, 237, 159, 0.3);
         }
 
         .sleek-admin-timer {
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            background: rgba(0,0,0,0.4);
-            padding: 5px 10px;
-            border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.05);
+            align-items: center;
+            background: rgba(0,0,0,0.5);
+            padding: 4px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
         }
-
+        
         @keyframes pulse-green {
             0% { text-shadow: 0 0 2px #2ed573; transform: scale(1); }
             50% { text-shadow: 0 0 10px #2ed573; transform: scale(1.3); }
@@ -1011,14 +1032,16 @@
                     
                     <div style="clear:both;"></div>
 
-                    <!-- --- NEW FEATURE: SLEEK MOTOR RUNTIME WIDGET (CUSTOMER) --- -->
+                    <!-- --- NEW MINIMAL WIDGET (ABOVE TANK) --- -->
                     <div id="customerTimerBadge" class="sleek-timer-badge">
-                        <div class="timer-header">
+                        <div class="timer-icon-wrap">
                             <span class="timer-icon">⚡</span>
-                            <span id="customerTimerTitle">LAST RUN TIME</span>
                         </div>
-                        <div id="customerTimerText" class="timer-time">00:00:00</div>
-                        <div id="customerTimerDate" class="timer-date">Waiting for data...</div>
+                        <div class="timer-info-col">
+                            <span id="customerTimerTitle" class="timer-header">LAST RUN TIME</span>
+                            <span id="customerTimerDate" class="timer-date">Waiting for data...</span>
+                        </div>
+                        <span id="customerTimerText" class="timer-time">00:00</span>
                     </div>
                     
                     <div id="waterTankModel" class="system-wrapper">
@@ -1150,11 +1173,13 @@
                                 </div>
                                 
                                 <div style="display:flex; gap:12px; align-items:center;">
-                                    <!-- --- NEW FEATURE: MOTOR RUNTIME WIDGET (ADMIN INLINE) --- -->
+                                    <!-- --- NEW FEATURE: MINIMAL INLINE ADMIN TIMER --- -->
                                     <div id="adminTimerBadge" class="sleek-admin-timer">
-                                        <div id="adminTimerTitle" style="font-size:9px; color:#aaa; text-transform:uppercase; font-weight:bold;">LAST RUN TIME</div>
-                                        <div id="adminTimerText" style="font-size:14px; color:#fff; font-family:monospace; font-weight:bold;">00:00:00</div>
-                                        <div id="adminTimerDate" style="font-size:9px; color:#777;">Waiting...</div>
+                                        <div style="display:flex; flex-direction:column; align-items:flex-end; padding-right:8px; border-right:1px solid rgba(255,255,255,0.1); margin-right:8px;">
+                                            <span id="adminTimerTitle" style="font-size:9px; color:#aaa; font-weight:bold; letter-spacing:0.5px;">LAST RUN</span>
+                                            <span id="adminTimerDate" style="font-size:8px; color:#777; margin-top:2px;">Waiting...</span>
+                                        </div>
+                                        <span id="adminTimerText" style="font-size:14px; color:#fff; font-family:monospace; font-weight:bold;">00:00</span>
                                     </div>
 
                                     <button class="btn-login" style="background:rgba(254, 202, 87, 0.8); color:#000; font-size:11px; padding:4px 8px; margin:0; width:auto;" onclick="toggleAdminEditConfig()">✏️ Edit Config</button>
@@ -1445,11 +1470,15 @@
 
         // --- NEW FEATURE: TIMER FORMATTER ---
         function formatRuntime(totalSeconds) {
-            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00:00";
+            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00";
             const h = Math.floor(totalSeconds / 3600);
             const m = Math.floor((totalSeconds % 3600) / 60);
             const s = Math.floor(totalSeconds % 60);
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            
+            if (h > 0) {
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
         // --- INSTANT OPTIMISTIC UI (Does not write to Database) ---
