@@ -2396,7 +2396,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                 
-                // Ensure we detach the listener for history
+                // Ensure we detach the correct listener for history
                 database.ref('/Devices/' + currentDeviceId + '/pumpHistory').off();
             }
 
@@ -2437,7 +2437,7 @@
             window.isFirstStateLoad = true;
             window.lastRuntimeSave = 0;
             
-            // --- STRICT OFFLINE START ---
+            // --- STRICT OFFLINE & HISTORY START ---
             window.lastKnownHeartbeat = -1; 
             window.liveHeartbeatReceived = false;
             lastHeartbeatTime = 0; 
@@ -2563,12 +2563,20 @@
                 
                 items.forEach(item => {
                     let textStr = item.text || "";
-                    let timeStr = item.time || "";
+                    
+                    // --- REAL WORLD TIMESTAMP FIX ---
+                    let realWorldTime = item.time || "";
+                    if (item.ms) {
+                        let d = new Date(item.ms);
+                        // Convert exact Unix timestamp to local real-world time
+                        realWorldTime = d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                    }
+                    
                     let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
                     let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
                     
                     html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
-                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${timeStr}</div>
+                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${realWorldTime}</div>
                         <div style="color:#fff; font-size:11px; margin-top:2px;">${textStr}</div>
                     </div>`;
                 });
@@ -3204,7 +3212,7 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // WARNING: HISTORY LOGGING REMOVED FROM HERE ENTIRELY
+                    // WARNING: TERMINAL SCRAPING COMPLETELY REMOVED FROM HERE
                     if(data.log) {
                         let logLines = data.log.split('\n');
 
@@ -3330,7 +3338,7 @@
                         // Crucial fix: Only write once when pump turns off to save the final time to DB
                         if (currentPumpState === true) {
                             window.lastSavedRuntime = window.currentRuntimeSecs;
-                            window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+                            window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                             
                             clearInterval(window.pumpTimerInterval);
                             window.pumpStartTime = 0;
@@ -3342,6 +3350,9 @@
                             });
                             
                             updateTimerUI(false, window.lastSavedRuntime, "Ended: " + window.lastSavedRunDate);
+                        } else if (!window.isFirstStateLoad) {
+                            // Keep UI in sync during minor network blips
+                            updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate !== "Waiting for data..." ? "Ended: " + window.lastSavedRunDate : "No recent data");
                         }
                     }
                     // -------------------------------------------
@@ -3425,8 +3436,6 @@
             } else {
                 return; 
             }
-
-            // WARNING: OPTIMISTIC UI COMPLETELY REMOVED HERE. NO MORE SPAM.
 
             // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
