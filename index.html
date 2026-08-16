@@ -1452,14 +1452,9 @@
 
         let currentDeviceId = null;
         let currentPumpState = false;
-        
-        // --- HISTORY TRACKER VARIABLES ---
-        window.lastPumpStatus = undefined; 
-        window.lastProcessedSysEvent = ""; 
-        window.lastSysEventTime = 0; 
-        
         let lastHeartbeat = 0;
         let lastHeartbeatTime = 0; 
+        
         let prevOnlineState = null;
 
         let espLogHistory = [];
@@ -1486,7 +1481,6 @@
         // --- PERSISTENT RUNTIME VARIABLES ---
         let localHighestRuntime = 0;
         let localLastRunDate = "Waiting for data...";
-        window.isFirstStateLoad = true;
         window.lastRuntimeSave = 0;
 
         // Global function to securely lock in Active WiFi
@@ -1506,7 +1500,7 @@
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
         }
 
-        // --- NEW FEATURE: TIMER FORMATTER ---
+        // --- TIMER FORMATTER ---
         function formatRuntime(totalSeconds) {
             if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00:00";
             const h = Math.floor(totalSeconds / 3600);
@@ -1515,51 +1509,27 @@
             return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
-        // --- FIXED: ROCK-SOLID DEDUPLICATING PUMP HISTORY ---
-        function updatePumpHistory(sysEvent) {
-            if (!sysEvent || !currentDeviceId || !window.liveHeartbeatReceived) return;
-
-            // 1. Strict Local Cache Deduplication (Blocks exact duplicates for 10 seconds locally)
-            if (window.lastProcessedSysEvent === sysEvent && (Date.now() - window.lastSysEventTime < 10000)) {
-                return; 
-            }
-            window.lastProcessedSysEvent = sysEvent;
-            window.lastSysEventTime = Date.now();
-
-            let histRef = database.ref('/Devices/' + currentDeviceId + '/pumpHistory');
-            let newTimeStr = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
-            let nowMs = Date.now();
-
-            histRef.once('value').then(snap => {
-                let currentData = snap.val() || {};
-                let items = Object.keys(currentData).map(k => ({key: k, data: currentData[k]}));
-                items.sort((a,b) => a.data.ms - b.data.ms);
+        // --- INSTANT OPTIMISTIC UI ---
+        function insertOptimisticHistory(sysEvent) {
+            const listEl = document.getElementById('adminPumpHistoryList');
+            if (listEl) {
+                let color = sysEvent.includes("Stopped") ? "#ff4757" : "#2ed573";
+                let timeNow = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
                 
-                // 2. Firebase Database Deduplication (Checks if already in database)
-                if (items.length > 0) {
-                    let lastItem = items[items.length - 1].data;
-                    if (lastItem.text === sysEvent && (nowMs - lastItem.ms < 10000)) {
-                        return; // Already in DB recently
+                let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px; opacity: 0.7;">
+                    <div style="color:${color}; font-weight:bold; font-size:11px;">🌐 ${timeNow} ⏳</div>
+                    <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent}</div>
+                </div>`;
+                
+                if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
+                    listEl.innerHTML = instantHtml;
+                } else {
+                    listEl.insertAdjacentHTML('afterbegin', instantHtml);
+                    if (listEl.children.length > 5) {
+                        listEl.removeChild(listEl.lastElementChild);
                     }
                 }
-
-                // If completely new, save to Firebase
-                let newKey = histRef.push().key;
-                histRef.child(newKey).set({
-                    text: sysEvent,
-                    time: newTimeStr,
-                    ms: nowMs
-                }).then(() => {
-                    // 3. Keep exactly 5 entries in database, prune older ones
-                    let totalItems = items.length + 1;
-                    if (totalItems > 5) {
-                        let deleteCount = totalItems - 5;
-                        for(let i = 0; i < deleteCount; i++){
-                            histRef.child(items[i].key).remove();
-                        }
-                    }
-                });
-            });
+            }
         }
 
         function processAndFormatLog(logText, isHardware = false) {
@@ -1603,7 +1573,6 @@
             return formattedOutput.join('');
         }
 
-        // --- DYNAMIC CONNECTION RENDERER ---
         function updateConnectionUI(isOnline) {
             if (document.getElementById('adminTxtLastConnect')) {
                 document.getElementById('adminTxtLastConnect').innerText = window.dbLastConnect;
@@ -2401,8 +2370,6 @@
                 database.ref('/Devices/' + currentDeviceId + '/networkSlots').off();
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
-                
-                // Ensure we detach the correct listener for history
                 database.ref('/Devices/' + currentDeviceId + '/pumpHistory').off();
             }
 
@@ -2437,14 +2404,8 @@
             // --- FIX FOR REFRESH BUG: CLEAR VARIABLES BEFORE LOAD ---
             localHighestRuntime = 0;
             localLastRunDate = "Waiting for data...";
-            window.isFirstStateLoad = true;
-            window.lastRuntimeSave = 0;
             
             // --- STRICT OFFLINE & HISTORY START ---
-            window.lastPumpStatus = undefined; 
-            window.lastProcessedSysEvent = ""; 
-            window.lastSysEventTime = 0;
-            
             window.lastKnownHeartbeat = -1; 
             window.liveHeartbeatReceived = false;
             lastHeartbeatTime = 0; 
@@ -2558,7 +2519,7 @@
             // --- REATTACH LISTENERS ---
             startListeners();
             
-            // --- FIXED: INSTANT FETCH FOR HISTORY ARRAY (No loops) ---
+            // --- STRICT 100% RELIABLE DB ONLY HISTORY FETCH ---
             database.ref('/Devices/' + currentDeviceId + '/pumpHistory').on('value', snap => {
                 let html = "";
                 let items = [];
@@ -2568,7 +2529,7 @@
                 items.forEach(item => {
                     let textStr = item.text || "";
                     let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                    let icon = (textStr.includes("Web") || textStr.includes("WEB")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
+                    let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
                     html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
                         <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${item.time}</div>
                         <div style="color:#fff; font-size:11px; margin-top:2px;">${textStr}</div>
@@ -3192,6 +3153,7 @@
                     }
                     lastWaterPercent = currentPct;
 
+                    // WARNING: NO MORE HISTORY PARSING IN LOGS
                     if(data.log) {
                         let logLines = data.log.split('\n');
 
@@ -3290,28 +3252,10 @@
                         updateActiveWifiDisplay(activeHotspot);
                     }
 
-                    // --- NEW PUMP HISTORY STATE TRACKER ---
-                    if (window.lastPumpStatus === undefined) {
-                        window.lastPumpStatus = state.pumpActive; 
-                    } else if (window.lastPumpStatus !== state.pumpActive) {
-                        window.lastPumpStatus = state.pumpActive;
-                        let actionText = "";
-                        
-                        if (state.pumpActive) {
-                            actionText = state.automationBypassed ? "🟢 Pump ON (Manual/Web Override)" : "🟢 Pump ON (Auto-Fill System)";
-                        } else {
-                            actionText = state.automationBypassed ? "🔴 Pump OFF (Manual/Web Override)" : "🔴 Pump OFF (Auto-Fill System)";
-                        }
-                        
-                        updatePumpHistory(actionText);
-                    }
-                    // ----------------------------------------
-
-                    // --- FIXED PERSISTENT RUNTIME LOGIC ---
-                    if (window.isFirstStateLoad) {
-                        localHighestRuntime = state.savedLastRuntime || 0;
-                        localLastRunDate = state.savedLastRunDate || "Waiting for data...";
-                        window.isFirstStateLoad = false;
+                    // --- SECURE PERSISTENT RUNTIME LOAD LOGIC ---
+                    if (state.savedLastRuntime !== undefined && localHighestRuntime === 0 && !state.pumpActive) {
+                        localHighestRuntime = state.savedLastRuntime;
+                        localLastRunDate = state.savedLastRunDate || "Unknown Date";
                     }
 
                     if (state.pumpActive) {
@@ -3319,18 +3263,9 @@
                         if (currentRun > 0) {
                             localHighestRuntime = currentRun;
                             localLastRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
-                            
-                            // Save to database continuously every 10 seconds to survive page refresh!
-                            if (Date.now() - window.lastRuntimeSave > 10000) {
-                                database.ref('/Devices/' + currentDeviceId + '/state').update({
-                                    savedLastRuntime: localHighestRuntime,
-                                    savedLastRunDate: localLastRunDate
-                                });
-                                window.lastRuntimeSave = Date.now();
-                            }
                         }
                     } else {
-                        // Ensure final save triggers immediately when pump turns off
+                        // Crucial fix: Only write once when pump turns off to save the final time to DB
                         if (currentPumpState === true) {
                             database.ref('/Devices/' + currentDeviceId + '/state').update({
                                 savedLastRuntime: localHighestRuntime,
@@ -3463,9 +3398,6 @@
             } else {
                 return; 
             }
-
-            // Note: Optimistic UI history push removed entirely to prevent duplicate spam!
-            // History is now strictly managed by the 'state.pumpActive' listener for perfect accuracy.
 
             // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
