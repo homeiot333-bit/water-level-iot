@@ -1504,15 +1504,11 @@
 
         // --- TIMER FORMATTER ---
         function formatRuntime(totalSeconds) {
-            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00";
+            if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return "00:00:00";
             const h = Math.floor(totalSeconds / 3600);
             const m = Math.floor((totalSeconds % 3600) / 60);
             const s = Math.floor(totalSeconds % 60);
-            
-            if (h > 0) {
-                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-            }
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
         // --- NEW PURE READ-ONLY TIMER UI FUNCTION ---
@@ -2398,7 +2394,6 @@
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                 
-                // Ensure we detach the correct listener for history
                 database.ref('/Devices/' + currentDeviceId + '/pumpHistory').off();
             }
 
@@ -2570,12 +2565,9 @@
                 items.forEach(item => {
                     let textStr = item.text || "";
                     
-                    // --- REAL WORLD TIMESTAMP FIX ---
+                    // --- STRICT FIX: USE EXACT STRING FROM ESP32 ---
+                    // Removed the buggy new Date(item.ms) conversion that was shifting the timezone!
                     let realWorldTime = item.time || "";
-                    if (item.ms) {
-                        let d = new Date(item.ms);
-                        realWorldTime = d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-                    }
                     
                     let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
                     let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
@@ -3344,23 +3336,25 @@
                         updateTimerUI(true, window.maxRunSecs, "Live");
                         
                     } else {
-                        // Crucial fix: Only write once when pump turns off to save the final time to DB
                         if (currentPumpState === true) {
                             if (window.pumpTimerInterval) {
                                 clearInterval(window.pumpTimerInterval);
                                 window.pumpTimerInterval = null;
                             }
                             
-                            window.lastSavedRuntime = window.maxRunSecs;
-                            window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                            // --- FIXED: PROTECT AGAINST 00:00 BUG ---
+                            // Only save to DB if maxRunSecs is greater than 0
+                            if (window.maxRunSecs > 0) {
+                                window.lastSavedRuntime = window.maxRunSecs;
+                                window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                                
+                                database.ref('/Devices/' + currentDeviceId + '/state').update({
+                                    savedLastRuntime: window.lastSavedRuntime,
+                                    savedLastRunDate: window.lastSavedRunDate
+                                });
+                            }
                             
                             window.maxRunSecs = 0;
-
-                            database.ref('/Devices/' + currentDeviceId + '/state').update({
-                                savedLastRuntime: window.lastSavedRuntime,
-                                savedLastRunDate: window.lastSavedRunDate
-                            });
-                            
                             updateTimerUI(false, window.lastSavedRuntime, "Ended: " + window.lastSavedRunDate);
                         } else if (!window.isFirstStateLoad) {
                             // Keep UI in sync during normal off state
@@ -3448,8 +3442,6 @@
             } else {
                 return; 
             }
-
-            // WARNING: OPTIMISTIC UI COMPLETELY REMOVED HERE. NO MORE SPAM.
 
             // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
