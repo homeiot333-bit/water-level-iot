@@ -1032,7 +1032,7 @@
                     
                     <div style="clear:both;"></div>
 
-                    <!-- --- MINIMAL WIDGET (ABOVE TANK) --- -->
+                    <!-- --- NEW MINIMAL WIDGET (ABOVE TANK) --- -->
                     <div id="customerTimerBadge" class="sleek-timer-badge">
                         <div class="timer-icon-wrap">
                             <span class="timer-icon">⚡</span>
@@ -1552,6 +1552,30 @@
                     adminDate.innerText = dateStr;
                 }
                 adminText.innerText = displayTime;
+            }
+        }
+
+        // --- INSTANT OPTIMISTIC UI FOR HISTORY (SAFELY APPENDS ONLY) ---
+        function insertOptimisticHistory(sysEvent) {
+            const listEl = document.getElementById('adminPumpHistoryList');
+            if (listEl) {
+                let color = (sysEvent.includes("Stopped") || sysEvent.includes("OFF")) ? "#ff4757" : "#2ed573";
+                let timeNow = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                
+                let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px; opacity: 0.7;">
+                    <div style="color:${color}; font-weight:bold; font-size:11px;">🌐 ${timeNow} ⏳</div>
+                    <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent} (Sending...)</div>
+                </div>`;
+                
+                if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
+                    listEl.innerHTML = instantHtml;
+                } else {
+                    listEl.insertAdjacentHTML('afterbegin', instantHtml);
+                    // Strictly keep it visually at 2 items during fast clicking
+                    if (listEl.children.length > 2) {
+                        listEl.removeChild(listEl.lastElementChild);
+                    }
+                }
             }
         }
 
@@ -2550,19 +2574,31 @@
             // --- REATTACH LISTENERS ---
             startListeners();
             
-            // --- FIXED: LAST 2 PUMP ACTIONS FETCH ---
-            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').limitToLast(2).on('value', snap => {
+            // --- FIXED: LAST 2 PUMP ACTIONS FETCH (STRICT RENDERING) ---
+            // Grabbing up to 10 entries to ensure we have enough valid ones to filter down to exactly 2.
+            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').limitToLast(10).on('value', snap => {
                 let html = "";
                 let items = [];
-                snap.forEach(c => items.push(c.val()));
+                
+                // Only push items that actually contain valid text
+                snap.forEach(c => {
+                    let val = c.val();
+                    if(val && val.text && val.time) {
+                        items.push(val);
+                    }
+                });
                 
                 // Sort backwards so the newest is at the top
                 items.reverse();
                 
-                items.forEach(item => {
+                // Strictly slice array to ensure only 2 are EVER displayed on screen
+                let displayItems = items.slice(0, 2);
+                
+                displayItems.forEach(item => {
                     let textStr = item.text || "";
                     
                     // --- STRICT FIX: USE EXACT STRING FROM ESP32 ONLY ---
+                    // The raw string pushed by your ESP32 is mapped exactly. No JS timezone shifting.
                     let realWorldTime = item.time || "";
                     
                     let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
@@ -2574,7 +2610,7 @@
                     </div>`;
                 });
                 
-                if (items.length === 0) {
+                if (displayItems.length === 0) {
                     html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
                 }
                 
@@ -3308,6 +3344,7 @@
                     if (window.isFirstStateLoad) {
                         window.lastSavedRuntime = state.savedLastRuntime || 0;
                         window.lastSavedRunDate = state.savedLastRunDate || "Waiting for data...";
+                        window.maxRunSecs = state.pumpRuntimeSecs || 0; 
                         window.isFirstStateLoad = false;
                         
                         if (!state.pumpActive) {
@@ -3318,27 +3355,37 @@
                     if (state.pumpActive) {
                         // ESP32 is the source of truth for runtime.
                         let espRunSecs = state.pumpRuntimeSecs || 0;
-                        updateTimerUI(true, espRunSecs, "Live");
+                        if (espRunSecs >= window.maxRunSecs) {
+                            window.maxRunSecs = espRunSecs;
+                        }
+                        
+                        if (!window.pumpTimerInterval) {
+                            window.pumpTimerInterval = setInterval(() => {
+                                window.maxRunSecs++;
+                                updateTimerUI(true, window.maxRunSecs, "Live");
+                            }, 1000);
+                        }
+                        updateTimerUI(true, window.maxRunSecs, "Live");
+                        
                     } else {
+                        // Crucial fix: Only write once when pump turns off to save the final time to DB
                         if (currentPumpState === true) {
-                            // User previously saw it running, pump just turned off. Save to DB.
-                            window.lastSavedRuntime = state.pumpRuntimeSecs || 0;
-                            if(window.lastSavedRuntime === 0 && document.getElementById('adminTimerText')) {
-                                // Fallback: if ESP32 pushed 0 too early during shutdown, keep the UI time
-                                let timeStr = document.getElementById('adminTimerText').innerText;
-                                let parts = timeStr.split(':');
-                                if(parts.length === 3) {
-                                    window.lastSavedRuntime = (+parts[0]) * 3600 + (+parts[1]) * 60 + (+parts[2]);
-                                }
+                            if (window.pumpTimerInterval) {
+                                clearInterval(window.pumpTimerInterval);
+                                window.pumpTimerInterval = null;
                             }
                             
-                            window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-
-                            database.ref('/Devices/' + currentDeviceId + '/state').update({
-                                savedLastRuntime: window.lastSavedRuntime,
-                                savedLastRunDate: window.lastSavedRunDate
-                            });
+                            if (window.maxRunSecs > 0) {
+                                window.lastSavedRuntime = window.maxRunSecs;
+                                window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                                
+                                database.ref('/Devices/' + currentDeviceId + '/state').update({
+                                    savedLastRuntime: window.lastSavedRuntime,
+                                    savedLastRunDate: window.lastSavedRunDate
+                                });
+                            }
                             
+                            window.maxRunSecs = 0;
                             updateTimerUI(false, window.lastSavedRuntime, "Ended: " + window.lastSavedRunDate);
                         } else if (!window.isFirstStateLoad) {
                             // Keep UI in sync during normal off state
