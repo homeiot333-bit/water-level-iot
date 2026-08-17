@@ -1032,7 +1032,7 @@
                     
                     <div style="clear:both;"></div>
 
-                    <!-- --- NEW MINIMAL WIDGET (ABOVE TANK) --- -->
+                    <!-- --- MINIMAL WIDGET (ABOVE TANK) --- -->
                     <div id="customerTimerBadge" class="sleek-timer-badge">
                         <div class="timer-icon-wrap">
                             <span class="timer-icon">⚡</span>
@@ -1368,9 +1368,9 @@
                             <div id="hwTerminalPanel" style="display:none; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #feca57; text-align:left; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.1); white-space: pre-wrap;">Awaiting Cloud Sync...</div>
                         </div>
 
-                        <!-- --- FIXED: LAST 5 PUMP ACTIONS (DB ONLY) --- -->
+                        <!-- --- FIXED: LAST 2 PUMP ACTIONS --- -->
                         <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <h3 style="text-align: left; margin-bottom: 10px; color: #7bed9f; font-size: 14px;">🚰 Last 5 Pump Actions</h3>
+                            <h3 style="text-align: left; margin-bottom: 10px; color: #7bed9f; font-size: 14px;">🚰 Last 2 Pump Actions</h3>
                             <div id="adminPumpHistoryList" style="font-size: 12px; color: #ccc;">Awaiting history fetch...</div>
                         </div>
 
@@ -1552,29 +1552,6 @@
                     adminDate.innerText = dateStr;
                 }
                 adminText.innerText = displayTime;
-            }
-        }
-
-        // --- INSTANT OPTIMISTIC UI ---
-        function insertOptimisticHistory(sysEvent) {
-            const listEl = document.getElementById('adminPumpHistoryList');
-            if (listEl) {
-                let color = (sysEvent.includes("Stopped") || sysEvent.includes("OFF")) ? "#ff4757" : "#2ed573";
-                let timeNow = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-                
-                let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px; opacity: 0.7;">
-                    <div style="color:${color}; font-weight:bold; font-size:11px;">🌐 ${timeNow} ⏳</div>
-                    <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent} (Sending...)</div>
-                </div>`;
-                
-                if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
-                    listEl.innerHTML = instantHtml;
-                } else {
-                    listEl.insertAdjacentHTML('afterbegin', instantHtml);
-                    if (listEl.children.length > 5) {
-                        listEl.removeChild(listEl.lastElementChild);
-                    }
-                }
             }
         }
 
@@ -2417,7 +2394,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                 
-                // Ensure we detach the correct listener for history
+                // Ensure we detach the listener for history
                 database.ref('/Devices/' + currentDeviceId + '/pumpHistory').off();
             }
 
@@ -2573,8 +2550,8 @@
             // --- REATTACH LISTENERS ---
             startListeners();
             
-            // --- PURE DEDICATED JSON LISTENER FOR HISTORY ---
-            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').limitToLast(5).on('value', snap => {
+            // --- FIXED: LAST 2 PUMP ACTIONS FETCH ---
+            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').limitToLast(2).on('value', snap => {
                 let html = "";
                 let items = [];
                 snap.forEach(c => items.push(c.val()));
@@ -2585,8 +2562,7 @@
                 items.forEach(item => {
                     let textStr = item.text || "";
                     
-                    // --- STRICT FIX: USE EXACT STRING FROM ESP32 ---
-                    // Removed the buggy new Date(item.ms) conversion that was shifting the timezone!
+                    // --- STRICT FIX: USE EXACT STRING FROM ESP32 ONLY ---
                     let realWorldTime = item.time || "";
                     
                     let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
@@ -3332,7 +3308,6 @@
                     if (window.isFirstStateLoad) {
                         window.lastSavedRuntime = state.savedLastRuntime || 0;
                         window.lastSavedRunDate = state.savedLastRunDate || "Waiting for data...";
-                        window.maxRunSecs = state.pumpRuntimeSecs || 0; 
                         window.isFirstStateLoad = false;
                         
                         if (!state.pumpActive) {
@@ -3343,30 +3318,21 @@
                     if (state.pumpActive) {
                         // ESP32 is the source of truth for runtime.
                         let espRunSecs = state.pumpRuntimeSecs || 0;
-                        if (espRunSecs >= window.maxRunSecs) {
-                            window.maxRunSecs = espRunSecs;
-                        }
-                        
-                        if (!window.pumpTimerInterval) {
-                            window.pumpTimerInterval = setInterval(() => {
-                                window.maxRunSecs++;
-                                updateTimerUI(true, window.maxRunSecs, "Live");
-                            }, 1000);
-                        }
-                        updateTimerUI(true, window.maxRunSecs, "Live");
-                        
+                        updateTimerUI(true, espRunSecs, "Live");
                     } else {
-                        // ONLY trigger save if we were previously actively timing a running pump
-                        if (currentPumpState === true && window.maxRunSecs > 0) {
-                            if (window.pumpTimerInterval) {
-                                clearInterval(window.pumpTimerInterval);
-                                window.pumpTimerInterval = null;
+                        if (currentPumpState === true) {
+                            // User previously saw it running, pump just turned off. Save to DB.
+                            window.lastSavedRuntime = state.pumpRuntimeSecs || 0;
+                            if(window.lastSavedRuntime === 0 && document.getElementById('adminTimerText')) {
+                                // Fallback: if ESP32 pushed 0 too early during shutdown, keep the UI time
+                                let timeStr = document.getElementById('adminTimerText').innerText;
+                                let parts = timeStr.split(':');
+                                if(parts.length === 3) {
+                                    window.lastSavedRuntime = (+parts[0]) * 3600 + (+parts[1]) * 60 + (+parts[2]);
+                                }
                             }
                             
-                            window.lastSavedRuntime = window.maxRunSecs;
                             window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-                            
-                            window.maxRunSecs = 0;
 
                             database.ref('/Devices/' + currentDeviceId + '/state').update({
                                 savedLastRuntime: window.lastSavedRuntime,
