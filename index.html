@@ -1555,6 +1555,29 @@
             }
         }
 
+        // --- INSTANT OPTIMISTIC UI ---
+        function insertOptimisticHistory(sysEvent) {
+            const listEl = document.getElementById('adminPumpHistoryList');
+            if (listEl) {
+                let color = (sysEvent.includes("Stopped") || sysEvent.includes("OFF")) ? "#ff4757" : "#2ed573";
+                let timeNow = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                
+                let instantHtml = `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px; opacity: 0.7;">
+                    <div style="color:${color}; font-weight:bold; font-size:11px;">🌐 ${timeNow} ⏳</div>
+                    <div style="color:#fff; font-size:11px; margin-top:2px;">${sysEvent} (Sending...)</div>
+                </div>`;
+                
+                if (listEl.innerHTML.includes("Awaiting") || listEl.innerHTML.includes("No pump history")) {
+                    listEl.innerHTML = instantHtml;
+                } else {
+                    listEl.insertAdjacentHTML('afterbegin', instantHtml);
+                    if (listEl.children.length > 5) {
+                        listEl.removeChild(listEl.lastElementChild);
+                    }
+                }
+            }
+        }
+
         function processAndFormatLog(logText, isHardware = false) {
             if (!logText) return "";
             let lines = logText.split('\n');
@@ -2394,6 +2417,7 @@
                 database.ref('/Devices/' + currentDeviceId + '/connectionHistory').off();
                 database.ref('/Devices/' + currentDeviceId + '/mobileLogins').off();
                 
+                // Ensure we detach the correct listener for history
                 database.ref('/Devices/' + currentDeviceId + '/pumpHistory').off();
             }
 
@@ -2556,11 +2580,7 @@
                 snap.forEach(c => items.push(c.val()));
                 
                 // Sort backwards so the newest is at the top
-                items.sort((a,b) => {
-                    let timeA = a.ms || 0;
-                    let timeB = b.ms || 0;
-                    return timeB - timeA;
-                });
+                items.reverse();
                 
                 items.forEach(item => {
                     let textStr = item.text || "";
@@ -2570,7 +2590,7 @@
                     let realWorldTime = item.time || "";
                     
                     let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                    let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
+                    let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud") || textStr.includes("Sent") || textStr.includes("Sending")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
                     
                     html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
                         <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${realWorldTime}</div>
@@ -3336,25 +3356,23 @@
                         updateTimerUI(true, window.maxRunSecs, "Live");
                         
                     } else {
-                        if (currentPumpState === true) {
+                        // ONLY trigger save if we were previously actively timing a running pump
+                        if (currentPumpState === true && window.maxRunSecs > 0) {
                             if (window.pumpTimerInterval) {
                                 clearInterval(window.pumpTimerInterval);
                                 window.pumpTimerInterval = null;
                             }
                             
-                            // --- FIXED: PROTECT AGAINST 00:00 BUG ---
-                            // Only save to DB if maxRunSecs is greater than 0
-                            if (window.maxRunSecs > 0) {
-                                window.lastSavedRuntime = window.maxRunSecs;
-                                window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-                                
-                                database.ref('/Devices/' + currentDeviceId + '/state').update({
-                                    savedLastRuntime: window.lastSavedRuntime,
-                                    savedLastRunDate: window.lastSavedRunDate
-                                });
-                            }
+                            window.lastSavedRuntime = window.maxRunSecs;
+                            window.lastSavedRunDate = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                             
                             window.maxRunSecs = 0;
+
+                            database.ref('/Devices/' + currentDeviceId + '/state').update({
+                                savedLastRuntime: window.lastSavedRuntime,
+                                savedLastRunDate: window.lastSavedRunDate
+                            });
+                            
                             updateTimerUI(false, window.lastSavedRuntime, "Ended: " + window.lastSavedRunDate);
                         } else if (!window.isFirstStateLoad) {
                             // Keep UI in sync during normal off state
@@ -3435,13 +3453,19 @@
             }
             
             let desiredState;
+            let optLog = "";
             if (btn.innerText.includes("TURN\nON")) {
                 desiredState = true;
+                optLog = "Pump ON (Web Command Sent)";
             } else if (btn.innerText.includes("TURN\nOFF")) {
                 desiredState = false;
+                optLog = "Pump OFF (Web Command Sent)";
             } else {
                 return; 
             }
+
+            // --- INSTANT UI TRIGGER FOR HISTORY ---
+            insertOptimisticHistory(optLog);
 
             // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
