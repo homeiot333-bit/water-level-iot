@@ -919,7 +919,8 @@
             #billPrintTemplate h1:not(.print-sig), 
             #billPrintTemplate h2:not(.print-sig), 
             #billPrintTemplate h3:not(.print-sig) {
-                font-weight: bold !important;
+                font-weight: 900 !important;
+                color: #000 !important;
             }
             .print-sig {
                 font-family: 'Brush Script MT', 'Bradley Hand', 'Lucida Handwriting', cursive !important;
@@ -1582,28 +1583,28 @@
 
                 <!-- CONFIGURATION TABLE -->
                 <h3 style="margin: 0 0 8px 0; color: #111; font-size: 13px; text-transform: uppercase;">Hardware Configuration Parameters</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; border: 1.5px solid #222;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; border: 1.5px solid #222;">
                     <tr>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #555; width: 25%;"><strong>Network Topology:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; width: 25%;"><span id="printTopology"></span></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #555; width: 25%;"><strong>Radio Module:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; width: 25%;"><span id="printRadio"></span></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #000; width: 25%; font-weight: 900;"><strong>Network Topology:</strong></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; width: 25%; color: #333;"><span id="printTopology"></span></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #000; width: 25%; font-weight: 900;"><strong>Radio Module:</strong></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; width: 25%; color: #333;"><span id="printRadio"></span></td>
                     </tr>
                     <tr>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #555;"><strong>Hub Board:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px;"><span id="printHub"></span></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #555;"><strong>Tank Board:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px;"><span id="printTank"></span></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #000; font-weight: 900;"><strong>Hub Board:</strong></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333;"><span id="printHub"></span></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #000; font-weight: 900;"><strong>Tank Board:</strong></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333;"><span id="printTank"></span></td>
                     </tr>
                     <tr>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #555;"><strong>Channel / Rate:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px;"><span id="printChan"></span> / <span id="printRate"></span></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #555;"><strong>Tank Depth:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px;"><span id="printDepth"></span></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #000; font-weight: 900;"><strong>Channel / Rate:</strong></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333;"><span id="printChan"></span> / <span id="printRate"></span></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #000; font-weight: 900;"><strong>Tank Depth:</strong></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333;"><span id="printDepth"></span></td>
                     </tr>
                     <tr>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #555;"><strong>Full Clearance:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px;" colspan="3"><span id="printClearance"></span></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #000; font-weight: 900;"><strong>Full Clearance:</strong></td>
+                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333;" colspan="3"><span id="printClearance"></span></td>
                     </tr>
                 </table>
             </div>
@@ -1629,13 +1630,13 @@
             <div style="flex-shrink: 0;">
                 <!-- TERMS & CONDITIONS -->
                 <div style="margin-bottom: 15px;">
-                    <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; font-size: 13px; margin-bottom: 4px; text-transform: uppercase;">Terms & Precautions</h3>
-                    <ul style="font-size: 10.5px; color: #444; padding-left: 20px; line-height: 1.5; margin-top: 0; margin-bottom: 0;">
-                        <li><strong>Power & Safety:</strong> Ensure power supply remains stable (220V/110V AC as specified). Use surge protectors to prevent motherboard damage.</li>
-                        <li><strong>Sensor Handling:</strong> Do <strong>NOT</strong> manually adjust ultrasonic sensors, submerge the controller unit, or touch wiring while the system is powered on.</li>
-                        <li><strong>Maintenance:</strong> Water scaling or condensation on tank sensors can cause false readings; schedule periodic dry wiping of the sensor head.</li>
-                        <li><strong>Connectivity:</strong> Keep the hub within standard Wi-Fi range (2.4GHz network required). Avoid placing metallic objects near the antennas.</li>
-                        <li><strong>Warranty Scope:</strong> Covers internal hardware defects and firmware bugs for the specified period. Physical damage, water ingress on the main hub, unauthorized modifications, or lightning surges are strictly <strong>not covered</strong>.</li>
+                    <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; font-size: 13px; margin-bottom: 6px; text-transform: uppercase;">Terms & Precautions</h3>
+                    <ul style="font-size: 12px; color: #222; padding-left: 20px; line-height: 1.6; margin-top: 0; margin-bottom: 0;">
+                        <li style="margin-bottom: 4px;"><strong>Power & Safety:</strong> Ensure power supply remains stable (220V/110V AC as specified). Use surge protectors to prevent motherboard damage.</li>
+                        <li style="margin-bottom: 4px;"><strong>Sensor Handling:</strong> Do <strong>NOT</strong> manually adjust ultrasonic sensors, submerge the controller unit, or touch wiring while the system is powered on.</li>
+                        <li style="margin-bottom: 4px;"><strong>Maintenance:</strong> Water scaling or condensation on tank sensors can cause false readings; schedule periodic dry wiping of the sensor head.</li>
+                        <li style="margin-bottom: 4px;"><strong>Connectivity:</strong> Keep the hub within standard Wi-Fi range (2.4GHz network required). Avoid placing metallic objects near the antennas.</li>
+                        <li style="margin-bottom: 4px;"><strong>Warranty Scope:</strong> Covers internal hardware defects and firmware bugs for the specified period. Physical damage, water ingress on the main hub, unauthorized modifications, or lightning surges are strictly <strong>not covered</strong>.</li>
                         <li><strong>Support:</strong> For remote diagnostics, the device must remain online. Offline devices void the remote SLA turnaround time guarantees.</li>
                     </ul>
                 </div>
