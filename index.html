@@ -868,7 +868,7 @@
             100% { text-shadow: 0 0 2px #2ed573; transform: scale(1); }
         }
 
-        /* --- ADVANCED DUAL-PRINT CSS FOR PROFESSIONAL A4 --- */
+        /* --- ADVANCED MULTI-PRINT CSS FOR PROFESSIONAL A4 PDF --- */
         @media print {
             @page {
                 margin: 0; 
@@ -883,7 +883,8 @@
             
             /* Hide EVERYTHING by default in print mode */
             body.print-mode-service > *:not(#billPrintTemplate),
-            body.print-mode-quote > *:not(#quotePrintTemplate) {
+            body.print-mode-quote > *:not(#quotePrintTemplate),
+            body.print-mode-manual > *:not(#manualPrintTemplate) {
                 display: none !important;
             }
             
@@ -904,30 +905,60 @@
                 overflow: hidden; color: #222 !important; background: white !important;
                 padding: 5mm 15mm 15mm 15mm; box-sizing: border-box; page-break-after: avoid;
             }
+
+            /* Show Manual ONLY when active - Allow multiple pages */
+            body.print-mode-manual #manualPrintTemplate {
+                display: block !important;
+                visibility: visible !important;
+                position: absolute; left: 0; top: 0; width: 210mm; 
+                overflow: visible; color: #222 !important; background: white !important;
+                box-sizing: border-box;
+            }
             
             html, body {
                 background: white !important;
-                height: 100%; margin: 0 !important; padding: 0 !important; overflow: hidden !important;
+                height: 100%; margin: 0 !important; padding: 0 !important; 
+                overflow: visible !important; /* Allow scroll/pages for manual */
             }
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                text-rendering: geometricPrecision !important; /* Helps fix PDF bold artifacts */
             }
             
-            /* Apply Arial globally in print except signatures */
-            #billPrintTemplate *:not(.print-sig), #quotePrintTemplate *:not(.print-sig) {
-                font-family: Arial, Helvetica, sans-serif !important; 
-                font-weight: normal; 
+            /* BOLD L FIX: Apply Safe Font Stack globally in print except signatures */
+            #billPrintTemplate *:not(.print-sig), 
+            #quotePrintTemplate *:not(.print-sig),
+            #manualPrintTemplate *:not(.print-sig) {
+                font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; 
+                font-weight: 400; /* Strict regular weight */
+                letter-spacing: 0.2px; /* Prevents glyph merging in PDF generation */
             }
             #billPrintTemplate strong:not(.print-sig), #billPrintTemplate th:not(.print-sig), 
             #billPrintTemplate h1:not(.print-sig), #billPrintTemplate h2:not(.print-sig), #billPrintTemplate h3:not(.print-sig),
             #quotePrintTemplate strong:not(.print-sig), #quotePrintTemplate th:not(.print-sig), 
-            #quotePrintTemplate h1:not(.print-sig), #quotePrintTemplate h2:not(.print-sig), #quotePrintTemplate h3:not(.print-sig) {
+            #quotePrintTemplate h1:not(.print-sig), #quotePrintTemplate h2:not(.print-sig), #quotePrintTemplate h3:not(.print-sig),
+            #manualPrintTemplate strong:not(.print-sig), #manualPrintTemplate th:not(.print-sig), 
+            #manualPrintTemplate h1:not(.print-sig), #manualPrintTemplate h2:not(.print-sig), #manualPrintTemplate h3:not(.print-sig) {
                 font-weight: 600 !important;
                 color: #333 !important;
             }
             .print-sig {
                 font-family: 'Brush Script MT', 'Bradley Hand', 'Lucida Handwriting', cursive !important;
+            }
+
+            /* Manual Specific Print Classes */
+            .manual-page {
+                width: 210mm;
+                height: 297mm;
+                padding: 15mm;
+                box-sizing: border-box;
+                page-break-after: always;
+                position: relative;
+                background: white;
+            }
+            .manual-page:last-child {
+                page-break-after: auto;
             }
         }
     </style>
@@ -1336,8 +1367,10 @@
                     
                     <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px; width: 100%;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
-                    <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px; width: 100%;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
+                    <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px; width: 100%;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
                     
+                    <button class="btn-login" style="background:rgba(232, 67, 147,0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px; width: 100%; box-shadow: 0 0 15px rgba(232, 67, 147, 0.4);" onclick="executeManualGeneration()">📖 Print User Manual</button>
+
                     <div style="display:flex; gap:10px; width:100%; margin-bottom:20px;">
                         <button class="btn-login" style="background:rgba(46, 213, 115, 0.9); color:#000; margin:0; font-size:13px; padding:10px; flex:1; box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);" onclick="openBillGenerator()">📄 Generate Service Bill</button>
                         <button class="btn-login" style="background:#feca57; color:#000; margin:0; font-size:13px; padding:10px; flex:1; box-shadow: 0 0 15px rgba(254, 202, 87, 0.4);" onclick="openQuoteGenerator()">💰 Generate Price Invoice</button>
@@ -1872,6 +1905,118 @@
         </div>
     </div>
 
+    <!-- --- 3-PAGE USER MANUAL PRINT TEMPLATE --- -->
+    <div id="manualPrintTemplate" style="display: none;">
+        
+        <!-- PAGE 1 -->
+        <div class="manual-page">
+            <div style="text-align: center; border-bottom: 3px solid #00d2ff; padding-bottom: 10px; margin-bottom: 20px;">
+                <h1 style="margin: 0; color: #111; font-size: 28px; text-transform: uppercase;">Smart Water System</h1>
+                <h2 style="margin: 5px 0 0 0; color: #555; font-size: 18px;">Official User Manual</h2>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 25px;">
+                <img src="file_000000002ba881fa8613bda9e26aaa71.png" alt="Device Hardware Overview" style="max-width: 100%; max-height: 450px; border-radius: 8px; border: 1px solid #ddd; object-fit: contain;">
+            </div>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">1. Hardware Indicators (LEDs)</h3>
+            <ul style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 20px;">
+                <li><strong>Water Level (Green/Blue/Yellow/Red):</strong> Visually represents the current water level in your tank in 4 stages.</li>
+                <li><strong>Pump Status:</strong> Illuminates <strong>GREEN</strong> when the water pump is currently actively running.</li>
+                <li><strong>Connection LED:</strong> 
+                    <ul>
+                        <li><span style="color:#2ed573; font-weight:bold;">Solid Green:</span> Device is successfully connected to your home WiFi and the internet.</li>
+                        <li><span style="color:#ff4757; font-weight:bold;">Blinking Red/Blue:</span> Device is offline or in Setup/Captive Portal mode waiting for WiFi credentials.</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 5px;">2. Device Push Button Functions</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">The physical button on the front of the main hub has two primary functions:</p>
+            <ul style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 20px;">
+                <li><strong>Single Short Press:</strong> Manually toggles the water pump ON or OFF. Use this to override the automatic system.</li>
+                <li><strong>Long Press (Hold for 5 Seconds):</strong> Forces the device to disconnect from the internet and open its <strong>Captive Setup Portal</strong>. The connection LED will begin to blink, meaning the device is ready to be connected to a new WiFi network.</li>
+            </ul>
+        </div>
+
+        <!-- PAGE 2 -->
+        <div class="manual-page">
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">3. First Time Setup & WiFi Configuration</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">To connect your device to the internet for the first time, follow these steps:</p>
+            <ol style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 25px;">
+                <li>Hold the device push button for 5 seconds until the Connection LED blinks.</li>
+                <li>Open your smartphone's WiFi settings and connect to the network named <strong>"SmartWater_Setup"</strong>.</li>
+                <li>A login window should pop up automatically. If not, open your web browser and go to <strong>192.168.4.1</strong>.</li>
+                <li>Select your home WiFi network from the list and enter your password.</li>
+                <li>The device will reboot. Once the Connection LED turns solid Green, you are successfully online!</li>
+            </ol>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 5px;">4. Accessing the Web Dashboard & App</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">Your system is fully controllable from anywhere in the world.</p>
+            <ul style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 20px;">
+                <li><strong>Login Credentials:</strong> Your default Account Email and Password are provided on your initial service bill/invoice. If you cannot find them, contact your installation technician.</li>
+                <li><strong>Changing Passwords:</strong> Once logged into the dashboard, click the three vertical dots (⋮) in the top right corner and select <strong>"Change Password"</strong>.</li>
+                <li><strong>Forgot Password:</strong> If you are completely locked out, please contact customer support. Only an administrator can permanently reset a lost Device ID password.</li>
+            </ul>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 5px;">5. Setting Tank Dimensions (Calibration)</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">The device needs to know the exact size of your tank to display accurate percentages.</p>
+            <ol style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 25px;">
+                <li>Log in to your Web Dashboard.</li>
+                <li>Click the three vertical dots (⋮) in the top right corner and select <strong>"Device Settings"</strong>.</li>
+                <li><strong>Tank Empty Depth:</strong> Enter the distance (in cm) from the sensor to the very bottom of the tank.</li>
+                <li><strong>Full Clearance:</strong> Enter the distance (in cm) from the sensor to the highest allowed water level. (Leave a gap of at least 15cm so the water does not touch the sensor).</li>
+                <li>Click <strong>"Save Settings"</strong> to push the update to your machine.</li>
+            </ol>
+            
+            <div style="background-color: #f9f9f9; border-left: 4px solid #feca57; padding: 12px; margin-top: 20px;">
+                <strong style="font-size: 14px; color: #333;">💡 Automation Logic:</strong>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">The system operates autonomously. The pump will automatically <strong>TURN ON</strong> when water drops to the LOW level indicator. It will automatically <strong>TURN OFF</strong> when the water reaches the FULL clearance limit to prevent overflowing.</p>
+            </div>
+        </div>
+
+        <!-- PAGE 3 -->
+        <div class="manual-page">
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">6. Soft Diagnostics & Troubleshooting</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">If your system behaves unexpectedly, check the hardware LEDs before contacting support:</p>
+            
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; margin-top: 15px; border: 1px solid #ddd;">
+                <tr style="background-color: #f1f1f1;">
+                    <th style="border: 1px solid #ddd; padding: 10px; width: 30%;">Symptom / LED Status</th>
+                    <th style="border: 1px solid #ddd; padding: 10px; width: 70%;">Possible Cause & Solution</th>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;"><strong>Connection LED is blinking continuously.</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">Your home WiFi is down, the password changed, or power was interrupted. Restart your router. If the password changed, hold the device button for 5s and set up WiFi again.</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;"><strong>Pump LED is ON, but water is not filling.</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">The device is sending power, but the motor might have an airlock, a blown capacitor, or there is no municipal water supply. Turn the pump OFF via the app to prevent dry-running.</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;"><strong>Water level shows 0% or 100% incorrectly.</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">Moisture or scaling might be blocking the ultrasonic sensor in the tank. Safely wipe the bottom of the sensor with a dry cloth. Ensure your "Empty Depth" settings in the app are correct.</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;"><strong>Dashboard says "OFFLINE".</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">The main hub has lost power or internet. Check the plug point. Ensure the Connection LED is solid green.</td>
+                </tr>
+            </table>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px;">7. Safety Precautions</h3>
+            <ul style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 20px;">
+                <li><strong>Do NOT open the Main Hub.</strong> High voltage (220V AC) is present inside the enclosure. Opening it voids the warranty and poses a severe shock hazard.</li>
+                <li><strong>Protect from Direct Water:</strong> While the tank sensor is moisture resistant, the Main Hub must be placed in a dry area protected from direct rain or water splashes.</li>
+                <li><strong>Surge Protection:</strong> It is highly recommended to use a voltage stabilizer or surge protector for the Main Hub to prevent motherboard damage during lightning storms or power grid fluctuations.</li>
+            </ul>
+
+            <div style="margin-top: 50px; text-align: center; color: #777; font-size: 12px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                <p>ASK IoT Solutions | Smart. Save. Sustain.</p>
+                <p>End of User Manual</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         const globalLogTimestamps = {};
         
@@ -1918,7 +2063,7 @@
         window.lastSavedRunDate = "Waiting for data...";
         window.isFirstStateLoad = true;
 
-        // --- BILL GENERATION LOGIC ---
+        // --- PDF GENERATION LOGIC ---
         function updateBillNameLabel(typeId, labelId) {
             let type = document.getElementById(typeId).value;
             document.getElementById(labelId).innerText = type === 'Commercial' ? 'Organization Name:' : 'Customer Name:';
@@ -2107,6 +2252,14 @@
                 qrContainer.style.display = 'none';
                 finalizeQuotePrint();
             }
+        }
+
+        function executeManualGeneration() {
+            document.body.classList.add('print-mode-manual');
+            setTimeout(() => { 
+                window.print(); 
+                document.body.classList.remove('print-mode-manual');
+            }, 200); 
         }
 
         // Global function to securely lock in Active WiFi
