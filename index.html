@@ -2853,6 +2853,17 @@
                     const btn = document.getElementById('pumpToggleBtn');
                     const tankModel = document.getElementById('waterTankModel'); 
 
+                    // --- BUG FIX: FORCE KILL TIMER IF DEVICE DROPS OFFLINE ---
+                    if (window.pumpTimerInterval) {
+                        clearInterval(window.pumpTimerInterval);
+                        window.pumpTimerInterval = null;
+                        window.lastSavedRuntime = window.maxRunSecs;
+                        window.lastSavedRunDate = "Device Offline";
+                        updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate);
+                        window.maxRunSecs = 0;
+                        currentPumpState = false; // Allow history to populate
+                    }
+
                     if (isOtaMode || pendingOtaDevice === currentDeviceId) {
                         document.getElementById('offlineOverlay').style.display = 'none';
                         badge.style.background = "#00d2ff";
@@ -3098,7 +3109,7 @@
                         window.isFirstStateLoad = false;
                     }
 
-                    if (state.pumpActive) {
+                    if (state.pumpActive && isCurrentlyOnline) {
                         let espRunSecs = state.pumpRuntimeSecs || 0;
                         if (espRunSecs >= window.maxRunSecs) {
                             window.maxRunSecs = espRunSecs;
@@ -3163,7 +3174,7 @@
                         document.getElementById('txtBypass').innerText = "ACTIVE";
                     }
 
-                    currentPumpState = state.pumpActive;
+                    currentPumpState = (state.pumpActive && isCurrentlyOnline);
                     
                     if (currentPumpState === lastCommandedState) {
                         if(localPumpCommandTimeout) {
