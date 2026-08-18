@@ -1352,12 +1352,12 @@
                         </div>
                         
                         <div class="terminals-wrapper">
-                            <div class="terminal-column" style="flex: 1.5;">
+                            <div class="terminal-column" style="flex: 2.5;">
                                 <span style="color:#00ff00; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ESP32 (HUB)</span>
                                 <div id="logConsole" class="log-box" style="text-align:left; height: 120px;">Awaiting Core Stream...</div>
                             </div>
                             
-                            <div class="terminal-column" style="flex: 1.5;">
+                            <div class="terminal-column" style="flex: 1;">
                                 <span id="nanoTerminalTitle" style="color:#00d2ff; font-size:11px; font-weight:bold; margin-bottom:5px; text-align:left; display:block;">ROOF TOP (TANK)</span>
                                 <div id="nanoLogConsole" class="log-box log-nano" style="text-align:left; height: 120px;">Awaiting Payload Link...</div>
                             </div>
@@ -2684,7 +2684,12 @@
                         document.getElementById('adminTxtTopology').innerText = window.deviceTopology ? (window.deviceTopology === "Yes" ? "Uses Middleman" : "Direct Link Only") : "Unknown";
                     }
                     if(document.getElementById('adminTxtDeployDate')) {
-                        document.getElementById('adminTxtDeployDate').innerText = window.deviceDeployDate || "Not Set";
+                        let fDate = window.deviceDeployDate || "Not Set";
+                        if(window.deviceDeployDate && window.deviceDeployDate.includes("-")) {
+                            let p = window.deviceDeployDate.split("-");
+                            if(p.length === 3) fDate = p[2] + " " + p[1] + " " + p[0];
+                        }
+                        document.getElementById('adminTxtDeployDate').innerText = fDate;
                     }
                     if(document.getElementById('adminTxtRooftopBoard')) {
                         document.getElementById('adminTxtRooftopBoard').innerText = info.rooftopBoard || "Unknown";
