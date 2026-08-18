@@ -2687,7 +2687,7 @@
                         let fDate = window.deviceDeployDate || "Not Set";
                         if(window.deviceDeployDate && window.deviceDeployDate.includes("-")) {
                             let p = window.deviceDeployDate.split("-");
-                            if(p.length === 3) fDate = p[2] + " " + p[1] + " " + p[0];
+                            if(p.length === 3) fDate = p[2] + "-" + p[1] + "-" + p[0];
                         }
                         document.getElementById('adminTxtDeployDate').innerText = fDate;
                     }
