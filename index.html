@@ -870,13 +870,12 @@
 
         /* --- PRINT CSS FOR A4 BILL GENERATION --- */
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #billPrintTemplate, #billPrintTemplate * {
-                visibility: visible;
+            body > *:not(#billPrintTemplate) {
+                display: none !important;
             }
             #billPrintTemplate {
+                display: block !important;
+                visibility: visible !important;
                 position: absolute;
                 left: 0;
                 top: 0;
@@ -891,7 +890,6 @@
                 height: 100%;
                 margin: 0 !important;
                 padding: 0 !important;
-                overflow: hidden;
             }
             * {
                 -webkit-print-color-adjust: exact !important;
@@ -935,6 +933,10 @@
 
             <label style="color:#ccc; font-size:12px;">Warranty Period:</label>
             <input type="text" id="billWarranty" class="input-box" placeholder="e.g., 1 Year" style="padding:8px; margin-top:4px; font-size:14px;">
+
+            <!-- ADDED APP LINK INPUT -->
+            <label style="color:#ccc; font-size:12px;">App Download Link:</label>
+            <input type="text" id="billAppLink" class="input-box" placeholder="https://..." style="padding:8px; margin-top:4px; font-size:14px;">
 
             <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
                 <button class="btn-login" style="background:rgba(255,71,87,0.8); color:white; padding:10px; flex:1;" onclick="document.getElementById('billModalOverlay').style.display='none'">Cancel</button>
@@ -1580,7 +1582,7 @@
             <div style="flex: 1; text-align: center;">
                 <h3 style="margin: 0 0 5px 0; color: #111;">Download Mobile App</h3>
                 <p style="margin: 0; font-size: 13px; color: #555;">Scan the QR code or visit the link below to install the official control app.</p>
-                <p style="margin: 5px 0 0 0; font-weight: bold; color: #007bff;">[Insert App Link Here]</p>
+                <p id="printQrText" style="margin: 5px 0 0 0; font-weight: bold; color: #007bff;">[Insert App Link Here]</p>
             </div>
             <div style="margin-left: 20px;">
                 <img id="printQrCode" src="" alt="App QR Code" style="width: 100px; height: 100px;">
@@ -1680,7 +1682,8 @@
             document.getElementById('printDepth').innerText = devEmpty;
             document.getElementById('printClearance').innerText = devFull;
             
-            let appLink = "[Insert App Link Here]"; 
+            let appLink = document.getElementById('billAppLink').value || "App Link Not Provided"; 
+            document.getElementById('printQrText').innerText = appLink;
             document.getElementById('printQrCode').src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(appLink);
 
             document.getElementById('billModalOverlay').style.display = 'none';
