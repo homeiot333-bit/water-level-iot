@@ -2572,286 +2572,6 @@
             
             // --- REATTACH LISTENERS ---
             startListeners();
-            
-            // --- FIXED: CALCULATE RUNTIME FROM HISTORY TO PREVENT 00:00 BUG ---
-            database.ref('/Devices/' + currentDeviceId + '/pumpHistory').limitToLast(20).on('value', snap => {
-                let html = "";
-                let items = [];
-                
-                snap.forEach(c => {
-                    let val = c.val();
-                    if(val && val.text && val.time) {
-                        items.push(val);
-                    }
-                });
-                
-                // Sort chronologically (oldest to newest) to do accurate math
-                items.sort((a,b) => (a.ms || 0) - (b.ms || 0));
-
-                let calcRunSecs = 0;
-                let calcDateStr = "Waiting for data...";
-                let foundOff = false;
-                
-                // Scan backwards to find the exact last OFF event and its matching ON event
-                for(let i = items.length - 1; i >= 0; i--) {
-                    let txt = items[i].text || "";
-                    if (!foundOff && (txt.includes("OFF") || txt.includes("shutdown") || txt.includes("Stopped"))) {
-                        foundOff = true;
-                        let offMs = items[i].ms || 0;
-                        if(offMs > 0) {
-                            calcDateStr = "Ended: " + (items[i].time || "");
-                        }
-                        
-                        for (let j = i - 1; j >= 0; j--) {
-                            let pTxt = items[j].text || "";
-                            if (pTxt.includes("ON") || pTxt.includes("Auto-Fill Active")) {
-                                let onMs = items[j].ms || 0;
-                                if (onMs > 0 && offMs >= onMs) {
-                                    calcRunSecs = Math.floor((offMs - onMs) / 1000);
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // If pump is offline, push this precise historical duration to the UI
-                if (!currentPumpState && calcRunSecs > 0) {
-                    window.lastSavedRuntime = calcRunSecs;
-                    window.lastSavedRunDate = calcDateStr;
-                    updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate);
-                }
-
-                // Reverse for UI display (Newest at top)
-                items.reverse();
-                
-                // Strictly slice array to ensure only 2 are displayed
-                let displayItems = items.slice(0, 2);
-                
-                displayItems.forEach(item => {
-                    let textStr = item.text || "";
-                    let realWorldTime = item.time || ""; 
-                    
-                    let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
-                    let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud") || textStr.includes("Sent") || textStr.includes("Sending")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
-                    
-                    html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
-                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${realWorldTime}</div>
-                        <div style="color:#fff; font-size:11px; margin-top:2px;">${textStr}</div>
-                    </div>`;
-                });
-                
-                if (displayItems.length === 0) {
-                    html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
-                }
-                
-                const listEl = document.getElementById('adminPumpHistoryList');
-                if(listEl) listEl.innerHTML = html;
-            });
-        }
-
-        async function saveCustomerSettings() {
-            if(!currentDeviceId) return;
-            
-            let currentPass = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter your account password to authorize device updates:", true);
-            if(!currentPass) return;
-            
-            let user = firebase.auth().currentUser;
-            let cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
-            
-            try {
-                await user.reauthenticateWithCredential(cred);
-                const emptyVal = parseFloat(document.getElementById('custEmptyInput').value);
-                const fullVal = parseFloat(document.getElementById('custFullInput').value);
-                
-                let updates = false;
-                let willReboot = false;
-
-                if(!isNaN(emptyVal) && emptyVal > 1.0) {
-                    await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
-                    updates = true;
-                }
-                if(!isNaN(fullVal) && fullVal >= 1.0) {
-                    await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
-                    updates = true;
-                }
-                
-                for(let i=1; i<=4; i++) {
-                    let ssid = document.getElementById('custWifiSSID_'+i).value.trim();
-                    let pass = document.getElementById('custWifiPass_'+i).value;
-                    if(ssid !== "") {
-                        await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
-                        updates = true; willReboot = true;
-                    }
-                    if(pass !== "") {
-                        await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
-                        updates = true; willReboot = true;
-                    }
-                }
-                
-                if(updates) {
-                    let msg = "✅ Settings successfully pushed to the device.";
-                    if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi. It may take a minute to come back online.";
-                    await customAlert(msg);
-                    document.getElementById('customerSettingsBox').style.display = 'none';
-                    for(let i=1; i<=4; i++) {
-                        document.getElementById('custWifiSSID_'+i).value = "";
-                        document.getElementById('custWifiPass_'+i).value = "";
-                    }
-                } else {
-                    await customAlert("No valid changes detected.");
-                }
-            } catch(err) {
-                await customAlert("❌ Verification failed. Incorrect password.");
-            }
-        }
-
-        async function saveAdminManualSettings() {
-            if(!currentDeviceId) return;
-            
-            const emptyVal = parseFloat(document.getElementById('adminEmptyInput').value);
-            const fullVal = parseFloat(document.getElementById('adminFullInput').value);
-            
-            let updates = false;
-            let willReboot = false;
-
-            if(!isNaN(emptyVal) && emptyVal > 1.0) {
-                await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(emptyVal);
-                updates = true;
-            }
-            if(!isNaN(fullVal) && fullVal >= 1.0) {
-                await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(fullVal);
-                updates = true;
-            }
-            
-            for(let i=1; i<=4; i++) {
-                let ssid = document.getElementById('adminWifiSSID_'+i).value.trim();
-                let pass = document.getElementById('adminWifiPass_'+i).value;
-                if(ssid !== "") {
-                    await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_SSID').set(ssid);
-                    updates = true; willReboot = true;
-                }
-                if(pass !== "") {
-                    await database.ref('/Devices/' + currentDeviceId + '/control/setWifiSlot'+i+'_Pass').set(pass);
-                    updates = true; willReboot = true;
-                }
-            }
-            
-            if(updates) {
-                let msg = "✅ Manual settings successfully pushed to the device.";
-                if(willReboot) msg += "\n\n⚠️ Network update detected! The device will reboot and attempt to connect to the new WiFi.";
-                await customAlert(msg);
-                document.getElementById('adminEmptyInput').value = "";
-                document.getElementById('adminFullInput').value = "";
-                for(let i=1; i<=4; i++) {
-                    document.getElementById('adminWifiSSID_'+i).value = "";
-                    document.getElementById('adminWifiPass_'+i).value = "";
-                }
-            } else {
-                await customAlert("No valid changes detected.");
-            }
-        }
-
-        async function deleteDeviceProfile() {
-            if(!currentDeviceId) return;
-            
-            const pin = await customPrompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to permanently erase " + currentDeviceId + " from the database:", true);
-            if(pin !== window.adminPin) {
-                await customAlert("❌ Access Denied: Incorrect Security PIN.");
-                return;
-            }
-            
-            if(await customConfirm("Are you ABSOLUTELY sure? This will delete all telemetry, customer info, and logs for " + currentDeviceId + ". This action cannot be undone!")) {
-                await database.ref('/Devices/' + currentDeviceId).remove();
-                await database.ref('/AdminInbox/' + currentDeviceId).remove();
-                await customAlert("🗑️ Device Profile Permanently Deleted.");
-                window.location.reload();
-            }
-        }
-
-        async function calibrateTank(type) {
-            if(!currentDeviceId || !window.latestRawDistance || window.latestRawDistance <= 0.1) {
-                await customAlert("❌ Cannot calibrate: Invalid or missing sensor data.");
-                return;
-            }
-
-            const currentUser = firebase.auth().currentUser;
-            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
-                const pin = await customPrompt("🔒 MASTER CONTROL SECURITY\n\nEnter Admin PIN to calibrate tank:\n(Default is 3943)", true);
-                if (pin !== window.adminPin) {
-                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
-                    return;
-                }
-            }
-
-            if(type === 'empty') {
-                if(await customConfirm("Set Empty Tank Depth to " + window.latestRawDistance + " cm?")) {
-                    await database.ref('/Devices/' + currentDeviceId + '/control/setEmptyDepth').set(window.latestRawDistance);
-                    await customAlert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
-                }
-            } else if(type === 'full') {
-                if(await customConfirm("Set Full Water Clearance Level to " + window.latestRawDistance + " cm?")) {
-                    await database.ref('/Devices/' + currentDeviceId + '/control/setFullDepth').set(window.latestRawDistance);
-                    await customAlert("✅ Calibration command sent! The ESP32 will update its memory shortly.");
-                }
-            }
-        }
-
-        async function assignDeviceToUser() {
-            const uid = document.getElementById('assignUidInput').value.trim();
-            const devId = document.getElementById('assignDevInput').value.trim();
-            
-            const type = document.getElementById('assignTypeInput').value;
-            const name = document.getElementById('assignNameInput').value.trim();
-            const email = document.getElementById('assignEmailInput').value.trim();
-            const pass = document.getElementById('assignPassInput').value.trim();
-            const rTech = document.getElementById('assignRadioTech').value.trim();
-            const rChan = document.getElementById('assignRadioChannel').value.trim();
-            const rRate = document.getElementById('assignRadioRate').value.trim();
-            const usesRepeater = document.getElementById('assignUsesRepeater').value;
-            const deployDate = document.getElementById('assignDeployDate').value;
-            
-            const rooftopBoard = document.getElementById('assignRooftopBoard').value.trim();
-            const middlemanBoard = document.getElementById('assignMiddlemanBoard').value.trim();
-            
-            if(uid && devId) {
-                try {
-                    await database.ref('Users/' + uid + '/deviceId').set(devId);
-                    const updates = { deviceType: type };
-                    if(email) updates.email = email;
-                    if(pass) updates.password = pass;
-                    if(name) updates.assignedName = name;
-                    if(rTech) updates.radioTech = rTech;
-                    if(rChan) updates.radioChannel = rChan;
-                    if(rRate) updates.radioRate = rRate;
-                    if(usesRepeater) updates.usesRepeater = usesRepeater;
-                    if(deployDate) updates.deployDate = deployDate;
-                    if(rooftopBoard) updates.rooftopBoard = rooftopBoard;
-                    if(middlemanBoard) updates.middlemanBoard = middlemanBoard;
-
-                    await database.ref('Devices/' + devId + '/customerInfo').update(updates);
-                    await customAlert("✅ Success! " + devId + " configuration saved and linked to " + uid);
-                    
-                    document.getElementById('assignUidInput').value = '';
-                    document.getElementById('assignDevInput').value = '';
-                    document.getElementById('assignTypeInput').value = 'Household';
-                    document.getElementById('assignNameInput').value = '';
-                    document.getElementById('assignEmailInput').value = '';
-                    document.getElementById('assignPassInput').value = '';
-                    document.getElementById('assignRadioTech').value = '';
-                    document.getElementById('assignRadioChannel').value = '';
-                    document.getElementById('assignRadioRate').value = '';
-                    document.getElementById('assignUsesRepeater').value = 'Yes';
-                    document.getElementById('assignDeployDate').value = '';
-                    document.getElementById('assignRooftopBoard').value = '';
-                    document.getElementById('assignMiddlemanBoard').value = '';
-                    document.getElementById('linkCustomerBox').style.display = "none";
-                } catch(error) {
-                    await customAlert("❌ Error: " + error.message);
-                }
-            } else {
-                await customAlert("Please enter at least a UID and a Device ID.");
-            }
         }
 
         function startListeners() {
@@ -3272,7 +2992,6 @@
                     }
                     lastWaterPercent = currentPct;
 
-                    // WARNING: TERMINAL SCRAPING COMPLETELY REMOVED FROM HERE
                     if(data.log) {
                         let logLines = data.log.split('\n');
 
@@ -3451,6 +3170,82 @@
                     }
                 }
             });
+
+            // --- FIXED: CALCULATE RUNTIME FROM HISTORY TO PREVENT 00:00 BUG (NOW AVAILABLE FOR CUSTOMER PORTAL TOO) ---
+            database.ref(basePath + '/pumpHistory').limitToLast(20).on('value', snap => {
+                let html = "";
+                let items = [];
+                
+                snap.forEach(c => {
+                    let val = c.val();
+                    if(val && val.text && val.time) {
+                        items.push(val);
+                    }
+                });
+                
+                // Sort chronologically (oldest to newest) to do accurate math
+                items.sort((a,b) => (a.ms || 0) - (b.ms || 0));
+
+                let calcRunSecs = 0;
+                let calcDateStr = "Waiting for data...";
+                let foundOff = false;
+                
+                // Scan backwards to find the exact last OFF event and its matching ON event
+                for(let i = items.length - 1; i >= 0; i--) {
+                    let txt = items[i].text || "";
+                    if (!foundOff && (txt.includes("OFF") || txt.includes("shutdown") || txt.includes("Stopped"))) {
+                        foundOff = true;
+                        let offMs = items[i].ms || 0;
+                        if(offMs > 0) {
+                            calcDateStr = "Ended: " + (items[i].time || "");
+                        }
+                        
+                        for (let j = i - 1; j >= 0; j--) {
+                            let pTxt = items[j].text || "";
+                            if (pTxt.includes("ON") || pTxt.includes("Auto-Fill Active")) {
+                                let onMs = items[j].ms || 0;
+                                if (onMs > 0 && offMs >= onMs) {
+                                    calcRunSecs = Math.floor((offMs - onMs) / 1000);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If pump is offline, push this precise historical duration to the UI
+                if (!currentPumpState && calcRunSecs > 0) {
+                    window.lastSavedRuntime = calcRunSecs;
+                    window.lastSavedRunDate = calcDateStr;
+                    updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate);
+                }
+
+                // Reverse for UI display (Newest at top)
+                items.reverse();
+                
+                // Strictly slice array to ensure only 2 are displayed
+                let displayItems = items.slice(0, 2);
+                
+                displayItems.forEach(item => {
+                    let textStr = item.text || "";
+                    let realWorldTime = item.time || ""; 
+                    
+                    let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
+                    let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud") || textStr.includes("Sent") || textStr.includes("Sending")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
+                    
+                    html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${realWorldTime}</div>
+                        <div style="color:#fff; font-size:11px; margin-top:2px;">${textStr}</div>
+                    </div>`;
+                });
+                
+                if (displayItems.length === 0) {
+                    html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
+                }
+                
+                const listEl = document.getElementById('adminPumpHistoryList');
+                if(listEl) listEl.innerHTML = html;
+            });
         }
 
         async function togglePump() {
@@ -3536,6 +3331,6 @@
                 await customAlert("OTA Upload Started! Keep this page open.");
             }
         }
-    </script> 
+    </script>
 </body>
 </html>
