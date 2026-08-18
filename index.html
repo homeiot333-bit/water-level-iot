@@ -890,13 +890,11 @@
                 left: 0;
                 top: 0;
                 width: 210mm;
-                height: 296mm; 
+                height: 297mm; 
                 overflow: hidden; 
-                color: #000 !important;
-                font-family: Arial, Helvetica, sans-serif !important; 
-                font-weight: 400;
+                color: #222 !important;
                 background: white !important;
-                padding: 10mm 15mm; 
+                padding: 12mm 15mm; 
                 box-sizing: border-box;
                 page-break-after: avoid;
             }
@@ -905,17 +903,26 @@
                 height: 100%;
                 margin: 0 !important;
                 padding: 0 !important;
+                overflow: hidden !important;
             }
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            h1, h2, h3, p, td, th, li, span {
+            /* FIX FOR BOLD "L": Strictly enforce Arial for everything except the signature */
+            #billPrintTemplate *:not(.print-sig) {
                 font-family: Arial, Helvetica, sans-serif !important; 
                 font-weight: normal; 
             }
-            strong, th, h1, h2, h3 {
-                font-weight: bold;
+            #billPrintTemplate strong:not(.print-sig), 
+            #billPrintTemplate th:not(.print-sig), 
+            #billPrintTemplate h1:not(.print-sig), 
+            #billPrintTemplate h2:not(.print-sig), 
+            #billPrintTemplate h3:not(.print-sig) {
+                font-weight: bold !important;
+            }
+            .print-sig {
+                font-family: 'Brush Script MT', 'Lucida Handwriting', 'Snell Roundhand', cursive !important;
             }
         }
     </style>
@@ -1538,10 +1545,10 @@
 
     <!-- --- COMPLETELY REDESIGNED PROFESSIONAL A4 BILL TEMPLATE --- -->
     <div id="billPrintTemplate" style="display: none;">
-        <div style="max-width: 800px; margin: 0 auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #222;">
+        <div style="max-width: 800px; margin: 0 auto; color: #222;">
             
             <!-- HEADER SECTION -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00d2ff; padding-bottom: 15px; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00d2ff; padding-bottom: 15px; margin-bottom: 20px;">
                 <div>
                     <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="ASK Logo" style="height: 75px; object-fit: contain; image-rendering: high-quality; image-rendering: -webkit-optimize-contrast;">
                     <h2 style="margin: 10px 0 2px 0; color: #111; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">ASK IoT Solutions</h2>
@@ -1555,14 +1562,14 @@
             </div>
 
             <!-- INFO CARDS SECTION -->
-            <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 30px;">
-                <div style="flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
-                    <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">Billed To (Customer)</h3>
+            <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 20px;">
+                <div style="flex: 1; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">Billed To</h3>
                     <p style="margin: 6px 0; font-size: 13px;"><strong id="printBilledToLabel">Customer Name:</strong> <span id="printCustName"></span></p>
                     <p style="margin: 6px 0; font-size: 13px;"><strong>Email:</strong> <span id="printCustEmail"></span></p>
                     <p style="margin: 6px 0; font-size: 13px;"><strong>Address:</strong> <span id="printCustAddress"></span></p>
                 </div>
-                <div style="flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <div style="flex: 1; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
                     <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">System Identity</h3>
                     <p style="margin: 6px 0; font-size: 13px;"><strong>Device MAC:</strong> <span id="printDevId"></span></p>
                     <p style="margin: 6px 0; font-size: 13px;"><strong>Deployed:</strong> <span id="printDeployDate"></span></p>
@@ -1572,42 +1579,42 @@
 
             <!-- CONFIGURATION TABLE -->
             <h3 style="margin: 0 0 10px 0; color: #111; font-size: 14px; text-transform: uppercase;">Hardware Configuration Parameters</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; text-align: left; border-top: 1px solid #333; border-bottom: 1px solid #333;">
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Network Topology:</strong></td>
-                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printTopology"></span></td>
-                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Radio Module:</strong></td>
-                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printRadio"></span></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Network Topology:</strong></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printTopology"></span></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Radio Module:</strong></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printRadio"></span></td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Hub Board:</strong></td>
-                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printHub"></span></td>
-                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Tank Board:</strong></td>
-                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printTank"></span></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Hub Board:</strong></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printHub"></span></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Tank Board:</strong></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printTank"></span></td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Channel / Rate:</strong></td>
-                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printChan"></span> / <span id="printRate"></span></td>
-                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Tank Depth:</strong></td>
-                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printDepth"></span></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Channel / Rate:</strong></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printChan"></span> / <span id="printRate"></span></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Tank Depth:</strong></td>
+                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printDepth"></span></td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Full Clearance:</strong></td>
-                    <td style="border: 1px solid #ccc; padding: 10px;" colspan="3"><span id="printClearance"></span></td>
+                    <td style="padding: 8px 5px; color: #555;"><strong>Full Clearance:</strong></td>
+                    <td style="padding: 8px 5px;" colspan="3"><span id="printClearance"></span></td>
                 </tr>
             </table>
 
             <!-- SERVICE HISTORY TABLE -->
             <h3 style="margin: 0 0 10px 0; color: #111; font-size: 14px; text-transform: uppercase;">Service & Maintenance History</h3>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; text-align: left;">
-                <tr style="background-color: #eee;">
-                    <th style="border: 1px solid #ccc; padding: 10px; width: 20%;">Date</th>
-                    <th style="border: 1px solid #ccc; padding: 10px; width: 50%;">Service Description</th>
-                    <th style="border: 1px solid #ccc; padding: 10px; width: 30%;">Technician Sign</th>
+                <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
+                    <th style="padding: 8px; width: 20%;">Date</th>
+                    <th style="padding: 8px; width: 50%;">Service Description</th>
+                    <th style="padding: 8px; width: 30%;">Technician Sign</th>
                 </tr>
-                <tr><td style="border: 1px solid #ccc; padding: 16px;"></td><td style="border: 1px solid #ccc; padding: 16px;"></td><td style="border: 1px solid #ccc; padding: 16px;"></td></tr>
-                <tr><td style="border: 1px solid #ccc; padding: 16px;"></td><td style="border: 1px solid #ccc; padding: 16px;"></td><td style="border: 1px solid #ccc; padding: 16px;"></td></tr>
-                <tr><td style="border: 1px solid #ccc; padding: 16px;"></td><td style="border: 1px solid #ccc; padding: 16px;"></td><td style="border: 1px solid #ccc; padding: 16px;"></td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px;"></td><td style="padding: 12px;"></td><td style="padding: 12px;"></td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px;"></td><td style="padding: 12px;"></td><td style="padding: 12px;"></td></tr>
+                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px;"></td><td style="padding: 12px;"></td><td style="padding: 12px;"></td></tr>
             </table>
 
             <!-- TERMS & CONDITIONS -->
@@ -1624,7 +1631,7 @@
             <!-- FOOTER: QR CODE & SIGNATURE -->
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px;">
                 <!-- Left: App QR -->
-                <div style="display: flex; align-items: center; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; width: 320px;">
+                <div style="display: flex; align-items: center; background: #f8f9fa; padding: 10px 15px; border-radius: 8px; border: 1px dashed #ccc; width: 320px;">
                     <img id="printQrCode" src="" alt="App QR Code" style="width: 80px; height: 80px; image-rendering: high-quality; border: 1px solid #eee;">
                     <div style="margin-left: 15px;">
                         <strong style="font-size: 13px; color: #111;">Control App Download</strong>
@@ -1633,8 +1640,8 @@
                 </div>
                 
                 <!-- Right: Signature -->
-                <div style="text-align: center; margin-bottom: 10px;">
-                    <div style="font-family: 'Segoe Script', 'Lucida Handwriting', cursive; font-size: 26px; color: #000080; padding-bottom: 5px; line-height: 1; font-style: italic;">Anish Denray</div>
+                <div style="text-align: center; margin-bottom: 5px;">
+                    <div class="print-sig" style="font-size: 32px; color: #000080; padding-bottom: 5px; line-height: 1; margin-bottom: -5px;">Anish Denray</div>
                     <div style="border-top: 1px solid #000; width: 220px; padding-top: 5px; font-size: 12px; font-weight: bold; color: #333; text-transform: uppercase;">Authorized Signature</div>
                 </div>
             </div>
@@ -1740,9 +1747,6 @@
             let devTop = document.getElementById('adminTxtTopology').innerText || "Unknown";
             let devHub = document.getElementById('adminTxtMiddlemanBoard').innerText || "Unknown";
             let devTank = document.getElementById('adminTxtRooftopBoard').innerText || "Unknown";
-            let devRadio = document.getElementById('adminTxtRadio').innerText || "Unknown";
-            let devChan = document.getElementById('adminTxtChannel').innerText || "Unknown";
-            let devRate = document.getElementById('adminTxtDataRate').innerText || "Unknown";
             let devEmpty = document.getElementById('adminTxtEmptyDist').innerText || "Unknown";
             let devFull = document.getElementById('adminTxtFullDist').innerText || "Unknown";
 
@@ -1752,9 +1756,12 @@
             document.getElementById('printTopology').innerText = devTop;
             document.getElementById('printHub').innerText = devHub;
             document.getElementById('printTank').innerText = devTank;
-            document.getElementById('printRadio').innerText = devRadio;
-            document.getElementById('printChan').innerText = devChan;
-            document.getElementById('printRate').innerText = devRate;
+            
+            // HARDCODED RADIO SPECS FOR SECURITY SPOOFING
+            document.getElementById('printRadio').innerText = "2.4 GHz";
+            document.getElementById('printChan').innerText = "98.7";
+            document.getElementById('printRate').innerText = "300 KBPS";
+
             document.getElementById('printDepth').innerText = devEmpty;
             document.getElementById('printClearance').innerText = devFull;
             
