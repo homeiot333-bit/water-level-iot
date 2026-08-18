@@ -883,7 +883,8 @@
             
             /* Hide EVERYTHING by default in print mode */
             body.print-mode-service > *:not(#billPrintTemplate),
-            body.print-mode-quote > *:not(#quotePrintTemplate) {
+            body.print-mode-quote > *:not(#quotePrintTemplate),
+            body.print-mode-manual > *:not(#manualPrintTemplate) {
                 display: none !important;
             }
             
@@ -904,30 +905,60 @@
                 overflow: hidden; color: #222 !important; background: white !important;
                 padding: 5mm 15mm 15mm 15mm; box-sizing: border-box; page-break-after: avoid;
             }
+
+            /* Show Manual ONLY when active - Allow multiple pages */
+            body.print-mode-manual #manualPrintTemplate {
+                display: block !important;
+                visibility: visible !important;
+                position: absolute; left: 0; top: 0; width: 210mm; 
+                overflow: visible; color: #222 !important; background: white !important;
+                box-sizing: border-box;
+            }
             
             html, body {
                 background: white !important;
-                height: 100%; margin: 0 !important; padding: 0 !important; overflow: hidden !important;
+                height: 100%; margin: 0 !important; padding: 0 !important; 
+                overflow: visible !important; /* Allow scroll/pages for manual */
             }
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                text-rendering: geometricPrecision !important; /* Helps fix PDF bold artifacts */
             }
             
-            /* Apply Arial globally in print except signatures */
-            #billPrintTemplate *:not(.print-sig), #quotePrintTemplate *:not(.print-sig) {
-                font-family: Arial, Helvetica, sans-serif !important; 
-                font-weight: normal; 
+            /* BOLD L FIX: Apply Safe Font Stack globally in print except signatures */
+            #billPrintTemplate *:not(.print-sig), 
+            #quotePrintTemplate *:not(.print-sig),
+            #manualPrintTemplate *:not(.print-sig) {
+                font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; 
+                font-weight: 400; /* Strict regular weight */
+                letter-spacing: 0.1px; /* Prevents glyph merging in PDF generation */
             }
             #billPrintTemplate strong:not(.print-sig), #billPrintTemplate th:not(.print-sig), 
             #billPrintTemplate h1:not(.print-sig), #billPrintTemplate h2:not(.print-sig), #billPrintTemplate h3:not(.print-sig),
             #quotePrintTemplate strong:not(.print-sig), #quotePrintTemplate th:not(.print-sig), 
-            #quotePrintTemplate h1:not(.print-sig), #quotePrintTemplate h2:not(.print-sig), #quotePrintTemplate h3:not(.print-sig) {
+            #quotePrintTemplate h1:not(.print-sig), #quotePrintTemplate h2:not(.print-sig), #quotePrintTemplate h3:not(.print-sig),
+            #manualPrintTemplate strong:not(.print-sig), #manualPrintTemplate th:not(.print-sig), 
+            #manualPrintTemplate h1:not(.print-sig), #manualPrintTemplate h2:not(.print-sig), #manualPrintTemplate h3:not(.print-sig) {
                 font-weight: 600 !important;
                 color: #333 !important;
             }
             .print-sig {
                 font-family: 'Brush Script MT', 'Bradley Hand', 'Lucida Handwriting', cursive !important;
+            }
+
+            /* Manual Specific Print Classes */
+            .manual-page {
+                width: 210mm;
+                height: 297mm;
+                padding: 15mm;
+                box-sizing: border-box;
+                page-break-after: always;
+                position: relative;
+                background: white;
+            }
+            .manual-page:last-child {
+                page-break-after: auto;
             }
         }
     </style>
@@ -1336,8 +1367,10 @@
                     
                     <button class="btn-login" style="background:rgba(254, 202, 87, 0.9); color:#000; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px; width: 100%;" onclick="toggleInboxPanel()">🔔 Open Global Alerts Inbox</button>
 
-                    <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px; width: 100%;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
+                    <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:10px; font-size:14px; padding:10px; width: 100%;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
                     
+                    <button class="btn-login" style="background:rgba(232, 67, 147,0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px; width: 100%;" onclick="executeManualGeneration()">📖 Print User Manual</button>
+
                     <div style="display:flex; gap:10px; width:100%; margin-bottom:20px;">
                         <button class="btn-login" style="background:rgba(46, 213, 115, 0.9); color:#000; margin:0; font-size:13px; padding:10px; flex:1; box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);" onclick="openBillGenerator()">📄 Generate Service Bill</button>
                         <button class="btn-login" style="background:#feca57; color:#000; margin:0; font-size:13px; padding:10px; flex:1; box-shadow: 0 0 15px rgba(254, 202, 87, 0.4);" onclick="openQuoteGenerator()">💰 Generate Price Invoice</button>
@@ -1627,248 +1660,115 @@
         </div>
     </div>
 
-    <!-- --- SERVICE BILL PRINT TEMPLATE --- -->
-    <div id="billPrintTemplate" style="display: none;">
-        <!-- The parent wrapper acts as a full-page flex column -->
-        <div style="max-width: 800px; height: 100%; margin: 0 auto; color: #222; display: flex; flex-direction: column; position: relative; z-index: 1;">
-            
-            <!-- WATERMARK -->
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 85px; color: rgba(0, 0, 0, 0.05); z-index: 0; pointer-events: none; font-weight: bold; text-transform: uppercase; white-space: nowrap;">
-                ASK IoT Solutions
+    <!-- --- 3-PAGE USER MANUAL PRINT TEMPLATE --- -->
+    <div id="manualPrintTemplate" style="display: none;">
+        
+        <!-- PAGE 1 -->
+        <div class="manual-page">
+            <div style="text-align: center; border-bottom: 3px solid #00d2ff; padding-bottom: 10px; margin-bottom: 20px;">
+                <h1 style="margin: 0; color: #111; font-size: 28px; text-transform: uppercase;">Smart Water System</h1>
+                <h2 style="margin: 5px 0 0 0; color: #555; font-size: 18px;">Official User Manual</h2>
             </div>
             
-            <!-- TOP SECTION (Fixed Height) -->
-            <div style="flex-shrink: 0; position: relative; z-index: 2;">
-                <!-- HEADER SECTION -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00d2ff; padding-bottom: 12px; margin-bottom: 15px;">
-                    <div>
-                        <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="ASK Logo" style="height: 75px; object-fit: contain; image-rendering: high-quality; image-rendering: -webkit-optimize-contrast;">
-                        <h2 style="margin: 10px 0 2px 0; color: #111; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">ASK IoT Solutions</h2>
-                        <p id="printCompanyAddress" style="margin: 0; font-size: 13px; color: #555;">Company Address Here</p>
-                        <p id="printCompanyContact" style="margin: 3px 0 0 0; font-size: 11px; color: #555;">Phone: -- | Email: --</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <h1 style="margin: 0; color: #333; font-size: 24px; text-transform: uppercase;">Service Bill</h1>
-                        <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #555;">Date: <span id="printCurrentDate"></span></p>
-                        <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #00d2ff;">Warranty: <span id="printWarranty"></span></p>
-                    </div>
-                </div>
-
-                <!-- INFO CARDS SECTION -->
-                <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 15px;">
-                    <div style="flex: 1; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
-                        <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">Billed To</h3>
-                        <p style="margin: 6px 0; font-size: 13px;"><strong id="printBilledToLabel">Customer Name:</strong> <span id="printCustName"></span></p>
-                        <p style="margin: 6px 0; font-size: 13px;"><strong>Email:</strong> <span id="printCustEmail"></span></p>
-                        <p style="margin: 6px 0; font-size: 13px;"><strong>Address:</strong> <span id="printCustAddress"></span></p>
-                    </div>
-                    <div style="flex: 1; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
-                        <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">System Identity</h3>
-                        <p style="margin: 6px 0; font-size: 13px;"><strong>Device MAC:</strong> <span id="printDevId"></span></p>
-                        <p style="margin: 6px 0; font-size: 13px;"><strong>Deployed:</strong> <span id="printDeployDate"></span></p>
-                        <p style="margin: 6px 0; font-size: 13px;"><strong>Machine Type:</strong> <span id="printMachineType"></span></p>
-                    </div>
-                </div>
-
-                <!-- CONFIGURATION TABLE -->
-                <h3 style="margin: 0 0 8px 0; color: #111; font-size: 13px; text-transform: uppercase;">Hardware Configuration Parameters</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; border: 1.5px solid #222; position: relative; z-index: 2;">
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333; width: 25%; font-weight: 600;"><strong>Network Topology:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; width: 25%; color: #444;"><span id="printTopology"></span></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333; width: 25%; font-weight: 600;"><strong>Radio Module:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; width: 25%; color: #444;"><span id="printRadio"></span></td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333; font-weight: 600;"><strong>Hub Board:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #444;"><span id="printHub"></span></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333; font-weight: 600;"><strong>Tank Board:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #444;"><span id="printTank"></span></td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333; font-weight: 600;"><strong>Channel / Rate:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #444;"><span id="printChan"></span> / <span id="printRate"></span></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333; font-weight: 600;"><strong>Tank Depth:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #444;"><span id="printDepth"></span></td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333; font-weight: 600;"><strong>Full Clearance:</strong></td>
-                        <td style="border: 1px solid #ccc; padding: 5px 8px; color: #444;" colspan="3"><span id="printClearance"></span></td>
-                    </tr>
-                </table>
+            <div style="text-align: center; margin-bottom: 25px;">
+                <img src="file_000000002ba881fa8613bda9e26aaa71.png" alt="Device Hardware Overview" style="max-width: 100%; max-height: 450px; border-radius: 8px; border: 1px solid #ddd; object-fit: contain;">
             </div>
 
-            <!-- MIDDLE SECTION (Flex Grow - Stretches to fill empty space) -->
-            <div style="flex-grow: 1; display: flex; flex-direction: column; margin-top: 15px; margin-bottom: 15px; position: relative; z-index: 2;">
-                <h3 style="margin: 0 0 8px 0; color: #111; font-size: 13px; text-transform: uppercase;">Service & Maintenance History</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; border: 1.5px solid #222;">
-                    <tr style="background-color: #f9f9f9; height: 25px;">
-                        <th style="border: 1px solid #ccc; padding: 8px; width: 20%;">Date</th>
-                        <th style="border: 1px solid #ccc; padding: 8px; width: 50%;">Service Description</th>
-                        <th style="border: 1px solid #ccc; padding: 8px; width: 30%;">Technician Sign</th>
-                    </tr>
-                    <tr><td style="border: 1px solid #ccc; height: 47px; font-size: 11px; color: #aaa !important; text-align: center; font-style: italic;">TBD</td><td style="border: 1px solid #ccc; font-weight: normal !important; color: #aaa !important; padding-left: 8px; font-style: italic;">1st Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 47px; font-size: 11px; color: #aaa !important; text-align: center; font-style: italic;">TBD</td><td style="border: 1px solid #ccc; font-weight: normal !important; color: #aaa !important; padding-left: 8px; font-style: italic;">2nd Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 47px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 47px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 47px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
-                </table>
-            </div>
-
-            <!-- BOTTOM SECTION (Fixed Height) -->
-            <div style="flex-shrink: 0; position: relative; z-index: 2;">
-                <!-- TERMS & CONDITIONS -->
-                <div style="margin-bottom: 15px;">
-                    <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; font-size: 13px; margin-bottom: 6px; text-transform: uppercase;">Terms & Precautions</h3>
-                    <ul style="font-size: 12px; color: #222; padding-left: 20px; line-height: 1.4; margin-top: 0; margin-bottom: 0;">
-                        <li style="margin-bottom: 2px;"><strong>Power & Safety:</strong> Ensure power supply remains stable (220V/110V AC as specified). Use surge protectors to prevent motherboard damage.</li>
-                        <li style="margin-bottom: 2px;"><strong>Sensor Handling:</strong> Do <strong>NOT</strong> manually adjust ultrasonic sensors, submerge the controller unit, or touch wiring while the system is powered on.</li>
-                        <li style="margin-bottom: 2px;"><strong>Maintenance:</strong> Water scaling or condensation on tank sensors can cause false readings; schedule periodic dry wiping of the sensor head.</li>
-                        <li style="margin-bottom: 2px;"><strong>Connectivity:</strong> Keep the hub within standard Wi-Fi range (2.4GHz network required). Avoid placing metallic objects near the antennas.</li>
-                        <li style="margin-bottom: 2px;"><strong>Warranty Scope:</strong> Covers internal hardware defects and firmware bugs for the specified period. Physical damage, water ingress on the main hub, unauthorized modifications, or lightning surges are strictly <strong>not covered</strong>.</li>
-                        <li><strong>Support:</strong> For remote diagnostics, the device must remain online. Offline devices void the remote SLA turnaround time guarantees.</li>
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">1. Hardware Indicators (LEDs)</h3>
+            <ul style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 20px;">
+                <li><strong>Water Level (Green/Blue/Yellow/Red):</strong> Visually represents the current water level in your tank in 4 stages.</li>
+                <li><strong>Pump Status:</strong> Illuminates <strong>GREEN</strong> when the water pump is currently actively running.</li>
+                <li><strong>Connection LED:</strong> 
+                    <ul>
+                        <li><span style="color:#2ed573; font-weight:bold;">Solid Green:</span> Device is successfully connected to your home WiFi and the internet.</li>
+                        <li><span style="color:#ff4757; font-weight:bold;">Blinking Red/Blue:</span> Device is offline or in Setup/Captive Portal mode waiting for WiFi credentials.</li>
                     </ul>
-                </div>
+                </li>
+            </ul>
 
-                <!-- FOOTER: QR CODE & SIGNATURE -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                    <!-- Left: App QR -->
-                    <div style="display: flex; align-items: center; background: #f8f9fa; padding: 10px 15px; border-radius: 8px; border: 1px dashed #ccc; width: 320px;">
-                        <img id="printQrCode" src="" alt="App QR Code" style="width: 70px; height: 70px; image-rendering: high-quality; border: 1px solid #eee;">
-                        <div style="margin-left: 15px;">
-                            <strong style="font-size: 12px; color: #111;">Control App Download</strong>
-                            <p style="margin: 3px 0 0 0; font-size: 9px; color: #007bff; word-break: break-all;" id="printQrText"></p>
-                        </div>
-                    </div>
-                    
-                    <!-- Right: Signature -->
-                    <div style="text-align: center; margin-bottom: 5px;">
-                        <div class="print-sig" style="font-size: 32px; color: #000080; padding-bottom: 5px; padding-right: 15px; line-height: 1; margin-bottom: -5px; transform: rotate(-3deg);">Anish Denray</div>
-                        <div style="border-top: 1px solid #000; width: 220px; padding-top: 5px; font-size: 11px; font-weight: bold; color: #333; text-transform: uppercase;">Authorized Signature</div>
-                    </div>
-                </div>
-            </div>
-
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 5px;">2. Device Push Button Functions</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">The physical button on the front of the main hub has two primary functions:</p>
+            <ul style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 20px;">
+                <li><strong>Single Short Press:</strong> Manually toggles the water pump ON or OFF. Use this to override the automatic system.</li>
+                <li><strong>Long Press (Hold for 5 Seconds):</strong> Forces the device to disconnect from the internet and open its <strong>Captive Setup Portal</strong>. The connection LED will begin to blink, meaning the device is ready to be connected to a new WiFi network.</li>
+            </ul>
         </div>
-    </div>
-    
-    <!-- --- QUOTATION / PRICE INVOICE PRINT TEMPLATE --- -->
-    <div id="quotePrintTemplate" style="display: none;">
-        <!-- The parent wrapper acts as a full-page flex column -->
-        <div style="max-width: 800px; height: 100%; margin: 0 auto; color: #222; display: flex; flex-direction: column; position: relative; z-index: 1;">
+
+        <!-- PAGE 2 -->
+        <div class="manual-page">
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">3. First Time Setup & WiFi Configuration</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">To connect your device to the internet for the first time, follow these steps:</p>
+            <ol style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 25px;">
+                <li>Hold the device push button for 5 seconds until the Connection LED blinks.</li>
+                <li>Open your smartphone's WiFi settings and connect to the network named <strong>"SmartWater_Setup"</strong>.</li>
+                <li>A login window should pop up automatically. If not, open your web browser and go to <strong>192.168.4.1</strong>.</li>
+                <li>Select your home WiFi network from the list and enter your password.</li>
+                <li>The device will reboot. Once the Connection LED turns solid Green, you are successfully online!</li>
+            </ol>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 5px;">4. Accessing the Web Dashboard & App</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">Your system is fully controllable from anywhere in the world.</p>
+            <ul style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 20px;">
+                <li><strong>Login Credentials:</strong> Your default Account Email and Password are provided on your initial service bill/invoice. If you cannot find them, contact your installation technician.</li>
+                <li><strong>Changing Passwords:</strong> Once logged into the dashboard, click the three vertical dots (⋮) in the top right corner and select <strong>"Change Password"</strong>.</li>
+                <li><strong>Forgot Password:</strong> If you are completely locked out, please contact customer support. Only an administrator can permanently reset a lost Device ID password.</li>
+            </ul>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 5px;">5. Setting Tank Dimensions (Calibration)</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">The device needs to know the exact size of your tank to display accurate percentages.</p>
+            <ol style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 25px;">
+                <li>Log in to your Web Dashboard.</li>
+                <li>Click the three vertical dots (⋮) in the top right corner and select <strong>"Device Settings"</strong>.</li>
+                <li><strong>Tank Empty Depth:</strong> Enter the distance (in cm) from the sensor to the very bottom of the tank.</li>
+                <li><strong>Full Clearance:</strong> Enter the distance (in cm) from the sensor to the highest allowed water level. (Leave a gap of at least 15cm so the water does not touch the sensor).</li>
+                <li>Click <strong>"Save Settings"</strong> to push the update to your machine.</li>
+            </ol>
             
-            <!-- WATERMARK -->
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 85px; color: rgba(0, 0, 0, 0.05); z-index: 0; pointer-events: none; font-weight: bold; text-transform: uppercase; white-space: nowrap;">
-                ASK IoT Solutions
+            <div style="background-color: #f9f9f9; border-left: 4px solid #feca57; padding: 12px; margin-top: 20px;">
+                <strong style="font-size: 14px; color: #333;">💡 Automation Logic:</strong>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">The system operates autonomously. The pump will automatically <strong>TURN ON</strong> when water drops to the LOW level indicator. It will automatically <strong>TURN OFF</strong> when the water reaches the FULL clearance limit to prevent overflowing.</p>
             </div>
+        </div>
+
+        <!-- PAGE 3 -->
+        <div class="manual-page">
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">6. Soft Diagnostics & Troubleshooting</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.6;">If your system behaves unexpectedly, check the hardware LEDs before contacting support:</p>
             
-            <!-- TOP SECTION (Fixed Height) -->
-            <div style="flex-shrink: 0; position: relative; z-index: 2;">
-                <!-- HEADER SECTION -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #feca57; padding-bottom: 12px; margin-bottom: 15px;">
-                    <div>
-                        <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="ASK Logo" style="height: 75px; object-fit: contain; image-rendering: high-quality; image-rendering: -webkit-optimize-contrast;">
-                        <h2 style="margin: 10px 0 2px 0; color: #111; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">ASK IoT Solutions</h2>
-                        <p id="printQuoteCompanyAddress" style="margin: 0; font-size: 13px; color: #555;">Company Address Here</p>
-                        <p id="printQuoteCompanyContact" style="margin: 3px 0 0 0; font-size: 11px; color: #555;">Phone: -- | Email: --</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <h1 style="margin: 0; color: #333; font-size: 24px; text-transform: uppercase;">TAX INVOICE</h1>
-                        <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #555;">Date: <span id="printQuoteCurrentDate"></span></p>
-                    </div>
-                </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; margin-top: 15px; border: 1px solid #ddd;">
+                <tr style="background-color: #f1f1f1;">
+                    <th style="border: 1px solid #ddd; padding: 10px; width: 30%;">Symptom / LED Status</th>
+                    <th style="border: 1px solid #ddd; padding: 10px; width: 70%;">Possible Cause & Solution</th>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;"><strong>Connection LED is blinking continuously.</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">Your home WiFi is down, the password changed, or power was interrupted. Restart your router. If the password changed, hold the device button for 5s and set up WiFi again.</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;"><strong>Pump LED is ON, but water is not filling.</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">The device is sending power, but the motor might have an airlock, a blown capacitor, or there is no municipal water supply. Turn the pump OFF via the app to prevent dry-running.</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;"><strong>Water level shows 0% or 100% incorrectly.</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">Moisture or scaling might be blocking the ultrasonic sensor in the tank. Safely wipe the bottom of the sensor with a dry cloth. Ensure your "Empty Depth" settings in the app are correct.</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 10px;"><strong>Dashboard says "OFFLINE".</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 10px;">The main hub has lost power or internet. Check the plug point. Ensure the Connection LED is solid green.</td>
+                </tr>
+            </table>
 
-                <!-- INFO CARDS SECTION -->
-                <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 15px;">
-                    <div style="flex: 1; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
-                        <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">Billed To</h3>
-                        <p style="margin: 6px 0; font-size: 13px;"><strong id="printQuoteBilledToLabel">Customer Name:</strong> <span id="printQuoteCustName"></span></p>
-                        <p style="margin: 6px 0; font-size: 13px;"><strong>Address:</strong> <span id="printQuoteCustAddress"></span></p>
-                    </div>
-                </div>
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 10px; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px;">7. Safety Precautions</h3>
+            <ul style="font-size: 14px; color: #333; line-height: 1.6; padding-left: 20px;">
+                <li><strong>Do NOT open the Main Hub.</strong> High voltage (220V AC) is present inside the enclosure. Opening it voids the warranty and poses a severe shock hazard.</li>
+                <li><strong>Protect from Direct Water:</strong> While the tank sensor is moisture resistant, the Main Hub must be placed in a dry area protected from direct rain or water splashes.</li>
+                <li><strong>Surge Protection:</strong> It is highly recommended to use a voltage stabilizer or surge protector for the Main Hub to prevent motherboard damage during lightning storms or power grid fluctuations.</li>
+            </ul>
+
+            <div style="margin-top: 50px; text-align: center; color: #777; font-size: 12px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                <p>ASK IoT Solutions | Smart. Save. Sustain.</p>
+                <p>End of User Manual</p>
             </div>
-
-            <!-- MIDDLE SECTION (Flex Grow - Stretches to fill empty space) -->
-            <div style="flex-grow: 1; display: flex; flex-direction: column; margin-top: 10px; margin-bottom: 15px; position: relative; z-index: 2;">
-                <h3 style="margin: 0 0 8px 0; color: #111; font-size: 13px; text-transform: uppercase;">Hardware Pricing Details</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; border: 1.5px solid #222;">
-                    <tr style="background-color: #333; color: white !important;">
-                        <th style="border: 1px solid #222; padding: 8px; width: 10%; text-align: center; font-weight: normal !important; color: white !important;">Item</th>
-                        <th style="border: 1px solid #222; padding: 8px; width: 65%; font-weight: normal !important; color: white !important;">Module Description</th>
-                        <th style="border: 1px solid #222; padding: 8px; width: 25%; text-align: right; font-weight: normal !important; color: white !important;">Amount (INR ₹)</th>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 12px; text-align: center;">1</td>
-                        <td style="border: 1px solid #ccc; padding: 12px;"><strong>Sensor Box (Module 1)</strong><br><span style="font-size: 11px; color:#555;">Submersible / Tank-mounted measurement unit.</span></td>
-                        <td style="border: 1px solid #ccc; padding: 12px; text-align: right;" id="printQuoteM1">₹ 0.00</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 12px; text-align: center;">2</td>
-                        <td style="border: 1px solid #ccc; padding: 12px;"><strong>Rooftop Unit (Module 2)</strong><br><span style="font-size: 11px; color:#555;">Transmitter and primary data relay unit.</span></td>
-                        <td style="border: 1px solid #ccc; padding: 12px; text-align: right;" id="printQuoteM2">₹ 0.00</td>
-                    </tr>
-                    <tr id="quoteRowM3">
-                        <td style="border: 1px solid #ccc; padding: 12px; text-align: center;">3</td>
-                        <td style="border: 1px solid #ccc; padding: 12px;"><strong>Middleman Repeater (Module 3)</strong><br><span style="font-size: 11px; color:#555;">Optional signal booster / relay extension.</span></td>
-                        <td style="border: 1px solid #ccc; padding: 12px; text-align: right;" id="printQuoteM3">₹ 0.00</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #ccc; padding: 12px; text-align: center;">4</td>
-                        <td style="border: 1px solid #ccc; padding: 12px;"><strong id="printQuoteMod4Text">Main Hub Unit (Module 4)</strong><br><span style="font-size: 11px; color:#555;">Interconnection, data handling, and pump control core.</span></td>
-                        <td style="border: 1px solid #ccc; padding: 12px; text-align: right;" id="printQuoteM4">₹ 0.00</td>
-                    </tr>
-                    
-                    <!-- TOTALS CALCULATION -->
-                    <tr style="border-top: 2px solid #222;">
-                        <td colspan="2" style="padding: 10px 12px; text-align: right; font-weight: bold; color: #444;">Subtotal:</td>
-                        <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #444; border-left: 1px solid #ccc;" id="printQuoteSubtotal">₹ 0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="2" style="padding: 10px 12px; text-align: right; font-weight: bold; color: #444;">GST (18%):</td>
-                        <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #444; border-left: 1px solid #ccc;" id="printQuoteGST">₹ 0.00</td>
-                    </tr>
-                    <tr style="background-color: #f1f8ff; border-top: 2px solid #222; border-bottom: 2px solid #222;">
-                        <td colspan="2" style="padding: 12px; text-align: right; font-weight: bold; color: #111; font-size: 15px;">GRAND TOTAL:</td>
-                        <td style="padding: 12px; text-align: right; font-weight: bold; color: #111; font-size: 15px; border-left: 1px solid #ccc;" id="printQuoteGrandTotal">₹ 0.00</td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- BOTTOM SECTION (Fixed Height) -->
-            <div style="flex-shrink: 0; position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: flex-end;">
-                <!-- TERMS & CONDITIONS (Left Side) -->
-                <div style="width: 55%;">
-                    <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; font-size: 13px; margin-bottom: 6px; text-transform: uppercase;">Terms & Precautions</h3>
-                    <ul style="font-size: 12px; color: #222; padding-left: 20px; line-height: 1.4; margin-top: 0; margin-bottom: 0;">
-                        <li style="margin-bottom: 2px;"><strong>Power & Safety:</strong> Ensure power supply remains stable (220V/110V AC as specified). Use surge protectors to prevent motherboard damage.</li>
-                        <li style="margin-bottom: 2px;"><strong>Sensor Handling:</strong> Do <strong>NOT</strong> manually adjust ultrasonic sensors, submerge the controller unit, or touch wiring while the system is powered on.</li>
-                        <li style="margin-bottom: 2px;"><strong>Maintenance:</strong> Water scaling or condensation on tank sensors can cause false readings; schedule periodic dry wiping of the sensor head.</li>
-                        <li style="margin-bottom: 2px;"><strong>Connectivity:</strong> Keep the hub within standard Wi-Fi range (2.4GHz network required). Avoid placing metallic objects near the antennas.</li>
-                        <li style="margin-bottom: 2px;"><strong>Warranty Scope:</strong> Covers internal hardware defects and firmware bugs for the specified period. Physical damage, water ingress on the main hub, unauthorized modifications, or lightning surges are strictly <strong>not covered</strong>.</li>
-                        <li><strong>Support:</strong> For remote diagnostics, the device must remain online. Offline devices void the remote SLA turnaround time guarantees.</li>
-                    </ul>
-                </div>
-
-                <!-- FOOTER: PAYMENT QR & SIGNATURE (Right Side) -->
-                <div style="width: 40%; display: flex; flex-direction: column; align-items: flex-end;">
-                    
-                    <!-- Payment QR -->
-                    <div id="quoteQrContainer" style="display: flex; align-items: center; background: #fff; padding: 10px; border-radius: 8px; border: 2px solid #feca57; width: 100%; box-sizing: border-box; margin-bottom: 20px;">
-                        <img id="printQuoteQrCode" src="" alt="Payment QR" style="width: 70px; height: 70px; border: 1px solid #eee; image-rendering: high-quality;">
-                        <div style="margin-left: 15px;">
-                            <strong style="font-size: 12px; color: #111;">Scan to Pay (UPI)</strong>
-                            <p style="margin: 3px 0 0 0; font-size: 10px; color: #555; word-break: break-all;" id="printQuoteUpiText"></p>
-                        </div>
-                    </div>
-
-                    <!-- Right: Signature -->
-                    <div style="text-align: center; margin-bottom: 5px; width: 100%;">
-                        <div class="print-sig" style="font-size: 32px; color: #000080; padding-bottom: 5px; padding-right: 15px; line-height: 1; margin-bottom: -5px; transform: rotate(-3deg);">Anish Denray</div>
-                        <div style="border-top: 1px solid #000; width: 100%; padding-top: 5px; font-size: 11px; font-weight: bold; color: #333; text-transform: uppercase;">Authorized Signature</div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 
@@ -1918,7 +1818,7 @@
         window.lastSavedRunDate = "Waiting for data...";
         window.isFirstStateLoad = true;
 
-        // --- BILL GENERATION LOGIC ---
+        // --- PDF GENERATION LOGIC ---
         function updateBillNameLabel(typeId, labelId) {
             let type = document.getElementById(typeId).value;
             document.getElementById(labelId).innerText = type === 'Commercial' ? 'Organization Name:' : 'Customer Name:';
@@ -2107,6 +2007,14 @@
                 qrContainer.style.display = 'none';
                 finalizeQuotePrint();
             }
+        }
+
+        function executeManualGeneration() {
+            document.body.classList.add('print-mode-manual');
+            setTimeout(() => { 
+                window.print(); 
+                document.body.classList.remove('print-mode-manual');
+            }, 200); 
         }
 
         // Global function to securely lock in Active WiFi
