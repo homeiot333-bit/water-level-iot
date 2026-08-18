@@ -892,8 +892,10 @@
             body.print-mode-service #billPrintTemplate {
                 display: flex !important;
                 visibility: visible !important;
-                position: relative; width: 100%; height: 100vh; 
-                overflow: hidden; color: #222 !important; background: white !important;
+                position: relative; width: 100%; 
+                min-height: 100vh; height: auto; /* FIX: Allows it to stretch naturally */
+                overflow: visible; /* FIX: Stops the bottom from getting cut off */
+                color: #222 !important; background: white !important;
                 padding: 10mm 15mm; box-sizing: border-box; page-break-after: avoid;
             }
             
@@ -901,8 +903,10 @@
             body.print-mode-quote #quotePrintTemplate {
                 display: flex !important;
                 visibility: visible !important;
-                position: relative; width: 100%; height: 100vh; 
-                overflow: hidden; color: #222 !important; background: white !important;
+                position: relative; width: 100%; 
+                min-height: 100vh; height: auto; /* FIX: Allows it to stretch naturally */
+                overflow: visible; /* FIX: Stops the bottom from getting cut off */
+                color: #222 !important; background: white !important;
                 padding: 10mm 15mm; box-sizing: border-box; page-break-after: avoid;
             }
 
