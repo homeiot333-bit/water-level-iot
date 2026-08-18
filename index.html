@@ -868,8 +868,11 @@
             100% { text-shadow: 0 0 2px #2ed573; transform: scale(1); }
         }
 
-        /* --- PRINT CSS FOR A4 BILL GENERATION --- */
+        /* --- ADVANCED PRINT CSS FOR PROFESSIONAL A4 BILL --- */
         @media print {
+            @page {
+                margin: 0; /* Removes default browser headers, URL, and footers */
+            }
             body > *:not(#billPrintTemplate) {
                 display: none !important;
             }
@@ -881,9 +884,11 @@
                 top: 0;
                 width: 100%;
                 color: black !important;
-                font-family: Arial, sans-serif;
+                font-family: 'Segoe UI', Arial, sans-serif;
                 background: white !important;
-                padding: 10px;
+                padding: 15mm 20mm; /* Clean A4 margins */
+                box-sizing: border-box;
+                min-height: 100vh;
             }
             html, body {
                 background: white !important;
@@ -934,13 +939,12 @@
             <label style="color:#ccc; font-size:12px;">Warranty Period:</label>
             <input type="text" id="billWarranty" class="input-box" placeholder="e.g., 1 Year" style="padding:8px; margin-top:4px; font-size:14px;">
 
-            <!-- ADDED APP LINK INPUT -->
             <label style="color:#ccc; font-size:12px;">App Download Link:</label>
             <input type="text" id="billAppLink" class="input-box" placeholder="https://..." style="padding:8px; margin-top:4px; font-size:14px;">
 
             <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
                 <button class="btn-login" style="background:rgba(255,71,87,0.8); color:white; padding:10px; flex:1;" onclick="document.getElementById('billModalOverlay').style.display='none'">Cancel</button>
-                <button class="btn-login" style="background:#2ed573; color:black; padding:10px; flex:1;" onclick="executeBillGeneration()">Print PDF</button>
+                <button id="printBillBtn" class="btn-login" style="background:#2ed573; color:black; padding:10px; flex:1;" onclick="executeBillGeneration()">Print PDF</button>
             </div>
         </div>
     </div>
@@ -1218,7 +1222,7 @@
                     <button class="btn-login" style="background:rgba(156, 136, 255, 0.9); color:#fff; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px; width: 100%;" onclick="changeMasterPin()">🔐 Change Master PIN</button>
                     
                     <!-- --- ADDED: GENERATE BILL BUTTON --- -->
-                    <button class="btn-login" style="background:rgba(46, 213, 115, 0.9); color:#000; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px; width: 100%;" onclick="openBillGenerator()">📄 Generate Official Bill</button>
+                    <button class="btn-login" style="background:rgba(46, 213, 115, 0.9); color:#000; margin-top:0px; margin-bottom:20px; font-size:14px; padding:10px; width: 100%; box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);" onclick="openBillGenerator()">📄 Generate Official Bill</button>
 
                     <div id="searchMenuDropdown" style="display:none; position:absolute; right:20px; top:50px; background:rgba(20, 25, 35, 0.95); border:1px solid #00d2ff; border-radius:8px; padding:12px; z-index:100; box-shadow: 0 8px 25px rgba(0,0,0,0.8); backdrop-filter: blur(10px); min-width: 160px;">
                         <label style="color:#fff; font-size:13px; cursor:pointer;"><input type="radio" name="searchMode" value="devId" checked onchange="updateSearchPlaceholder()"> Search by Device ID</label><br>
@@ -1504,89 +1508,109 @@
         </div>
     </div>
 
-    <!-- --- HIDDEN A4 BILL TEMPLATE --- -->
+    <!-- --- COMPLETELY REDESIGNED PROFESSIONAL A4 BILL TEMPLATE --- -->
     <div id="billPrintTemplate" style="display: none;">
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px;">
-            <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="ASK Logo" style="height: 60px;">
-            <h1 style="margin: 10px 0 5px 0; color: #111;">ASK IoT Solutions</h1>
-            <p id="printCompanyAddress" style="margin: 0; font-size: 14px; color: #555;">Company Address Here</p>
-            <h2 style="margin: 15px 0 0 0; color: #333; text-transform: uppercase; letter-spacing: 2px;">Official Warranty & Configuration Bill</h2>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-            <div style="flex: 1;">
-                <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111;">Customer Details</h3>
-                <p><strong>Name:</strong> <span id="printCustName"></span></p>
-                <p><strong>Email:</strong> <span id="printCustEmail"></span></p>
-                <p><strong>Address:</strong> <span id="printCustAddress"></span></p>
+        <div style="max-width: 800px; margin: 0 auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #222;">
+            
+            <!-- HEADER SECTION -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00d2ff; padding-bottom: 15px; margin-bottom: 25px;">
+                <div>
+                    <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="ASK Logo" style="height: 75px; object-fit: contain; image-rendering: high-quality; image-rendering: -webkit-optimize-contrast;">
+                    <h2 style="margin: 10px 0 2px 0; color: #111; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">ASK IoT Solutions</h2>
+                    <p id="printCompanyAddress" style="margin: 0; font-size: 13px; color: #555;">Company Address Here</p>
+                </div>
+                <div style="text-align: right;">
+                    <h1 style="margin: 0; color: #333; font-size: 24px; text-transform: uppercase;">Service Bill</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #555;">Date: <span id="printCurrentDate"></span></p>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #00d2ff;">Warranty: <span id="printWarranty"></span></p>
+                </div>
             </div>
-            <div style="flex: 1; text-align: right;">
-                <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111;">System Information</h3>
-                <p><strong>Device ID (MAC):</strong> <span id="printDevId"></span></p>
-                <p><strong>Deployed Date:</strong> <span id="printDeployDate"></span></p>
-                <p><strong>Warranty:</strong> <span id="printWarranty"></span></p>
+
+            <!-- INFO CARDS SECTION -->
+            <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 30px;">
+                <div style="flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">Billed To (Customer)</h3>
+                    <p style="margin: 6px 0; font-size: 13px;"><strong>Name:</strong> <span id="printCustName"></span></p>
+                    <p style="margin: 6px 0; font-size: 13px;"><strong>Email:</strong> <span id="printCustEmail"></span></p>
+                    <p style="margin: 6px 0; font-size: 13px;"><strong>Address:</strong> <span id="printCustAddress"></span></p>
+                </div>
+                <div style="flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <h3 style="margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">System Identity</h3>
+                    <p style="margin: 6px 0; font-size: 13px;"><strong>Device MAC:</strong> <span id="printDevId"></span></p>
+                    <p style="margin: 6px 0; font-size: 13px;"><strong>Deployed:</strong> <span id="printDeployDate"></span></p>
+                    <p style="margin: 6px 0; font-size: 13px;"><strong>Machine Type:</strong> <span id="printMachineType"></span></p>
+                </div>
             </div>
-        </div>
 
-        <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111;">Hardware Configuration</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
-            <tr>
-                <td style="border: 1px solid #ccc; padding: 8px;"><strong>Machine Type:</strong></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><span id="printMachineType"></span></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><strong>Network Topology:</strong></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><span id="printTopology"></span></td>
-            </tr>
-            <tr>
-                <td style="border: 1px solid #ccc; padding: 8px;"><strong>Hub Board:</strong></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><span id="printHub"></span></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><strong>Tank Board:</strong></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><span id="printTank"></span></td>
-            </tr>
-            <tr>
-                <td style="border: 1px solid #ccc; padding: 8px;"><strong>Radio Module:</strong></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><span id="printRadio"></span></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><strong>Channel / Rate:</strong></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><span id="printChan"></span> / <span id="printRate"></span></td>
-            </tr>
-            <tr>
-                <td style="border: 1px solid #ccc; padding: 8px;"><strong>Tank Depth:</strong></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><span id="printDepth"></span></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><strong>Full Clearance:</strong></td>
-                <td style="border: 1px solid #ccc; padding: 8px;"><span id="printClearance"></span></td>
-            </tr>
-        </table>
+            <!-- CONFIGURATION TABLE -->
+            <h3 style="margin: 0 0 10px 0; color: #111; font-size: 14px; text-transform: uppercase;">Hardware Configuration Parameters</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left;">
+                <tr>
+                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Network Topology:</strong></td>
+                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printTopology"></span></td>
+                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Radio Module:</strong></td>
+                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printRadio"></span></td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Hub Board:</strong></td>
+                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printHub"></span></td>
+                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Tank Board:</strong></td>
+                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printTank"></span></td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Channel / Rate:</strong></td>
+                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printChan"></span> / <span id="printRate"></span></td>
+                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Tank Depth:</strong></td>
+                    <td style="border: 1px solid #ccc; padding: 10px;"><span id="printDepth"></span></td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid #ccc; padding: 10px; background: #fdfdfd;"><strong>Full Clearance:</strong></td>
+                    <td style="border: 1px solid #ccc; padding: 10px;" colspan="3"><span id="printClearance"></span></td>
+                </tr>
+            </table>
 
-        <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111;">Service History</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
-            <tr style="background-color: #eee;">
-                <th style="border: 1px solid #ccc; padding: 8px; width: 20%;">Date</th>
-                <th style="border: 1px solid #ccc; padding: 8px; width: 50%;">Service Description</th>
-                <th style="border: 1px solid #ccc; padding: 8px; width: 30%;">Technician Sign</th>
-            </tr>
-            <tr><td style="border: 1px solid #ccc; padding: 15px;"></td><td style="border: 1px solid #ccc; padding: 15px;"></td><td style="border: 1px solid #ccc; padding: 15px;"></td></tr>
-            <tr><td style="border: 1px solid #ccc; padding: 15px;"></td><td style="border: 1px solid #ccc; padding: 15px;"></td><td style="border: 1px solid #ccc; padding: 15px;"></td></tr>
-            <tr><td style="border: 1px solid #ccc; padding: 15px;"></td><td style="border: 1px solid #ccc; padding: 15px;"></td><td style="border: 1px solid #ccc; padding: 15px;"></td></tr>
-        </table>
+            <!-- SERVICE HISTORY TABLE -->
+            <h3 style="margin: 0 0 10px 0; color: #111; font-size: 14px; text-transform: uppercase;">Service & Maintenance History</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left;">
+                <tr style="background-color: #eee;">
+                    <th style="border: 1px solid #ccc; padding: 10px; width: 20%;">Date</th>
+                    <th style="border: 1px solid #ccc; padding: 10px; width: 50%;">Service Description</th>
+                    <th style="border: 1px solid #ccc; padding: 10px; width: 30%;">Technician Sign</th>
+                </tr>
+                <tr><td style="border: 1px solid #ccc; padding: 18px;"></td><td style="border: 1px solid #ccc; padding: 18px;"></td><td style="border: 1px solid #ccc; padding: 18px;"></td></tr>
+                <tr><td style="border: 1px solid #ccc; padding: 18px;"></td><td style="border: 1px solid #ccc; padding: 18px;"></td><td style="border: 1px solid #ccc; padding: 18px;"></td></tr>
+                <tr><td style="border: 1px solid #ccc; padding: 18px;"></td><td style="border: 1px solid #ccc; padding: 18px;"></td><td style="border: 1px solid #ccc; padding: 18px;"></td></tr>
+            </table>
 
-        <div style="margin-bottom: 20px;">
-            <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111;">Terms & Precautions</h3>
-            <ul style="font-size: 12px; color: #444; padding-left: 20px;">
-                <li>Ensure power supply remains stable. Use surge protectors if necessary.</li>
-                <li>Do NOT manually adjust ultrasonic sensors or touch wiring while powered on.</li>
-                <li>Water scaling on sensors can cause false readings; schedule periodic cleaning.</li>
-                <li>Warranty covers hardware defects only. Physical damage, water ingress on hub, or power surges are not covered.</li>
-            </ul>
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: center; margin-top: 30px; padding: 15px; border: 2px dashed #aaa; border-radius: 10px; background: #fafafa;">
-            <div style="flex: 1; text-align: center;">
-                <h3 style="margin: 0 0 5px 0; color: #111;">Download Mobile App</h3>
-                <p style="margin: 0; font-size: 13px; color: #555;">Scan the QR code or visit the link below to install the official control app.</p>
-                <p id="printQrText" style="margin: 5px 0 0 0; font-weight: bold; color: #007bff;">[Insert App Link Here]</p>
+            <!-- TERMS & CONDITIONS -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">Terms & Precautions</h3>
+                <ul style="font-size: 12px; color: #444; padding-left: 20px; line-height: 1.6;">
+                    <li>Ensure power supply remains stable. Use surge protectors if necessary to prevent motherboard damage.</li>
+                    <li>Do <strong>NOT</strong> manually adjust ultrasonic sensors or touch wiring while the system is powered on.</li>
+                    <li>Water scaling on tank sensors can cause false readings; schedule periodic cleaning of the sensor head.</li>
+                    <li>Warranty covers internal hardware defects only. Physical damage, water ingress on the main hub, or lightning surges are strictly not covered.</li>
+                </ul>
             </div>
-            <div style="margin-left: 20px;">
-                <img id="printQrCode" src="" alt="App QR Code" style="width: 100px; height: 100px;">
+
+            <!-- FOOTER: QR CODE & SIGNATURE -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px;">
+                <!-- Left: App QR -->
+                <div style="display: flex; align-items: center; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px dashed #ccc; width: 320px;">
+                    <img id="printQrCode" src="" alt="App QR Code" style="width: 80px; height: 80px; image-rendering: high-quality; border: 1px solid #eee;">
+                    <div style="margin-left: 15px;">
+                        <strong style="font-size: 13px; color: #111;">Control App Download</strong>
+                        <p style="margin: 5px 0 0 0; font-size: 10px; color: #007bff; word-break: break-all;" id="printQrText"></p>
+                    </div>
+                </div>
+                
+                <!-- Right: Signature -->
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <div style="font-family: 'Brush Script MT', 'Lucida Handwriting', cursive; font-size: 32px; color: #000; padding-bottom: 5px; line-height: 1;">Anish Denray</div>
+                    <div style="border-top: 1px solid #000; width: 220px; padding-top: 5px; font-size: 12px; font-weight: bold; color: #333; text-transform: uppercase;">Authorized Signature</div>
+                </div>
             </div>
+
         </div>
     </div>
 
@@ -1646,12 +1670,22 @@
         }
 
         function executeBillGeneration() {
+            // Change button to show loading state
+            const printBtn = document.getElementById('printBillBtn');
+            printBtn.innerText = "Generating PDF...";
+            printBtn.style.opacity = "0.7";
+            printBtn.style.pointerEvents = "none";
+
             let compAddress = document.getElementById('billCompanyAddress').value || "Company Address Pending";
             let custAddress = document.getElementById('billCustAddress').value || "Customer Address Pending";
             let warranty = document.getElementById('billWarranty').value || "Standard";
             let mTypeSel = document.getElementById('billMachineType').value;
             let mType = mTypeSel === "Custom" ? (document.getElementById('billCustomType').value || "Custom Machine") : mTypeSel;
             
+            // Set current date
+            let today = new Date();
+            document.getElementById('printCurrentDate').innerText = today.getDate().toString().padStart(2, '0') + '-' + (today.getMonth() + 1).toString().padStart(2, '0') + '-' + today.getFullYear();
+
             document.getElementById('printCompanyAddress').innerText = compAddress;
             document.getElementById('printCustAddress').innerText = custAddress;
             document.getElementById('printMachineType').innerText = mType;
@@ -1684,12 +1718,23 @@
             
             let appLink = document.getElementById('billAppLink').value || "App Link Not Provided"; 
             document.getElementById('printQrText').innerText = appLink;
-            document.getElementById('printQrCode').src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(appLink);
+            
+            let qrImg = document.getElementById('printQrCode');
+            
+            // Function to restore button and trigger print
+            const finalizePrint = () => {
+                document.getElementById('billModalOverlay').style.display = 'none';
+                printBtn.innerText = "Print PDF";
+                printBtn.style.opacity = "1";
+                printBtn.style.pointerEvents = "auto";
+                setTimeout(() => { window.print(); }, 200); 
+            };
 
-            document.getElementById('billModalOverlay').style.display = 'none';
-            setTimeout(() => {
-                window.print();
-            }, 500); 
+            // Safely wait for QR code to generate before freezing DOM with print dialog
+            qrImg.onload = finalizePrint;
+            qrImg.onerror = finalizePrint; // fallback if api fails
+            
+            qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=10&data=" + encodeURIComponent(appLink);
         }
 
         // Global function to securely lock in Active WiFi
