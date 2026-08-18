@@ -922,7 +922,7 @@
                 font-weight: bold !important;
             }
             .print-sig {
-                font-family: 'Brush Script MT', 'Lucida Handwriting', 'Snell Roundhand', cursive !important;
+                font-family: 'Brush Script MT', 'Bradley Hand', 'Lucida Handwriting', cursive !important;
             }
         }
     </style>
@@ -1579,52 +1579,54 @@
 
             <!-- CONFIGURATION TABLE -->
             <h3 style="margin: 0 0 10px 0; color: #111; font-size: 14px; text-transform: uppercase;">Hardware Configuration Parameters</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; text-align: left; border-top: 1px solid #333; border-bottom: 1px solid #333;">
-                <tr>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Network Topology:</strong></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printTopology"></span></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Radio Module:</strong></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printRadio"></span></td>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; text-align: left; border-top: 2px solid #222; border-bottom: 2px solid #222;">
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 10px; color: #555; width: 25%;"><strong>Network Topology:</strong></td>
+                    <td style="padding: 10px; width: 25%; border-right: 1px solid #eee;"><span id="printTopology"></span></td>
+                    <td style="padding: 10px; color: #555; width: 25%;"><strong>Radio Module:</strong></td>
+                    <td style="padding: 10px; width: 25%;"><span id="printRadio"></span></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 10px; color: #555;"><strong>Hub Board:</strong></td>
+                    <td style="padding: 10px; border-right: 1px solid #eee;"><span id="printHub"></span></td>
+                    <td style="padding: 10px; color: #555;"><strong>Tank Board:</strong></td>
+                    <td style="padding: 10px;"><span id="printTank"></span></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 10px; color: #555;"><strong>Channel / Rate:</strong></td>
+                    <td style="padding: 10px; border-right: 1px solid #eee;"><span id="printChan"></span> / <span id="printRate"></span></td>
+                    <td style="padding: 10px; color: #555;"><strong>Tank Depth:</strong></td>
+                    <td style="padding: 10px;"><span id="printDepth"></span></td>
                 </tr>
                 <tr>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Hub Board:</strong></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printHub"></span></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Tank Board:</strong></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printTank"></span></td>
-                </tr>
-                <tr>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Channel / Rate:</strong></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printChan"></span> / <span id="printRate"></span></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px; color: #555;"><strong>Tank Depth:</strong></td>
-                    <td style="border-bottom: 1px solid #eee; padding: 8px 5px;"><span id="printDepth"></span></td>
-                </tr>
-                <tr>
-                    <td style="padding: 8px 5px; color: #555;"><strong>Full Clearance:</strong></td>
-                    <td style="padding: 8px 5px;" colspan="3"><span id="printClearance"></span></td>
+                    <td style="padding: 10px; color: #555;"><strong>Full Clearance:</strong></td>
+                    <td style="padding: 10px;" colspan="3"><span id="printClearance"></span></td>
                 </tr>
             </table>
 
             <!-- SERVICE HISTORY TABLE -->
             <h3 style="margin: 0 0 10px 0; color: #111; font-size: 14px; text-transform: uppercase;">Service & Maintenance History</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; text-align: left;">
-                <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ccc;">
-                    <th style="padding: 8px; width: 20%;">Date</th>
-                    <th style="padding: 8px; width: 50%;">Service Description</th>
-                    <th style="padding: 8px; width: 30%;">Technician Sign</th>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; text-align: left; border-top: 2px solid #222; border-bottom: 2px solid #222;">
+                <tr style="background-color: #f9f9f9; border-bottom: 1px solid #333;">
+                    <th style="padding: 10px; width: 20%; border-right: 1px solid #ddd;">Date</th>
+                    <th style="padding: 10px; width: 50%; border-right: 1px solid #ddd;">Service Description</th>
+                    <th style="padding: 10px; width: 30%;">Technician Sign</th>
                 </tr>
-                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px;"></td><td style="padding: 12px;"></td><td style="padding: 12px;"></td></tr>
-                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px;"></td><td style="padding: 12px;"></td><td style="padding: 12px;"></td></tr>
-                <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px;"></td><td style="padding: 12px;"></td><td style="padding: 12px;"></td></tr>
+                <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 14px; border-right: 1px solid #ddd;"></td><td style="padding: 14px; border-right: 1px solid #ddd;"></td><td style="padding: 14px;"></td></tr>
+                <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 14px; border-right: 1px solid #ddd;"></td><td style="padding: 14px; border-right: 1px solid #ddd;"></td><td style="padding: 14px;"></td></tr>
+                <tr><td style="padding: 14px; border-right: 1px solid #ddd;"></td><td style="padding: 14px; border-right: 1px solid #ddd;"></td><td style="padding: 14px;"></td></tr>
             </table>
 
             <!-- TERMS & CONDITIONS -->
             <div style="margin-bottom: 20px;">
                 <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; font-size: 14px; text-transform: uppercase;">Terms & Precautions</h3>
-                <ul style="font-size: 12px; color: #444; padding-left: 20px; line-height: 1.6; margin-top: 5px;">
-                    <li>Ensure power supply remains stable. Use surge protectors if necessary to prevent motherboard damage.</li>
-                    <li>Do <strong>NOT</strong> manually adjust ultrasonic sensors or touch wiring while the system is powered on.</li>
-                    <li>Water scaling on tank sensors can cause false readings; schedule periodic cleaning of the sensor head.</li>
-                    <li>Warranty covers internal hardware defects only. Physical damage, water ingress on the main hub, or lightning surges are strictly not covered.</li>
+                <ul style="font-size: 11px; color: #444; padding-left: 20px; line-height: 1.6; margin-top: 5px;">
+                    <li><strong>Power & Safety:</strong> Ensure power supply remains stable (220V/110V AC as specified). Use surge protectors to prevent motherboard damage.</li>
+                    <li><strong>Sensor Handling:</strong> Do <strong>NOT</strong> manually adjust ultrasonic sensors, submerge the controller unit, or touch wiring while the system is powered on.</li>
+                    <li><strong>Maintenance:</strong> Water scaling or condensation on tank sensors can cause false readings; schedule periodic dry wiping of the sensor head.</li>
+                    <li><strong>Connectivity:</strong> Keep the hub within standard Wi-Fi range (2.4GHz network required). Avoid placing metallic objects near the antennas.</li>
+                    <li><strong>Warranty Scope:</strong> Covers internal hardware defects and firmware bugs for the specified period. Physical damage, water ingress on the main hub, unauthorized modifications, or lightning surges are strictly <strong>not covered</strong>.</li>
+                    <li><strong>Support:</strong> For remote diagnostics, the device must remain online. Offline devices void the remote SLA turnaround time guarantees.</li>
                 </ul>
             </div>
 
@@ -1641,7 +1643,7 @@
                 
                 <!-- Right: Signature -->
                 <div style="text-align: center; margin-bottom: 5px;">
-                    <div class="print-sig" style="font-size: 32px; color: #000080; padding-bottom: 5px; line-height: 1; margin-bottom: -5px;">Anish Denray</div>
+                    <div class="print-sig" style="font-size: 32px; color: #000080; padding-bottom: 5px; padding-right: 15px; line-height: 1; margin-bottom: -5px; transform: rotate(-3deg);">Anish Denray</div>
                     <div style="border-top: 1px solid #000; width: 220px; padding-top: 5px; font-size: 12px; font-weight: bold; color: #333; text-transform: uppercase;">Authorized Signature</div>
                 </div>
             </div>
