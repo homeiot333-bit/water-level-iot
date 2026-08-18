@@ -894,7 +894,7 @@
                 overflow: hidden; 
                 color: #222 !important;
                 background: white !important;
-                padding: 15mm; 
+                padding: 5mm 15mm 15mm 15mm; /* Adjusted padding to move content up */
                 box-sizing: border-box;
                 page-break-after: avoid;
             }
@@ -1547,10 +1547,15 @@
     <!-- --- COMPLETELY REDESIGNED PROFESSIONAL A4 BILL TEMPLATE --- -->
     <div id="billPrintTemplate" style="display: none;">
         <!-- The parent wrapper acts as a full-page flex column -->
-        <div style="max-width: 800px; height: 100%; margin: 0 auto; color: #222; display: flex; flex-direction: column;">
+        <div style="max-width: 800px; height: 100%; margin: 0 auto; color: #222; display: flex; flex-direction: column; position: relative; z-index: 1;">
+            
+            <!-- WATERMARK -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 85px; color: rgba(0, 0, 0, 0.05); z-index: 0; pointer-events: none; font-weight: bold; text-transform: uppercase; white-space: nowrap;">
+                ASK IoT Solutions
+            </div>
             
             <!-- TOP SECTION (Fixed Height) -->
-            <div style="flex-shrink: 0;">
+            <div style="flex-shrink: 0; position: relative; z-index: 2;">
                 <!-- HEADER SECTION -->
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #00d2ff; padding-bottom: 12px; margin-bottom: 15px;">
                     <div>
@@ -1583,7 +1588,7 @@
 
                 <!-- CONFIGURATION TABLE -->
                 <h3 style="margin: 0 0 8px 0; color: #111; font-size: 13px; text-transform: uppercase;">Hardware Configuration Parameters</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; border: 1.5px solid #222;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; border: 1.5px solid #222; position: relative; z-index: 2;">
                     <tr>
                         <td style="border: 1px solid #ccc; padding: 5px 8px; color: #333; width: 25%; font-weight: 600;"><strong>Network Topology:</strong></td>
                         <td style="border: 1px solid #ccc; padding: 5px 8px; width: 25%; color: #444;"><span id="printTopology"></span></td>
@@ -1610,7 +1615,7 @@
             </div>
 
             <!-- MIDDLE SECTION (Flex Grow - Stretches to fill empty space) -->
-            <div style="flex-grow: 1; display: flex; flex-direction: column; margin-top: 15px; margin-bottom: 15px;">
+            <div style="flex-grow: 1; display: flex; flex-direction: column; margin-top: 15px; margin-bottom: 15px; position: relative; z-index: 2;">
                 <h3 style="margin: 0 0 8px 0; color: #111; font-size: 13px; text-transform: uppercase;">Service & Maintenance History</h3>
                 <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; border: 1.5px solid #222;">
                     <tr style="background-color: #f9f9f9; height: 25px;">
@@ -1627,11 +1632,11 @@
             </div>
 
             <!-- BOTTOM SECTION (Fixed Height) -->
-            <div style="flex-shrink: 0;">
+            <div style="flex-shrink: 0; position: relative; z-index: 2;">
                 <!-- TERMS & CONDITIONS -->
                 <div style="margin-bottom: 15px;">
                     <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; font-size: 13px; margin-bottom: 6px; text-transform: uppercase;">Terms & Precautions</h3>
-                    <ul style="font-size: 11px; color: #222; padding-left: 20px; line-height: 1.4; margin-top: 0; margin-bottom: 0;">
+                    <ul style="font-size: 12px; color: #222; padding-left: 20px; line-height: 1.4; margin-top: 0; margin-bottom: 0;">
                         <li style="margin-bottom: 2px;"><strong>Power & Safety:</strong> Ensure power supply remains stable (220V/110V AC as specified). Use surge protectors to prevent motherboard damage.</li>
                         <li style="margin-bottom: 2px;"><strong>Sensor Handling:</strong> Do <strong>NOT</strong> manually adjust ultrasonic sensors, submerge the controller unit, or touch wiring while the system is powered on.</li>
                         <li style="margin-bottom: 2px;"><strong>Maintenance:</strong> Water scaling or condensation on tank sensors can cause false readings; schedule periodic dry wiping of the sensor head.</li>
