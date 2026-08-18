@@ -948,11 +948,22 @@
 
     <!-- --- NEW SERVICE BILL MODAL --- -->
     <div id="billModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,15,25,0.9); z-index:100000; align-items:center; justify-content:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
-        <div style="background:rgba(20,25,35,0.95); border:2px solid #00d2ff; border-radius:12px; padding:25px; width:90%; max-width:400px; box-shadow:0 15px 40px rgba(0,210,255,0.3); text-align:left;">
+        <div style="background:rgba(20,25,35,0.95); border:2px solid #00d2ff; border-radius:12px; padding:25px; width:90%; max-width:400px; box-shadow:0 15px 40px rgba(0,210,255,0.3); text-align:left; max-height: 90vh; overflow-y: auto;">
             <h3 style="color:#feca57; margin-top:0; text-align:center;">📄 Generate Service Bill</h3>
             
             <label style="color:#ccc; font-size:12px;">Company Address:</label>
             <input type="text" id="billCompanyAddress" class="input-box" placeholder="Type Company Address Here" style="padding:8px; margin-top:4px; font-size:14px;">
+
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label style="color:#ccc; font-size:12px;">Company Phone:</label>
+                    <input type="text" id="billCompanyPhone" class="input-box" placeholder="+91..." style="padding:8px; margin-top:4px; font-size:14px;">
+                </div>
+                <div style="flex:1;">
+                    <label style="color:#ccc; font-size:12px;">Company Email:</label>
+                    <input type="text" id="billCompanyEmail" class="input-box" placeholder="info@..." style="padding:8px; margin-top:4px; font-size:14px;">
+                </div>
+            </div>
 
             <label style="color:#ccc; font-size:12px;">Customer Address:</label>
             <input type="text" id="billCustAddress" class="input-box" placeholder="Type Customer Address Here" style="padding:8px; margin-top:4px; font-size:14px;">
@@ -994,6 +1005,17 @@
             
             <label style="color:#ccc; font-size:12px;">Company Address:</label>
             <input type="text" id="quoteCompanyAddress" class="input-box" placeholder="Type Company Address Here" style="padding:8px; margin-top:4px; font-size:14px;">
+            
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label style="color:#ccc; font-size:12px;">Company Phone:</label>
+                    <input type="text" id="quoteCompanyPhone" class="input-box" placeholder="+91..." style="padding:8px; margin-top:4px; font-size:14px;">
+                </div>
+                <div style="flex:1;">
+                    <label style="color:#ccc; font-size:12px;">Company Email:</label>
+                    <input type="text" id="quoteCompanyEmail" class="input-box" placeholder="info@..." style="padding:8px; margin-top:4px; font-size:14px;">
+                </div>
+            </div>
 
             <label style="color:#ccc; font-size:12px;">Customer Address:</label>
             <input type="text" id="quoteCustAddress" class="input-box" placeholder="Type Customer Address Here" style="padding:8px; margin-top:4px; font-size:14px;">
@@ -1022,10 +1044,20 @@
                 <div style="flex:2;"><label style="color:#ccc; font-size:11px;">3. Middleman (Optional)</label></div>
                 <div style="flex:1;"><input type="number" id="quoteMod3" class="input-box" placeholder="₹ 0" style="padding:6px; margin:0; font-size:13px;"></div>
             </div>
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <div style="flex:2;"><label style="color:#ccc; font-size:11px;">4. Main Hub Unit</label></div>
-                <div style="flex:1;"><input type="number" id="quoteMod4" class="input-box" placeholder="₹" style="padding:6px; margin:0; font-size:13px;"></div>
+            <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                <div style="flex:2;">
+                    <label style="color:#ccc; font-size:11px; display:block; margin-bottom:4px;">4. Main Hub Unit (Alpha/Beta/Other):</label>
+                    <input type="text" id="quoteMod4Type" class="input-box" placeholder="e.g., Alpha Type" style="padding:6px; margin:0; font-size:12px;">
+                </div>
+                <div style="flex:1;">
+                    <label style="color:transparent; font-size:11px; display:block; margin-bottom:4px;">.</label>
+                    <input type="number" id="quoteMod4" class="input-box" placeholder="₹" style="padding:6px; margin:0; font-size:13px;">
+                </div>
             </div>
+
+            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+            <label style="color:#ccc; font-size:12px;">Payment UPI ID / Link (For QR Code):</label>
+            <input type="text" id="quoteUpiLink" class="input-box" placeholder="upi://pay?pa=yourupi@bank..." style="padding:8px; margin-top:4px; font-size:14px;">
 
             <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
                 <button class="btn-login" style="background:rgba(255,71,87,0.8); color:white; padding:10px; flex:1;" onclick="document.getElementById('quoteModalOverlay').style.display='none'">Cancel</button>
@@ -1613,6 +1645,7 @@
                         <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="ASK Logo" style="height: 75px; object-fit: contain; image-rendering: high-quality; image-rendering: -webkit-optimize-contrast;">
                         <h2 style="margin: 10px 0 2px 0; color: #111; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">ASK IoT Solutions</h2>
                         <p id="printCompanyAddress" style="margin: 0; font-size: 13px; color: #555;">Company Address Here</p>
+                        <p id="printCompanyContact" style="margin: 3px 0 0 0; font-size: 11px; color: #555;">Phone: -- | Email: --</p>
                     </div>
                     <div style="text-align: right;">
                         <h1 style="margin: 0; color: #333; font-size: 24px; text-transform: uppercase;">Service Bill</h1>
@@ -1674,8 +1707,8 @@
                         <th style="border: 1px solid #ccc; padding: 8px; width: 50%;">Service Description</th>
                         <th style="border: 1px solid #ccc; padding: 8px; width: 30%;">Technician Sign</th>
                     </tr>
-                    <tr><td style="border: 1px solid #ccc; height: 47px; font-size: 11px; color: #777; text-align: center;">TBD</td><td style="border: 1px solid #ccc; font-weight: bold; color: #2ed573; padding-left: 8px;">1st Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 47px; font-size: 11px; color: #777; text-align: center;">TBD</td><td style="border: 1px solid #ccc; font-weight: bold; color: #2ed573; padding-left: 8px;">2nd Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
+                    <tr><td style="border: 1px solid #ccc; height: 47px; font-size: 11px; color: #aaa !important; text-align: center; font-style: italic;">TBD</td><td style="border: 1px solid #ccc; font-weight: normal !important; color: #aaa !important; padding-left: 8px; font-style: italic;">1st Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
+                    <tr><td style="border: 1px solid #ccc; height: 47px; font-size: 11px; color: #aaa !important; text-align: center; font-style: italic;">TBD</td><td style="border: 1px solid #ccc; font-weight: normal !important; color: #aaa !important; padding-left: 8px; font-style: italic;">2nd Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
                     <tr><td style="border: 1px solid #ccc; height: 47px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
                     <tr><td style="border: 1px solid #ccc; height: 47px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
                     <tr><td style="border: 1px solid #ccc; height: 47px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
@@ -1737,6 +1770,7 @@
                         <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="ASK Logo" style="height: 75px; object-fit: contain; image-rendering: high-quality; image-rendering: -webkit-optimize-contrast;">
                         <h2 style="margin: 10px 0 2px 0; color: #111; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">ASK IoT Solutions</h2>
                         <p id="printQuoteCompanyAddress" style="margin: 0; font-size: 13px; color: #555;">Company Address Here</p>
+                        <p id="printQuoteCompanyContact" style="margin: 3px 0 0 0; font-size: 11px; color: #555;">Phone: -- | Email: --</p>
                     </div>
                     <div style="text-align: right;">
                         <h1 style="margin: 0; color: #333; font-size: 24px; text-transform: uppercase;">TAX INVOICE</h1>
@@ -1758,10 +1792,10 @@
             <div style="flex-grow: 1; display: flex; flex-direction: column; margin-top: 10px; margin-bottom: 15px; position: relative; z-index: 2;">
                 <h3 style="margin: 0 0 8px 0; color: #111; font-size: 13px; text-transform: uppercase;">Hardware Pricing Details</h3>
                 <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; border: 1.5px solid #222;">
-                    <tr style="background-color: #f9f9f9; height: 35px;">
-                        <th style="border: 1px solid #ccc; padding: 8px; width: 10%; text-align: center;">Item</th>
-                        <th style="border: 1px solid #ccc; padding: 8px; width: 65%;">Module Description</th>
-                        <th style="border: 1px solid #ccc; padding: 8px; width: 25%; text-align: right;">Amount (INR ₹)</th>
+                    <tr style="background-color: #333; color: white !important;">
+                        <th style="border: 1px solid #222; padding: 8px; width: 10%; text-align: center; font-weight: normal !important; color: white !important;">Item</th>
+                        <th style="border: 1px solid #222; padding: 8px; width: 65%; font-weight: normal !important; color: white !important;">Module Description</th>
+                        <th style="border: 1px solid #222; padding: 8px; width: 25%; text-align: right; font-weight: normal !important; color: white !important;">Amount (INR ₹)</th>
                     </tr>
                     <tr>
                         <td style="border: 1px solid #ccc; padding: 12px; text-align: center;">1</td>
@@ -1780,7 +1814,7 @@
                     </tr>
                     <tr>
                         <td style="border: 1px solid #ccc; padding: 12px; text-align: center;">4</td>
-                        <td style="border: 1px solid #ccc; padding: 12px;"><strong>Main Hub Unit (Module 4)</strong><br><span style="font-size: 11px; color:#555;">Interconnection, data handling, and pump control core.</span></td>
+                        <td style="border: 1px solid #ccc; padding: 12px;"><strong id="printQuoteMod4Text">Main Hub Unit (Module 4)</strong><br><span style="font-size: 11px; color:#555;">Interconnection, data handling, and pump control core.</span></td>
                         <td style="border: 1px solid #ccc; padding: 12px; text-align: right;" id="printQuoteM4">₹ 0.00</td>
                     </tr>
                     
@@ -1801,9 +1835,9 @@
             </div>
 
             <!-- BOTTOM SECTION (Fixed Height) -->
-            <div style="flex-shrink: 0; position: relative; z-index: 2;">
-                <!-- TERMS & CONDITIONS -->
-                <div style="margin-bottom: 15px;">
+            <div style="flex-shrink: 0; position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: flex-end;">
+                <!-- TERMS & CONDITIONS (Left Side) -->
+                <div style="width: 55%;">
                     <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; font-size: 13px; margin-bottom: 6px; text-transform: uppercase;">Terms & Precautions</h3>
                     <ul style="font-size: 12px; color: #222; padding-left: 20px; line-height: 1.4; margin-top: 0; margin-bottom: 0;">
                         <li style="margin-bottom: 2px;"><strong>Power & Safety:</strong> Ensure power supply remains stable (220V/110V AC as specified). Use surge protectors to prevent motherboard damage.</li>
@@ -1815,12 +1849,22 @@
                     </ul>
                 </div>
 
-                <!-- FOOTER: SIGNATURE -->
-                <div style="display: flex; justify-content: flex-end; align-items: flex-end;">
+                <!-- FOOTER: PAYMENT QR & SIGNATURE (Right Side) -->
+                <div style="width: 40%; display: flex; flex-direction: column; align-items: flex-end;">
+                    
+                    <!-- Payment QR -->
+                    <div id="quoteQrContainer" style="display: flex; align-items: center; background: #fff; padding: 10px; border-radius: 8px; border: 2px solid #feca57; width: 100%; box-sizing: border-box; margin-bottom: 20px;">
+                        <img id="printQuoteQrCode" src="" alt="Payment QR" style="width: 70px; height: 70px; border: 1px solid #eee; image-rendering: high-quality;">
+                        <div style="margin-left: 15px;">
+                            <strong style="font-size: 12px; color: #111;">Scan to Pay (UPI)</strong>
+                            <p style="margin: 3px 0 0 0; font-size: 10px; color: #555; word-break: break-all;" id="printQuoteUpiText"></p>
+                        </div>
+                    </div>
+
                     <!-- Right: Signature -->
-                    <div style="text-align: center; margin-bottom: 5px;">
+                    <div style="text-align: center; margin-bottom: 5px; width: 100%;">
                         <div class="print-sig" style="font-size: 32px; color: #000080; padding-bottom: 5px; padding-right: 15px; line-height: 1; margin-bottom: -5px; transform: rotate(-3deg);">Anish Denray</div>
-                        <div style="border-top: 1px solid #000; width: 220px; padding-top: 5px; font-size: 11px; font-weight: bold; color: #333; text-transform: uppercase;">Authorized Signature</div>
+                        <div style="border-top: 1px solid #000; width: 100%; padding-top: 5px; font-size: 11px; font-weight: bold; color: #333; text-transform: uppercase;">Authorized Signature</div>
                     </div>
                 </div>
             </div>
@@ -1913,6 +1957,8 @@
             printBtn.style.pointerEvents = "none";
 
             let compAddress = document.getElementById('billCompanyAddress').value || "Company Address Pending";
+            let compPhone = document.getElementById('billCompanyPhone').value || "--";
+            let compEmail = document.getElementById('billCompanyEmail').value || "--";
             let custAddress = document.getElementById('billCustAddress').value || "Customer Address Pending";
             let warranty = document.getElementById('billWarranty').value || "Standard";
             
@@ -1923,6 +1969,7 @@
             document.getElementById('printCurrentDate').innerText = today.getDate().toString().padStart(2, '0') + '-' + (today.getMonth() + 1).toString().padStart(2, '0') + '-' + today.getFullYear();
 
             document.getElementById('printCompanyAddress').innerText = compAddress;
+            document.getElementById('printCompanyContact').innerText = `Phone: ${compPhone} | Email: ${compEmail}`;
             document.getElementById('printCustAddress').innerText = custAddress;
             document.getElementById('printMachineType').innerText = mType;
             document.getElementById('printWarranty').innerText = warranty;
@@ -1984,12 +2031,15 @@
             printBtn.style.pointerEvents = "none";
 
             let compAddress = document.getElementById('quoteCompanyAddress').value || "Company Address Pending";
+            let compPhone = document.getElementById('quoteCompanyPhone').value || "--";
+            let compEmail = document.getElementById('quoteCompanyEmail').value || "--";
             let custAddress = document.getElementById('quoteCustAddress').value || "Customer Address Pending";
             
             let today = new Date();
             document.getElementById('printQuoteCurrentDate').innerText = today.getDate().toString().padStart(2, '0') + '-' + (today.getMonth() + 1).toString().padStart(2, '0') + '-' + today.getFullYear();
 
             document.getElementById('printQuoteCompanyAddress').innerText = compAddress;
+            document.getElementById('printQuoteCompanyContact').innerText = `Phone: ${compPhone} | Email: ${compEmail}`;
             document.getElementById('printQuoteCustAddress').innerText = custAddress;
             
             let usageType = document.getElementById('quoteUsageType').value;
@@ -2008,6 +2058,14 @@
             document.getElementById('printQuoteM3').innerText = "₹ " + m3.toFixed(2);
             document.getElementById('printQuoteM4').innerText = "₹ " + m4.toFixed(2);
             
+            // Set Mod 4 Custom Text
+            let mod4Type = document.getElementById('quoteMod4Type').value || "";
+            if (mod4Type !== "") {
+                document.getElementById('printQuoteMod4Text').innerText = `Main Hub Unit (${mod4Type})`;
+            } else {
+                document.getElementById('printQuoteMod4Text').innerText = `Main Hub Unit (Module 4)`;
+            }
+
             if(m3 === 0) {
                 document.getElementById('quoteRowM3').style.display = "none";
             } else {
@@ -2022,16 +2080,33 @@
             document.getElementById('printQuoteGST').innerText = "₹ " + gst.toFixed(2);
             document.getElementById('printQuoteGrandTotal').innerText = "₹ " + total.toFixed(2);
 
-            document.getElementById('quoteModalOverlay').style.display = 'none';
-            printBtn.innerText = "Print Invoice";
-            printBtn.style.opacity = "1";
-            printBtn.style.pointerEvents = "auto";
-            
-            document.body.classList.add('print-mode-quote');
-            setTimeout(() => { 
-                window.print(); 
-                document.body.classList.remove('print-mode-quote');
-            }, 200); 
+            let upiLink = document.getElementById('quoteUpiLink').value || ""; 
+            let quoteQrImg = document.getElementById('printQuoteQrCode');
+            let qrContainer = document.getElementById('quoteQrContainer');
+
+            const finalizeQuotePrint = () => {
+                document.getElementById('quoteModalOverlay').style.display = 'none';
+                printBtn.innerText = "Print Invoice";
+                printBtn.style.opacity = "1";
+                printBtn.style.pointerEvents = "auto";
+                
+                document.body.classList.add('print-mode-quote');
+                setTimeout(() => { 
+                    window.print(); 
+                    document.body.classList.remove('print-mode-quote');
+                }, 200); 
+            };
+
+            if (upiLink !== "") {
+                document.getElementById('printQuoteUpiText').innerText = upiLink;
+                qrContainer.style.display = 'flex';
+                quoteQrImg.onload = finalizeQuotePrint;
+                quoteQrImg.onerror = finalizeQuotePrint; 
+                quoteQrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=10&data=" + encodeURIComponent(upiLink);
+            } else {
+                qrContainer.style.display = 'none';
+                finalizeQuotePrint();
+            }
         }
 
         // Global function to securely lock in Active WiFi
