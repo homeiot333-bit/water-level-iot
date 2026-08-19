@@ -1744,11 +1744,11 @@
                         <th style="border: 1px solid #ccc; padding: 8px; width: 50%;">Service Description</th>
                         <th style="border: 1px solid #ccc; padding: 8px; width: 30%;">Technician Sign</th>
                     </tr>
-                    <tr><td style="border: 1px solid #ccc; height: 25px; font-size: 11px; color: #aaa !important; text-align: center; font-style: italic;">TBD</td><td style="border: 1px solid #ccc; font-weight: normal !important; color: #aaa !important; padding-left: 8px; font-style: italic;">1st Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 25px; font-size: 11px; color: #aaa !important; text-align: center; font-style: italic;">TBD</td><td style="border: 1px solid #ccc; font-weight: normal !important; color: #aaa !important; padding-left: 8px; font-style: italic;">2nd Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 25px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 25px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
-                    <tr><td style="border: 1px solid #ccc; height: 25px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
+                    <tr><td style="border: 1px solid #ccc; height: 30px; font-size: 11px; color: #aaa !important; text-align: center; font-style: italic;">TBD</td><td style="border: 1px solid #ccc; font-weight: normal !important; color: #aaa !important; padding-left: 8px; font-style: italic;">1st Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
+                    <tr><td style="border: 1px solid #ccc; height: 30px; font-size: 11px; color: #aaa !important; text-align: center; font-style: italic;">TBD</td><td style="border: 1px solid #ccc; font-weight: normal !important; color: #aaa !important; padding-left: 8px; font-style: italic;">2nd Routine Service (Complimentary / FREE)</td><td style="border: 1px solid #ccc;"></td></tr>
+                    <tr><td style="border: 1px solid #ccc; height: 30px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
+                    <tr><td style="border: 1px solid #ccc; height: 30px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
+                    <tr><td style="border: 1px solid #ccc; height: 30px;"></td><td style="border: 1px solid #ccc;"></td><td style="border: 1px solid #ccc;"></td></tr>
                 </table>
             </div>
 
@@ -1810,7 +1810,7 @@
                         <p id="printQuoteCompanyContact" style="margin: 3px 0 0 0; font-size: 11px; color: #555;">Phone: -- | Email: --</p>
                     </div>
                     <div style="text-align: right;">
-                        <h1 style="margin: 0; color: #333; font-size: 24px; text-transform: uppercase;">TAX INVOICE</h1>
+                        <h1 style="margin: 0; color: #333; font-size: 24px; text-transform: uppercase;">GENERAL INVOICE</h1>
                         <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #555;">Date: <span id="printQuoteCurrentDate"></span></p>
                     </div>
                 </div>
@@ -1860,10 +1860,6 @@
                         <td colspan="2" style="padding: 10px 12px; text-align: right; font-weight: bold; color: #444;">Subtotal:</td>
                         <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #444; border-left: 1px solid #ccc;" id="printQuoteSubtotal">₹ 0.00</td>
                     </tr>
-                    <tr>
-                        <td colspan="2" style="padding: 10px 12px; text-align: right; font-weight: bold; color: #444;">GST (18%):</td>
-                        <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #444; border-left: 1px solid #ccc;" id="printQuoteGST">₹ 0.00</td>
-                    </tr>
                     <tr style="background-color: #f1f8ff; border-top: 2px solid #222; border-bottom: 2px solid #222;">
                         <td colspan="2" style="padding: 12px; text-align: right; font-weight: bold; color: #111; font-size: 15px;">GRAND TOTAL:</td>
                         <td style="padding: 12px; text-align: right; font-weight: bold; color: #111; font-size: 15px; border-left: 1px solid #ccc;" id="printQuoteGrandTotal">₹ 0.00</td>
@@ -1882,7 +1878,7 @@
                         <li style="margin-bottom: 2px;"><strong>Maintenance:</strong> Water scaling or condensation on tank sensors can cause false readings; schedule periodic dry wiping of the sensor head.</li>
                         <li style="margin-bottom: 2px;"><strong>Connectivity:</strong> Keep the hub within standard Wi-Fi range (2.4GHz network required). Avoid placing metallic objects near the antennas.</li>
                         <li style="margin-bottom: 2px;"><strong>Warranty Scope:</strong> Covers internal hardware defects and firmware bugs for the specified period. Physical damage, water ingress on the main hub, unauthorized modifications, or lightning surges are strictly <strong>not covered</strong>.</li>
-                        <li><strong>Support:</strong> For remote diagnostics, the device must remain online. Offline devices void the remote SLA turnaround time guarantees.</li>
+                        <li style="margin-top: 4px; color: #444;"><strong>Legal Disclaimer:</strong> The company name & logo are unregistered. This is a General Invoice; no GST is charged as the issuer does not hold a GST registration.</li>
                     </ul>
                 </div>
 
@@ -2196,7 +2192,7 @@
             document.getElementById('printQuoteBilledToLabel').innerText = usageType === 'Commercial' ? 'Organization Name:' : 'Customer Name:';
             document.getElementById('printQuoteCustName').innerText = billedName;
 
-            // Math Logic
+            // Math Logic - No GST
             let m1 = parseFloat(document.getElementById('quoteMod1').value) || 0;
             let m2 = parseFloat(document.getElementById('quoteMod2').value) || 0;
             let m3 = parseFloat(document.getElementById('quoteMod3').value) || 0;
@@ -2222,11 +2218,9 @@
             }
 
             let subtotal = m1 + m2 + m3 + m4;
-            let gst = subtotal * 0.18;
-            let total = subtotal + gst;
+            let total = subtotal; // NO GST Added
 
             document.getElementById('printQuoteSubtotal').innerText = "₹ " + subtotal.toFixed(2);
-            document.getElementById('printQuoteGST').innerText = "₹ " + gst.toFixed(2);
             document.getElementById('printQuoteGrandTotal').innerText = "₹ " + total.toFixed(2);
 
             let upiLink = document.getElementById('quoteUpiLink').value || ""; 
