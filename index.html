@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+my last hardworking website code was "<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1794,8 +1794,6 @@
         <!-- The parent wrapper acts as a full-page flex column -->
         <div style="max-width: 800px; height: 100%; margin: 0 auto; color: #222; display: flex; flex-direction: column; position: relative; z-index: 1;">
             
-            <div id="quotePaidStamp" style="display: none; border: 8px solid rgba(46, 213, 115, 0.5); color: rgba(46, 213, 115, 0.5); position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 80px; font-weight: 900; letter-spacing: 10px; text-transform: uppercase; z-index: 100; pointer-events: none; border-radius: 15px; padding: 10px 30px;">PAID IN FULL</div>
-
             <!-- WATERMARK -->
             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 85px; color: rgba(0, 0, 0, 0.05); z-index: 0; pointer-events: none; font-weight: bold; text-transform: uppercase; white-space: nowrap;">
                 ASK IoT Solutions
@@ -1916,83 +1914,100 @@
                 <img src="https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png" alt="Company Logo" style="height: 60px; object-fit: contain; margin-right: 15px;">
                 <div style="text-align: left;">
                     <h1 style="margin: 0; color: #111; font-size: 26px; text-transform: uppercase;">Smart Water System</h1>
-                    <h2 style="margin: 2px 0 0 0; color: #555; font-size: 16px;">Quick Installation & User Guide</h2>
+                    <h2 style="margin: 2px 0 0 0; color: #555; font-size: 16px;">Official User Manual</h2>
                 </div>
             </div>
             
-            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">1. Very Simple Installation Guide</h3>
-            <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 5px;">Follow these two simple steps to physically set up your device:</p>
-            <ol style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 25px; margin-top: 5px;">
-                <li><strong>Install the Rooftop Unit:</strong> Place the sensor box directly above your water tank. Make sure the two round "eyes" are pointing <strong>straight down</strong> at the water. Do not let the sensor touch the water.</li>
-                <li><strong>Plug in the Main Hub:</strong> Keep the Main Hub inside your house in a dry, safe place. Plug it into a normal wall socket and turn the power on.</li>
-            </ol>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="https://raw.githubusercontent.com/homeiot333-bit/water-level-iot/main/file_000000002ba881fa8613bda9e26aaa71.png" alt="Device Hardware Overview" style="max-width: 100%; max-height: 380px; border-radius: 8px; border: 1px solid #ddd; object-fit: contain;">
+            </div>
 
-            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 15px; border-bottom: 1px solid #eee; padding-bottom: 4px;">2. First Time Setup & Getting Your Password</h3>
-            <ol style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 25px; margin-top: 5px;">
-                <li>Press and hold the button on the Main Hub for <strong>5 seconds</strong> until the light starts blinking <strong>🩷 PINK</strong>.</li>
-                <li>Open your mobile phone, go to Wi-Fi settings, and connect to the network named <strong>"SmartWater_Setup"</strong>.</li>
-                <li>A setup page will open on your phone automatically. <strong>IMPORTANT: Write down the Login Email and Password shown on this screen!</strong> You will need them to log into the website.</li>
-                <li>Select your home Wi-Fi name, enter your home Wi-Fi password, and click save. The machine will restart and connect to the internet automatically!</li>
-            </ol>
-
-            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 15px; border-bottom: 1px solid #eee; padding-bottom: 4px;">3. Light Colors (LEDs) - What do they mean?</h3>
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">1. Hardware Indicators (LEDs)</h3>
             <ul style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 20px; margin-top: 5px;">
-                <li>🟢 <strong>GREEN:</strong> Tank is 100% Full.</li>
-                <li>🔵 <strong>BLUE:</strong> Tank is Below 75%.</li>
-                <li>🟡 <strong>YELLOW:</strong> Tank is Below 50%.</li>
-                <li>🔴 <strong>RED (Water LED):</strong> Tank is Below 25% (Pump will turn on automatically).</li>
-                <li style="margin-top: 8px;">🩷 <strong>PINK (Pump LED):</strong> The water pump is currently actively running.</li>
-                <li>🔴 <strong>RED (Connection LED):</strong> Solid Red means the device is successfully connected to the internet.</li>
-                <li>🩷 <strong>PINK (Blinking):</strong> The device is in Wi-Fi Setup Mode waiting for your phone.</li>
+                <li><strong>Water Level (Green/Blue/Yellow/Red):</strong> Visually represents the current water level in your tank in 4 stages.</li>
+                <li><strong>Pump Status:</strong> Illuminates <strong>GREEN</strong> when the water pump is currently actively running.</li>
+                <li><strong>Connection LED:</strong> 
+                    <ul>
+                        <li><span style="color:#2ed573; font-weight:bold;">Solid Green:</span> Device is successfully connected to your home WiFi and the internet.</li>
+                        <li><span style="color:#ff4757; font-weight:bold;">Blinking Red/Blue:</span> Device is offline or in Setup/Captive Portal mode waiting for WiFi credentials.</li>
+                    </ul>
+                </li>
             </ul>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 15px; border-bottom: 1px solid #eee; padding-bottom: 4px;">2. Device Push Button Functions</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 5px;">The physical button on the front of the main hub has two primary functions:</p>
+            <ul style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 20px; margin-top: 5px;">
+                <li><strong>Single Short Press:</strong> Manually toggles the water pump ON or OFF. Use this to override the automatic system.</li>
+                <li><strong>Long Press (Hold for 5 Seconds):</strong> Forces the device to disconnect from the internet and open its <strong>Captive Setup Portal</strong>. The connection LED will begin to blink, meaning the device is ready to be connected to a new WiFi network.</li>
+            </ul>
+
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 15px; border-bottom: 1px solid #eee; padding-bottom: 4px;">3. First Time Setup & WiFi Configuration</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 5px;">To connect your device to the internet for the first time, follow these steps:</p>
+            <ol style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 25px; margin-top: 5px;">
+                <li>Hold the device push button for 5 seconds until the Connection LED blinks.</li>
+                <li>Open your smartphone's WiFi settings and connect to the network named <strong>"SmartWater_Setup"</strong>.</li>
+                <li>A login window should pop up automatically. If not, open your web browser and go to <strong>192.168.4.1</strong>.</li>
+                <li>Select your home WiFi network from the list and enter your password.</li>
+                <li>The device will reboot. Once the Connection LED turns solid Green, you are successfully online!</li>
+            </ol>
         </div>
 
         <!-- PAGE 2 -->
         <div class="manual-page">
-            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">4. How to Turn the Pump ON/OFF Manually</h3>
-            <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 5px;">The system is fully automatic, but if you want to control it yourself:</p>
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">4. Accessing the Web Dashboard & App</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 5px;">Your system is fully controllable from anywhere in the world.</p>
             <ul style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 20px; margin-top: 5px;">
-                <li><strong>From the Machine:</strong> Press the physical button on the Main Hub exactly <strong>one time</strong>.</li>
-                <li><strong>From the Website:</strong> Login to the website and click the giant round button. It will show 🟢 GREEN when running, and 🔴 RED when stopped.</li>
+                <li><strong>Login Credentials:</strong> Your default Account Email and Password are provided on your initial service bill/invoice. If you cannot find them, contact your installation technician.</li>
+                <li><strong>Changing Passwords:</strong> Once logged into the dashboard, click the three vertical dots (⋮) in the top right corner and select <strong>"Change Password"</strong>.</li>
+                <li><strong>Forgot Password:</strong> If you are completely locked out, please contact customer support. Only an administrator can permanently reset a lost Device ID password.</li>
             </ul>
 
-            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 4px;">5. Website Features & Changing Your Password</h3>
-            <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 5px;">Once you log into the web dashboard with your saved Email and Password, you can enjoy:</p>
-            <ul style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 20px; margin-top: 5px;">
-                <li><strong>Live Animated Tank:</strong> Watch water fill up and drop in real-time.</li>
-                <li><strong>Daily Usage Tracker:</strong> See exactly how much water your house consumes every day to stop wastage.</li>
-                <li><strong>Engineering Data:</strong> View live signal quality and exact distance measurements.</li>
-                <li><strong>Change Password:</strong> Click the three dots (⋮) in the top right corner of the dashboard, and select <strong>"Change Password"</strong> to make your account secure.</li>
-            </ul>
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 4px;">5. Setting Tank Dimensions (Calibration)</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 5px;">The device needs to know the exact size of your tank to display accurate percentages.</p>
+            <ol style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 25px; margin-top: 5px;">
+                <li>Log in to your Web Dashboard.</li>
+                <li>Click the three vertical dots (⋮) in the top right corner and select <strong>"Device Settings"</strong>.</li>
+                <li><strong>Tank Empty Depth:</strong> Enter the distance (in cm) from the sensor to the very bottom of the tank.</li>
+                <li><strong>Full Clearance:</strong> Enter the distance (in cm) from the sensor to the highest allowed water level. (Leave a gap of at least 15cm so the water does not touch the sensor).</li>
+                <li>Click <strong>"Save Settings"</strong> to push the update to your machine.</li>
+            </ol>
+            
+            <div style="background-color: #f9f9f9; border-left: 4px solid #feca57; padding: 10px; margin-top: 15px;">
+                <strong style="font-size: 14px; color: #333;">💡 Automation Logic:</strong>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">The system operates autonomously. The pump will automatically <strong>TURN ON</strong> when water drops to the LOW level indicator. It will automatically <strong>TURN OFF</strong> when the water reaches the FULL clearance limit to prevent overflowing.</p>
+            </div>
 
-            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 4px;">6. Troubleshooting (Fault Lights)</h3>
+            <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 4px;">6. Soft Diagnostics & Troubleshooting</h3>
+            <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 10px;">If your system behaves unexpectedly, check the hardware LEDs before contacting support:</p>
+            
             <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; margin-top: 10px; border: 1px solid #ddd;">
                 <tr style="background-color: #f1f1f1;">
                     <th style="border: 1px solid #ddd; padding: 8px; width: 30%;">Symptom / LED Status</th>
-                    <th style="border: 1px solid #ddd; padding: 8px; width: 70%;">Meaning & Easy Fix</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; width: 70%;">Possible Cause & Solution</th>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px;"><strong>Connection LED is Blinking Red.</strong></td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">The machine lost your home Wi-Fi signal. Check if your router is turned on. If your Wi-Fi password changed recently, do the 5-second button hold to set it up again.</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;"><strong>Connection LED is blinking continuously.</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">Your home WiFi is down, the password changed, or power was interrupted. Restart your router. If the password changed, hold the device button for 5s and set up WiFi again.</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid #ddd; padding: 8px;"><strong>Pump LED is ON, but water is not filling.</strong></td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">The machine is sending power, but your pump has no water to pull. Turn the pump OFF from the website immediately so it does not burn out!</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">The device is sending power, but the motor might have an airlock, a blown capacitor, or there is no municipal water supply. Turn the pump OFF via the app to prevent dry-running.</td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px;"><strong>Red Light & Pink Light are Blinking together.</strong></td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">Sensor Error. The Main Hub cannot talk to the Rooftop unit, or the sensor has water drops on it. Safely wipe the bottom of the sensor with a dry cloth.</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;"><strong>Water level shows 0% or 100% incorrectly.</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">Moisture or scaling might be blocking the ultrasonic sensor in the tank. Safely wipe the bottom of the sensor with a dry cloth. Ensure your "Empty Depth" settings in the app are correct.</td>
                 </tr>
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px;"><strong>Fast Blinking Red Light.</strong></td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">OVERFLOW DANGER! Water is hitting the sensor. The pump has automatically locked itself to keep you safe.</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;"><strong>Dashboard says "OFFLINE".</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">The main hub has lost power or internet. Check the plug point. Ensure the Connection LED is solid green.</td>
                 </tr>
             </table>
 
             <h3 style="color: #00d2ff; font-size: 18px; margin-bottom: 8px; margin-top: 25px; border-bottom: 1px solid #eee; padding-bottom: 4px;">7. Safety Precautions</h3>
             <ul style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 20px; margin-top: 5px;">
-                <li><strong>Do NOT open the Main Hub.</strong> High voltage (220V AC) is present inside. Opening it is dangerous.</li>
-                <li><strong>Protect from Direct Rain:</strong> Keep the Main Hub in a dry area protected from rain.</li>
+                <li><strong>Do NOT open the Main Hub.</strong> High voltage (220V AC) is present inside the enclosure. Opening it voids the warranty and poses a severe shock hazard.</li>
+                <li><strong>Protect from Direct Water:</strong> While the tank sensor is moisture resistant, the Main Hub must be placed in a dry area protected from direct rain or water splashes.</li>
+                <li><strong>Surge Protection:</strong> It is highly recommended to use a voltage stabilizer or surge protector for the Main Hub to prevent motherboard damage during lightning storms or power grid fluctuations.</li>
             </ul>
 
             <div style="margin-top: 30px; text-align: center; color: #777; font-size: 12px; border-top: 1px dashed #ccc; padding-top: 15px;">
@@ -2154,15 +2169,11 @@
             qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=10&data=" + encodeURIComponent(appLink);
         }
 
-        async function executeQuoteGeneration() {
-            let isPaid = await customConfirm("Is this invoice fully PAID?\n\nClick 'OK' to add a PAID stamp, or 'Cancel' for a standard invoice.");
-
+        function executeQuoteGeneration() {
             const printBtn = document.getElementById('printQuoteBtn');
             printBtn.innerText = "Generating Invoice...";
             printBtn.style.opacity = "0.7";
             printBtn.style.pointerEvents = "none";
-
-            document.getElementById('quotePaidStamp').style.display = isPaid ? 'block' : 'none';
 
             let compAddress = document.getElementById('quoteCompanyAddress').value || "Company Address Pending";
             let compPhone = document.getElementById('quoteCompanyPhone').value || "--";
@@ -4115,3 +4126,4 @@
     </script>
 </body>
 </html>
+" , remember it
