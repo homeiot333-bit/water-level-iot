@@ -4130,4 +4130,104 @@
                     let color = (textStr.includes("Stopped") || textStr.includes("OFF") || textStr.includes("shutdown")) ? "#ff4757" : "#2ed573";
                     let icon = (textStr.includes("Web") || textStr.includes("WEB") || textStr.includes("Cloud") || textStr.includes("Sent") || textStr.includes("Sending")) ? "🌐" : (textStr.includes("Manual") || textStr.includes("Override")) ? "👆" : "🤖";
                     
-                    html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0Sorry, something went wrong. Please try your request again.
+                    html += `<div style="border-left: 3px solid ${color}; padding-left: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.02); padding: 6px; border-radius: 4px;">
+                        <div style="color:${color}; font-weight:bold; font-size:11px;">${icon} ${realWorldTime}</div>
+                        <div style="color:#fff; font-size:11px; margin-top:2px;">${textStr}</div>
+                    </div>`;
+                });
+                
+                if (displayItems.length === 0) {
+                    html = "<div style='font-size:11px; color:#aaa;'>No pump history available yet.</div>";
+                }
+                
+                const listEl = document.getElementById('adminPumpHistoryList');
+                if(listEl) listEl.innerHTML = html;
+            });
+        }
+
+        async function togglePump() {
+            if(!currentDeviceId) return;
+
+            const btn = document.getElementById('pumpToggleBtn');
+            
+            if (btn.innerText.includes("WAIT") || btn.innerText === "OFFLINE") return; 
+
+            if (!navigator.onLine || !document.getElementById('connIndicator').innerText.includes("Connected")) {
+                await customAlert("❌ Network Offline: Cannot send command right now.");
+                return;
+            }
+
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+                if(!await customConfirm("⚠️ LAYER 1: WARNING!\n\nYou are about to manually override the automated pump system. Proceed?")) return;
+                
+                const pin = await customPrompt("🔒 LAYER 2: MASTER CONTROL SECURITY\n\nEnter Admin PIN to authorize pump control:", true);
+                if (pin !== window.adminPin) {
+                    await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                    return;
+                }
+                
+                if(!await customConfirm("🛑 LAYER 3: FINAL CONFIRMATION\n\nAre you absolutely sure you want to execute this hardware command?")) return;
+            }
+            
+            let desiredState;
+            let optLog = "";
+            if (btn.innerText.includes("TURN\nON")) {
+                desiredState = true;
+                optLog = "Pump ON (Web Command Sent)";
+            } else if (btn.innerText.includes("TURN\nOFF")) {
+                desiredState = false;
+                optLog = "Pump OFF (Web Command Sent)";
+            } else {
+                return; 
+            }
+
+            // --- INSTANT UI TRIGGER FOR HISTORY ---
+            insertOptimisticHistory(optLog);
+
+            // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
+            btn.innerText = "WAIT...";
+            btn.style.pointerEvents = "none";
+            btn.style.cursor = "not-allowed";
+            btn.style.opacity = "0.6";
+            
+            const newTrigger = Date.now(); 
+
+            database.ref('/Devices/' + currentDeviceId + '/control').update({
+                forceState: desiredState,
+                triggerId: newTrigger
+            });
+            
+            if(localPumpCommandTimeout) clearTimeout(localPumpCommandTimeout);
+            localPumpCommandTimeout = setTimeout(async () => {
+                if (!navigator.onLine) return;
+                updatePumpButtonUI();
+                await customAlert("⏳ Command Timed Out!\n\nThe hardware did not respond within 12 seconds. Please try again.");
+            }, 12000); 
+        }
+
+        async function triggerOTA() {
+            if(!currentDeviceId) {
+                await customAlert("You must connect to a device first!");
+                return;
+            }
+            
+            const fileUrl = document.getElementById('otaUrlInput').value.trim();
+            
+            if(!fileUrl) {
+                await customAlert("Please paste the .bin download link first!");
+                return;
+            }
+            
+            if(await customConfirm("WARNING: Are you absolutely sure you want to push a firmware update to " + currentDeviceId + "?")) {
+                pendingOtaDevice = currentDeviceId; 
+                isOtaMode = true; 
+                
+                database.ref('/Devices/' + currentDeviceId + '/control/otaUrl').set(fileUrl);
+                database.ref('/Devices/' + currentDeviceId + '/control/otaTrigger').set(true);
+                await customAlert("OTA Upload Started! Keep this page open.");
+            }
+        }
+    </script>
+</body>
+</html>
