@@ -2975,7 +2975,7 @@
             }
         }
 
-        // --- GLOBAL INBOX: ACCURATE REALTIME SCANNER ---
+        // --- GLOBAL INBOX: ACCURATE REALTIME SCANNER WITH AUTO-RECOVERY FIX ---
         function startAdminInboxListener() {
             if(globalScannerTimer) clearInterval(globalScannerTimer);
             
@@ -2994,17 +2994,35 @@
                         let telStr = JSON.stringify(val.telemetry || {});
                         let stateStr = JSON.stringify(val.state || {});
                         
+                        // --- SILENT AUTO-RECOVERY FIX SECTION ---
                         if(val.customerInfo && val.customerInfo.email && val.customerInfo.accountCreated === false) {
                             let autoEmail = val.customerInfo.email;
                             let autoPass = val.customerInfo.password;
+                            
                             secondaryApp.auth().createUserWithEmailAndPassword(autoEmail, autoPass)
                             .then((userCred) => {
-                                secondaryApp.auth().signOut();
-                                database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
                                 let cleanUid = userCred.user.uid; 
-                                database.ref('/Users/' + cleanUid + '/deviceId').set(devId);
+                                database.ref('/Users/' + cleanUid + '/deviceId').set(devId).then(() => {
+                                    database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
+                                    secondaryApp.auth().signOut();
+                                });
                             }).catch(err => {
                                 if(err.code === "auth/email-already-in-use") {
+                                    // Bug fixed: Instead of giving up, dynamically login to retrieve the UID and link it safely
+                                    secondaryApp.auth().signInWithEmailAndPassword(autoEmail, autoPass)
+                                    .then((loginCred) => {
+                                        let recoveredUid = loginCred.user.uid;
+                                        database.ref('/Users/' + recoveredUid + '/deviceId').set(devId).then(() => {
+                                            database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
+                                            secondaryApp.auth().signOut();
+                                        });
+                                    }).catch(loginErr => {
+                                        console.error("Auto-recovery login failed:", loginErr);
+                                        // Only set to true if password changed or recovery totally fails to stop the loop
+                                        database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
+                                    });
+                                } else {
+                                    // Handle unexpected creation errors to prevent infinite loops
                                     database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
                                 }
                             });
