@@ -483,6 +483,106 @@
             display: block; 
             margin-top: 5px; 
         }
+
+        /* --- PREMIUM SOLAR & BATTERY BMS DASHBOARD STYLES --- */
+        .bms-card {
+            border: 1px solid rgba(46, 213, 115, 0.35);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(46, 213, 115, 0.08);
+        }
+
+        .bms-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 14px;
+        }
+
+        .bms-status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0, 210, 255, 0.15);
+            color: #00d2ff;
+            border: 1px solid rgba(0, 210, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .bms-status-pill.charging {
+            background: rgba(46, 213, 115, 0.2);
+            color: #7bed9f;
+            border-color: #2ed573;
+            box-shadow: 0 0 12px rgba(46, 213, 115, 0.35);
+        }
+
+        .bms-battery-shell-wrap {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .bms-battery-shell {
+            flex: 1;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.65);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            border-radius: 10px;
+            padding: 3px;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.9);
+        }
+
+        .bms-battery-cap {
+            width: 7px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.45);
+            border-radius: 0 4px 4px 0;
+            margin-left: 2px;
+        }
+
+        .bms-battery-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 6px;
+            background: linear-gradient(90deg, #11998e, #2ed573);
+            transition: width 0.8s ease-in-out, background 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bms-battery-fill.charging-anim::after {
+            content: "";
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+            animation: bmsChargeSweep 1.6s infinite;
+        }
+
+        @keyframes bmsChargeSweep {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .bms-battery-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.95);
+            z-index: 5;
+            white-space: nowrap;
+        }
         
         .btn-container { 
             display: flex; 
@@ -881,36 +981,32 @@
                 -webkit-font-smoothing: antialiased;
             }
             
-            /* Hide EVERYTHING by default in print mode */
             body.print-mode-service > *:not(#billPrintTemplate),
             body.print-mode-quote > *:not(#quotePrintTemplate),
             body.print-mode-manual > *:not(#manualPrintTemplate) {
                 display: none !important;
             }
             
-            /* Show Service Bill ONLY when active - TIGHTENED TO 1 PAGE */
             body.print-mode-service #billPrintTemplate {
                 display: flex !important;
                 visibility: visible !important;
                 position: relative; width: 100%; 
-                height: 100vh; max-height: 296mm; /* Strictly under A4 max height */
+                height: 100vh; max-height: 296mm;
                 overflow: hidden; color: #222 !important; background: white !important;
                 padding: 5mm 15mm; box-sizing: border-box; page-break-after: avoid;
                 page-break-inside: avoid;
             }
             
-            /* Show Quote Bill ONLY when active - TIGHTENED TO 1 PAGE */
             body.print-mode-quote #quotePrintTemplate {
                 display: flex !important;
                 visibility: visible !important;
                 position: relative; width: 100%; 
-                height: 100vh; max-height: 296mm; /* Strictly under A4 max height */
+                height: 100vh; max-height: 296mm;
                 overflow: hidden; color: #222 !important; background: white !important;
                 padding: 5mm 15mm; box-sizing: border-box; page-break-after: avoid;
                 page-break-inside: avoid;
             }
 
-            /* Show Manual ONLY when active - Allow multiple pages */
             body.print-mode-manual #manualPrintTemplate {
                 display: block !important;
                 visibility: visible !important;
@@ -922,21 +1018,20 @@
             html, body {
                 background: white !important;
                 height: 100%; margin: 0 !important; padding: 0 !important; 
-                overflow: visible !important; /* Allow scroll/pages for manual */
+                overflow: visible !important;
             }
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                text-rendering: geometricPrecision !important; /* Helps fix PDF bold artifacts */
+                text-rendering: geometricPrecision !important;
             }
             
-            /* BOLD L FIX: Apply Safe Font Stack globally in print except signatures */
             #billPrintTemplate *:not(.print-sig), 
             #quotePrintTemplate *:not(.print-sig),
             #manualPrintTemplate *:not(.print-sig) {
                 font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; 
-                font-weight: 400; /* Strict regular weight */
-                letter-spacing: 0.2px; /* Prevents glyph merging in PDF generation */
+                font-weight: 400;
+                letter-spacing: 0.2px;
             }
             #billPrintTemplate strong:not(.print-sig), #billPrintTemplate th:not(.print-sig), 
             #billPrintTemplate h1:not(.print-sig), #billPrintTemplate h2:not(.print-sig), #billPrintTemplate h3:not(.print-sig),
@@ -951,7 +1046,6 @@
                 font-family: 'Brush Script MT', 'Bradley Hand', 'Lucida Handwriting', cursive !important;
             }
 
-            /* Manual Specific Print Classes */
             .manual-page {
                 width: 210mm;
                 height: 297mm;
@@ -981,7 +1075,7 @@
         </div>
     </div>
 
-    <!-- --- NEW SERVICE BILL MODAL --- -->
+    <!-- --- SERVICE BILL MODAL --- -->
     <div id="billModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,15,25,0.9); z-index:100000; align-items:center; justify-content:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
         <div style="background:rgba(20,25,35,0.95); border:2px solid #00d2ff; border-radius:12px; padding:25px; width:90%; max-width:400px; box-shadow:0 15px 40px rgba(0,210,255,0.3); text-align:left; max-height: 90vh; overflow-y: auto;">
             <h3 style="color:#feca57; margin-top:0; text-align:center;">📄 Generate Service Bill</h3>
@@ -1033,7 +1127,7 @@
         </div>
     </div>
     
-    <!-- --- NEW QUOTATION GENERATOR MODAL --- -->
+    <!-- --- QUOTATION GENERATOR MODAL --- -->
     <div id="quoteModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,15,25,0.9); z-index:100000; align-items:center; justify-content:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
         <div style="background:rgba(20,25,35,0.95); border:2px solid #00d2ff; border-radius:12px; padding:25px; width:90%; max-width:450px; box-shadow:0 15px 40px rgba(0,210,255,0.3); text-align:left; max-height: 90vh; overflow-y: auto;">
             <h3 style="color:#feca57; margin-top:0; text-align:center;">💰 Generate Price Invoice</h3>
@@ -1151,9 +1245,8 @@
         <button class="btn-login" onclick="loginUser()">LOGIN</button>
         
         <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
-    </div>
-
-    <div id="dashboardScreen">
+        </div>
+        <div id="dashboardScreen">
         
         <div class="top-bar">
             <h3 id="topBarTitle" style="margin:0; color:#fff; text-align:left; flex:1;">
@@ -1278,14 +1371,16 @@
                         <div class="tank-wrapper">
                             <div class="tank-lid-handle"></div>
                             <div class="tank-lid"></div>
-                            <div class="tank-top-ellipse"></div> <div class="tank-body">
+                            <div class="tank-top-ellipse"></div>
+                            <div class="tank-body">
                                 <div class="tank-pipe-int"></div>
                                 
                                 <div class="waterfall"></div>
                                 
                                 <div id="waterLevelFill" class="water-fill" style="height: 0%;">
                                     <div class="wave"></div>
-                                    <div class="dynamic-splash"></div> </div>
+                                    <div class="dynamic-splash"></div>
+                                </div>
                                 
                                 <div id="waterLevelText" class="water-text">--%</div>
                             </div>
@@ -1294,6 +1389,43 @@
                     
                     <div style="text-align: center; margin-top:10px; color:#ccc; font-size: 14px;">
                         Manual Bypass Status: <span id="txtBypass" style="color:#ffa502; font-weight:bold;">--</span>
+                    </div>
+                </div>
+
+                <!-- --- AUTO-DETECTING SOLAR & BATTERY BMS CARD --- -->
+                <div class="card bms-card" id="solarBatteryCard" style="display: none;">
+                    <div class="bms-header-row">
+                        <h3 style="margin: 0; color: #7bed9f; display: flex; align-items: center; gap: 8px;">
+                            ☀️ Solar & Battery BMS
+                        </h3>
+                        <span id="bmsStatusBadge" class="bms-status-pill">🔋 STANDBY</span>
+                    </div>
+
+                    <div class="bms-battery-shell-wrap">
+                        <div class="bms-battery-shell">
+                            <div id="bmsBatteryFill" class="bms-battery-fill" style="width: 0%;"></div>
+                            <div id="bmsBatteryPercentText" class="bms-battery-label">--%</div>
+                        </div>
+                        <div class="bms-battery-cap"></div>
+                    </div>
+
+                    <div class="stats-grid" style="margin-top: 10px;">
+                        <div class="stat-box">
+                            Battery Telemetry
+                            <span id="bmsVoltCurrText" class="stat-value" style="color: #7bed9f; font-size: 15px;">-- V | -- mA</span>
+                        </div>
+                        <div class="stat-box">
+                            Solar Input
+                            <span id="bmsSolarVoltText" class="stat-value" style="color: #feca57; font-size: 15px;">-- V</span>
+                        </div>
+                        <div class="stat-box">
+                            Est. Backup Time
+                            <span id="bmsBackupTimeText" class="stat-value" style="color: #00d2ff; font-size: 15px;">--</span>
+                        </div>
+                        <div class="stat-box">
+                            LiFePO4 Health
+                            <span id="bmsHealthText" class="stat-value" style="color: #2ed573; font-size: 15px;">--%</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1512,6 +1644,12 @@
                                 <span>Connected: <strong id="adminTxtLastConnect" style="color:#2ed573;">--</strong></span>
                                 <span>Disconnected: <strong id="adminTxtLastDisconnect" style="color:#ff4757;">--</strong></span>
                             </div>
+                            <!-- --- ADMIN LIVE SOLAR BMS DIAGNOSTICS ROW --- -->
+                            <div id="adminSolarDiagRow" style="display:none; justify-content:space-between; font-size:12px; color:#aaa; padding-top:4px; border-top:1px dashed rgba(46,213,115,0.35);">
+                                <span>BMS: <strong id="adminTxtBmsSoc" style="color:#7bed9f;">--%</strong> (<strong id="adminTxtBmsVolt" style="color:#fff;">--V</strong>)</span>
+                                <span>Solar: <strong id="adminTxtSolarState" style="color:#feca57;">--</strong></span>
+                                <span>Health: <strong id="adminTxtBmsHealth" style="color:#2ed573;">--%</strong></span>
+                            </div>
                         </div>
 
                         <div style="margin-top: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
@@ -1546,7 +1684,7 @@
                                     </div>
                                 </div>
 
-                                <!-- --- SENSOR OVERRIDE TOGGLES ADDED HERE --- -->
+                                <!-- --- SENSOR OVERRIDE TOGGLES --- -->
                                 <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; margin-bottom:10px;">
                                     <div style="flex:1; min-width:140px; background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center;">
                                         <input type="checkbox" id="adminEnableS1" checked style="margin-right:8px; cursor:pointer;">
@@ -1685,9 +1823,7 @@
         </div>
     </div>
 
-    <!-- PRINT TEMPLATES EXCLUDED FOR BREVITY, IDENTICAL TO PREVIOUS VERSION -->
-    <!-- (The billPrintTemplate, quotePrintTemplate, and manualPrintTemplate are safely untouched) -->
-    
+    <!-- --- PRINT TEMPLATES --- -->
     <div id="billPrintTemplate" style="display: none;">
         <div style="max-width: 800px; height: 100%; margin: 0 auto; color: #222; display: flex; flex-direction: column; position: relative; z-index: 1;">
             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 85px; color: rgba(0, 0, 0, 0.05); z-index: 0; pointer-events: none; font-weight: bold; text-transform: uppercase; white-space: nowrap;">ASK IoT Solutions</div>
@@ -1924,6 +2060,7 @@
             <p style="font-size: 14px; color: #333; line-height: 1.5; margin-top: 5px; margin-bottom: 5px;">Once you log into the web dashboard with your saved Email and Password, you can enjoy:</p>
             <ul style="font-size: 14px; color: #333; line-height: 1.5; padding-left: 20px; margin-top: 5px;">
                 <li><strong>Live Animated Tank:</strong> Watch water fill up and drop in real-time.</li>
+                <li><strong>Solar & Battery BMS:</strong> View live battery percentage, solar charging status, backup time, and cell health automatically when connected.</li>
                 <li><strong>Daily Usage Tracker:</strong> See exactly how much water your house consumes every day to stop wastage.</li>
                 <li><strong>Engineering Data:</strong> View live signal quality and exact distance measurements.</li>
                 <li><strong>Change Password:</strong> Click the three dots (⋮) in the top right corner of the dashboard, and select <strong>"Change Password"</strong> to make your account secure.</li>
@@ -1961,9 +2098,8 @@
                 <p>End of User Manual</p>
             </div>
         </div>
-    </div>
-
-    <script>
+                                        </div>
+        <script>
         const globalLogTimestamps = {};
         
         // --- ADVANCED STATE VARIABLES ---
@@ -1974,7 +2110,7 @@
         window.lastKnownHeartbeat = -1; 
         window.liveHeartbeatReceived = false; 
 
-        // --- NEW GLOBAL OVERRIDE SENSOR STATES ---
+        // --- GLOBAL OVERRIDE SENSOR STATES ---
         window.sensor1Enabled = true;
         window.sensor2Enabled = true;
 
@@ -2012,6 +2148,140 @@
         window.lastSavedRuntime = 0;
         window.lastSavedRunDate = "Waiting for data...";
         window.isFirstStateLoad = true;
+
+        // --- SOLAR & BATTERY BMS UI UPDATER ---
+        function resetSolarBmsUI() {
+            const card = document.getElementById('solarBatteryCard');
+            const adminRow = document.getElementById('adminSolarDiagRow');
+            if (card) card.style.display = 'none';
+            if (adminRow) adminRow.style.display = 'none';
+
+            if (document.getElementById('bmsBatteryFill')) {
+                document.getElementById('bmsBatteryFill').style.width = '0%';
+                document.getElementById('bmsBatteryFill').classList.remove('charging-anim');
+            }
+            if (document.getElementById('bmsBatteryPercentText')) document.getElementById('bmsBatteryPercentText').innerText = '--%';
+            if (document.getElementById('bmsStatusBadge')) {
+                document.getElementById('bmsStatusBadge').className = 'bms-status-pill';
+                document.getElementById('bmsStatusBadge').innerText = '🔋 STANDBY';
+            }
+            if (document.getElementById('bmsVoltCurrText')) document.getElementById('bmsVoltCurrText').innerText = '-- V | -- mA';
+            if (document.getElementById('bmsSolarVoltText')) document.getElementById('bmsSolarVoltText').innerText = '-- V';
+            if (document.getElementById('bmsBackupTimeText')) document.getElementById('bmsBackupTimeText').innerText = '--';
+            if (document.getElementById('bmsHealthText')) document.getElementById('bmsHealthText').innerText = '--%';
+        }
+
+        function updateSolarBmsUI(data) {
+            if (!data) return;
+
+            const isSolarActive = (data.solarActive === true) || (data.bmsActive === true) || (parseFloat(data.battVolt || data.batteryVoltage || 0) > 0.5);
+            const card = document.getElementById('solarBatteryCard');
+            const adminRow = document.getElementById('adminSolarDiagRow');
+
+            if (!isSolarActive) {
+                if (card) card.style.display = 'none';
+                if (adminRow) adminRow.style.display = 'none';
+                return;
+            }
+
+            if (card) card.style.display = 'block';
+            if (adminRow) adminRow.style.display = 'flex';
+
+            let soc = parseFloat(data.battPct ?? data.batteryPercent ?? data.soc ?? 0);
+            if (isNaN(soc)) soc = 0;
+            soc = Math.max(0, Math.min(100, soc));
+
+            let bVolt = parseFloat(data.battVolt ?? data.batteryVoltage ?? data.voltage ?? 0);
+            if (isNaN(bVolt)) bVolt = 0;
+
+            let bCurr = parseFloat(data.battCurr ?? data.batteryCurrent ?? data.currentMa ?? 0);
+            if (isNaN(bCurr)) bCurr = 0;
+
+            let sVolt = parseFloat(data.solarVolt ?? data.solarVoltage ?? data.panelVoltage ?? bVolt);
+            if (isNaN(sVolt)) sVolt = 0;
+
+            let isCharging = (data.isCharging === true) || (data.solarCharging === true);
+            let health = parseFloat(data.battHealth ?? data.batteryHealth ?? data.cellHealth ?? 100);
+            if (isNaN(health)) health = 100;
+
+            let backupRaw = data.backupTime ?? data.estBackup ?? data.backupHours ?? "--";
+            let backupStr = "--";
+            if (typeof backupRaw === 'number') {
+                if (backupRaw >= 24) {
+                    let d = Math.floor(backupRaw / 24);
+                    let h = Math.round(backupRaw % 24);
+                    backupStr = `${d}d ${h}h`;
+                } else {
+                    backupStr = `${backupRaw.toFixed(1)} hrs`;
+                }
+            } else if (typeof backupRaw === 'string' && backupRaw.trim() !== "") {
+                backupStr = backupRaw;
+            } else if (bCurr > 0) {
+                let estHrs = (6000 * (soc / 100)) / bCurr;
+                let d = Math.floor(estHrs / 24);
+                let h = Math.round(estHrs % 24);
+                backupStr = d > 0 ? `${d}d ${h}h` : `${Math.round(estHrs)} hrs`;
+            }
+
+            const fillEl = document.getElementById('bmsBatteryFill');
+            const pctTextEl = document.getElementById('bmsBatteryPercentText');
+            const badgeEl = document.getElementById('bmsStatusBadge');
+
+            if (fillEl) {
+                fillEl.style.width = soc.toFixed(0) + '%';
+                if (soc <= 20) {
+                    fillEl.style.background = 'linear-gradient(90deg, #ff4757, #ff6b81)';
+                } else if (soc <= 50) {
+                    fillEl.style.background = 'linear-gradient(90deg, #ffa502, #feca57)';
+                } else {
+                    fillEl.style.background = 'linear-gradient(90deg, #11998e, #2ed573)';
+                }
+
+                if (isCharging) {
+                    fillEl.classList.add('charging-anim');
+                } else {
+                    fillEl.classList.remove('charging-anim');
+                }
+            }
+
+            if (pctTextEl) {
+                pctTextEl.innerText = `${soc.toFixed(0)}% (${bVolt.toFixed(2)}V)`;
+            }
+
+            if (badgeEl) {
+                if (isCharging) {
+                    badgeEl.className = 'bms-status-pill charging';
+                    badgeEl.innerText = '⚡ SOLAR CHARGING';
+                } else {
+                    badgeEl.className = 'bms-status-pill';
+                    badgeEl.innerText = '🔋 ON BATTERY';
+                }
+            }
+
+            if (document.getElementById('bmsVoltCurrText')) {
+                document.getElementById('bmsVoltCurrText').innerText = `${bVolt.toFixed(2)} V | ${Math.abs(bCurr).toFixed(0)} mA`;
+            }
+            if (document.getElementById('bmsSolarVoltText')) {
+                document.getElementById('bmsSolarVoltText').innerText = isCharging ? `${sVolt.toFixed(2)} V (Active)` : `${sVolt.toFixed(2)} V (Idle)`;
+            }
+            if (document.getElementById('bmsBackupTimeText')) {
+                document.getElementById('bmsBackupTimeText').innerText = isCharging ? 'Charging ☀️' : backupStr;
+            }
+            if (document.getElementById('bmsHealthText')) {
+                const hEl = document.getElementById('bmsHealthText');
+                hEl.innerText = `${health.toFixed(0)}%`;
+                hEl.style.color = health >= 80 ? '#2ed573' : (health >= 50 ? '#feca57' : '#ff4757');
+            }
+
+            // Admin Diagnostics BMS Row
+            if (document.getElementById('adminTxtBmsSoc')) document.getElementById('adminTxtBmsSoc').innerText = `${soc.toFixed(0)}%`;
+            if (document.getElementById('adminTxtBmsVolt')) document.getElementById('adminTxtBmsVolt').innerText = `${bVolt.toFixed(2)}V`;
+            if (document.getElementById('adminTxtSolarState')) {
+                document.getElementById('adminTxtSolarState').innerText = isCharging ? '⚡ Charging' : '🔋 Discharging';
+                document.getElementById('adminTxtSolarState').style.color = isCharging ? '#2ed573' : '#feca57';
+            }
+            if (document.getElementById('adminTxtBmsHealth')) document.getElementById('adminTxtBmsHealth').innerText = `${health.toFixed(0)}%`;
+        }
 
         // --- PDF GENERATION LOGIC ---
         function updateBillNameLabel(typeId, labelId) {
@@ -2142,7 +2412,6 @@
             document.getElementById('printQuoteBilledToLabel').innerText = usageType === 'Commercial' ? 'Organization Name:' : 'Customer Name:';
             document.getElementById('printQuoteCustName').innerText = billedName;
 
-            // Math Logic - No GST
             let m1 = parseFloat(document.getElementById('quoteMod1').value) || 0;
             let m2 = parseFloat(document.getElementById('quoteMod2').value) || 0;
             let m3 = parseFloat(document.getElementById('quoteMod3').value) || 0;
@@ -2153,7 +2422,6 @@
             document.getElementById('printQuoteM3').innerText = "₹ " + m3.toFixed(2);
             document.getElementById('printQuoteM4').innerText = "₹ " + m4.toFixed(2);
             
-            // Set Mod 4 Custom Text
             let mod4Type = document.getElementById('quoteMod4Type').value || "";
             if (mod4Type !== "") {
                 document.getElementById('printQuoteMod4Text').innerText = `Main Hub Unit (${mod4Type})`;
@@ -2168,7 +2436,7 @@
             }
 
             let subtotal = m1 + m2 + m3 + m4;
-            let total = subtotal; // NO GST Added
+            let total = subtotal;
 
             document.getElementById('printQuoteSubtotal').innerText = "₹ " + subtotal.toFixed(2);
             document.getElementById('printQuoteGrandTotal').innerText = "₹ " + total.toFixed(2);
@@ -2236,7 +2504,7 @@
             return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
-        // --- NEW PURE READ-ONLY TIMER UI FUNCTION ---
+        // --- PURE READ-ONLY TIMER UI FUNCTION ---
         function updateTimerUI(isRunning, seconds, dateStr) {
             let displayTime = formatRuntime(seconds);
 
@@ -2280,7 +2548,7 @@
             }
         }
 
-        // --- INSTANT OPTIMISTIC UI FOR HISTORY (SAFELY APPENDS ONLY) ---
+        // --- INSTANT OPTIMISTIC UI FOR HISTORY ---
         function insertOptimisticHistory(sysEvent) {
             const listEl = document.getElementById('adminPumpHistoryList');
             if (listEl) {
@@ -2296,7 +2564,6 @@
                     listEl.innerHTML = instantHtml;
                 } else {
                     listEl.insertAdjacentHTML('afterbegin', instantHtml);
-                    // Strictly keep it visually at 2 items during fast clicking
                     if (listEl.children.length > 2) {
                         listEl.removeChild(listEl.lastElementChild);
                     }
@@ -2605,14 +2872,12 @@
 
             const updates = {};
             
-            // Tank Dimensions
             const emptyCm = document.getElementById('custEmptyInput').value;
             const fullCm = document.getElementById('custFullInput').value;
             
             if (emptyCm !== "") updates['/control/setEmptyCm'] = parseFloat(emptyCm);
             if (fullCm !== "") updates['/control/setFullCm'] = parseFloat(fullCm);
 
-            // WiFi Slots
             for(let i=1; i<=4; i++) {
                 const ssid = document.getElementById('custWifiSSID_' + i).value.trim();
                 const pass = document.getElementById('custWifiPass_' + i).value;
@@ -2632,7 +2897,6 @@
                 .then(async () => {
                     await customAlert("✅ Settings successfully sent to the device!");
                     document.getElementById('customerSettingsBox').style.display = 'none';
-                    // clear inputs
                     document.getElementById('custEmptyInput').value = '';
                     document.getElementById('custFullInput').value = '';
                     for(let i=1; i<=4; i++) {
@@ -2649,7 +2913,7 @@
             }
         }
 
-        // --- NEW SENSOR TOGGLES IN MANUAL SAVE ---
+        // --- SENSOR TOGGLES IN MANUAL SAVE ---
         async function saveAdminManualSettings() {
             if(!currentDeviceId) return;
             const updates = {};
@@ -2659,7 +2923,6 @@
             if (emptyCm !== "") updates['/control/setEmptyCm'] = parseFloat(emptyCm);
             if (fullCm !== "") updates['/control/setFullCm'] = parseFloat(fullCm);
 
-            // Fetch Checkboxes state
             const s1Enabled = document.getElementById('adminEnableS1').checked;
             const s2Enabled = document.getElementById('adminEnableS2').checked;
             updates['/control/sensor1Enabled'] = s1Enabled;
@@ -2883,6 +3146,7 @@
                 if(currentDeviceId) {
                     database.ref('/Devices/' + currentDeviceId + '/deviceStatus').off();
                     database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
+                    database.ref('/Devices/' + currentDeviceId + '/bms').off();
                     database.ref('/Devices/' + currentDeviceId + '/state').off();
                     database.ref('/Devices/' + currentDeviceId + '/control').off();
                     database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
@@ -3008,7 +3272,6 @@
                                 });
                             }).catch(err => {
                                 if(err.code === "auth/email-already-in-use") {
-                                    // Bug fixed: Instead of giving up, dynamically login to retrieve the UID and link it safely
                                     secondaryApp.auth().signInWithEmailAndPassword(autoEmail, autoPass)
                                     .then((loginCred) => {
                                         let recoveredUid = loginCred.user.uid;
@@ -3018,17 +3281,14 @@
                                         });
                                     }).catch(loginErr => {
                                         console.error("Auto-recovery login failed:", loginErr);
-                                        // Only set to true if password changed or recovery totally fails to stop the loop
                                         database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
                                     });
                                 } else {
-                                    // Handle unexpected creation errors to prevent infinite loops
                                     database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
                                 }
                             });
                         }
 
-                        // Robust state change detection (Fixes "Permanently Online" ghost bug)
                         if (!globalDeviceState[devId]) {
                             globalDeviceState[devId] = { 
                                 lastHb: hb, lastTel: telStr, lastState: stateStr,
@@ -3286,6 +3546,7 @@
             if(currentDeviceId) {
                 database.ref('/Devices/' + currentDeviceId + '/deviceStatus').off();
                 database.ref('/Devices/' + currentDeviceId + '/telemetry').off();
+                database.ref('/Devices/' + currentDeviceId + '/bms').off();
                 database.ref('/Devices/' + currentDeviceId + '/state').off();
                 database.ref('/Devices/' + currentDeviceId + '/control').off();
                 database.ref('/Devices/' + currentDeviceId + '/customerInfo').off();
@@ -3331,13 +3592,11 @@
             window.sensor1Enabled = true;
             window.sensor2Enabled = true;
 
-            // --- CLEAR VARIABLES BEFORE LOAD ---
             window.maxRunSecs = 0;
             window.lastSavedRuntime = 0;
             window.lastSavedRunDate = "Waiting for data...";
             window.isFirstStateLoad = true;
             
-            // --- STRICT OFFLINE START ---
             window.lastKnownHeartbeat = -1; 
             window.liveHeartbeatReceived = false;
             lastHeartbeatTime = 0; 
@@ -3346,7 +3605,8 @@
             window.dbLastConnect = "--";
             window.dbLastDisconnect = "--";
 
-            // --- SMART FALLBACK FOR MISSED WIFI CONNECTION LOGS ---
+            resetSolarBmsUI();
+
             database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
                     window.activeHotspotName = snap.val();
@@ -3447,8 +3707,6 @@
             document.getElementById('nanoLogConsole').innerText = "Connecting...";
             
             renderAdminInbox();
-            
-            // --- REATTACH LISTENERS ---
             startListeners();
         }
 
@@ -3650,7 +3908,7 @@
                 }
             });
 
-            // --- BULLETPROOF HEARTBEAT DETECTOR (Zero False Positives) ---
+            // --- BULLETPROOF HEARTBEAT DETECTOR ---
             database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
                 const statusData = snapshot.val() || {};
                 let hb = statusData.heartbeat || 0;
@@ -3660,7 +3918,7 @@
                 } else if (hb !== window.lastKnownHeartbeat) {
                     window.lastKnownHeartbeat = hb;
                     lastHeartbeatTime = Date.now(); 
-                    window.liveHeartbeatReceived = true; // ACTIVATES LIVE SHIELD
+                    window.liveHeartbeatReceived = true;
                 }
                 
                 if (!isOtaMode) {
@@ -3670,7 +3928,6 @@
                 let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 updateConnectionUI(isCurrentlyOnline);
                 
-                // Also update the uptime label here
                 if (window.deviceDeployDate) {
                     let deployed = new Date(window.deviceDeployDate);
                     let diffTime = Math.abs(Date.now() - deployed.getTime());
@@ -3701,7 +3958,7 @@
                 updateRadioUI();
             });
 
-            // --- FLAWLESS CONNECT/DISCONNECT LOGIC TIMER ---
+            // --- CONNECT/DISCONNECT LOGIC TIMER ---
             heartbeatTimer = setInterval(() => {
                 let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 
@@ -3720,10 +3977,8 @@
                     }
                 }
                 
-                // Force UI to dynamically refresh state independent of Firebase
                 updateConnectionUI(isCurrentlyOnline);
 
-                // --- GLOBAL OFFLINE UI OVERRIDES ---
                 if(!isCurrentlyOnline) { 
                     const user = firebase.auth().currentUser;
                     const isAdmin = user && (user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com");
@@ -3732,7 +3987,6 @@
                     const btn = document.getElementById('pumpToggleBtn');
                     const tankModel = document.getElementById('waterTankModel'); 
 
-                    // --- BUG FIX: FORCE KILL TIMER IF DEVICE DROPS OFFLINE ---
                     if (window.pumpTimerInterval) {
                         clearInterval(window.pumpTimerInterval);
                         window.pumpTimerInterval = null;
@@ -3740,7 +3994,7 @@
                         window.lastSavedRunDate = "Device Offline";
                         updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate);
                         window.maxRunSecs = 0;
-                        currentPumpState = false; // Allow history to populate
+                        currentPumpState = false;
                     }
 
                     if (isOtaMode || pendingOtaDevice === currentDeviceId) {
@@ -3755,7 +4009,6 @@
                         
                         if(isAdmin) document.getElementById('logConsole').innerText = "System is actively downloading OTA update from GitHub. Please wait...";
                     } else {
-                        // FORCIBLY SHOW OFFLINE EVERYWHERE
                         badge.style.background = "#ff4757";
                         badge.innerText = "OFFLINE";
                         
@@ -3763,14 +4016,14 @@
                         btn.innerText = "OFFLINE";
                         btn.style.pointerEvents = "none"; 
                         
-                        if(tankModel) tankModel.classList.remove('pump-active'); // KILL ANIMATION
+                        if(tankModel) tankModel.classList.remove('pump-active');
                         
                         if(isAdmin) {
                             document.getElementById('offlineOverlay').style.display = 'none';
                             document.getElementById('logConsole').innerText = "ESP32 Offline. Connection lost.";
                             document.getElementById('nanoLogConsole').innerText = "Link to Nano severed.";
                         } else {
-                            document.getElementById('offlineOverlay').style.display = 'flex'; // CUSTOMER RED OVERLAY
+                            document.getElementById('offlineOverlay').style.display = 'flex';
                         }
                     }
                 } else {
@@ -3782,18 +4035,16 @@
                         badge.innerText = "ONLINE";
                     }
                     
-                    // --- WAKE UP PUMP BUTTON FROM OFFLINE ---
                     if (btn.innerText === "OFFLINE") {
                         updatePumpButtonUI();
                     }
                 }
             }, 2000);
 
-            // --- STRICT UNTOUCHED PUMP LOGIC & TIMEOUT ---
+            // --- PUMP CONTROL & SENSOR OVERRIDE LISTENER ---
             database.ref(basePath + '/control').on('value', (snapshot) => {
                 const ctrl = snapshot.val();
                 
-                // Keep UI toggles in sync with database
                 if (ctrl) {
                     window.sensor1Enabled = (ctrl.sensor1Enabled !== false);
                     window.sensor2Enabled = (ctrl.sensor2Enabled !== false);
@@ -3822,6 +4073,15 @@
                 }
             });
 
+            // --- OPTIONAL DEDICATED BMS NODE LISTENER ---
+            database.ref(basePath + '/bms').on('value', (snapshot) => {
+                const bmsData = snapshot.val();
+                if (bmsData) {
+                    updateSolarBmsUI(bmsData);
+                }
+            });
+
+            // --- TELEMETRY & AUTO-SOLAR BMS LISTENER ---
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
@@ -3844,7 +4104,11 @@
                         if(document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = parseFloat(data.bucketFullHeight).toFixed(1) + ' cm';
                     }
 
-                    // --- SENSOR DISABLE UI LOGIC ---
+                    // Update Solar & Battery BMS UI if telemetry contains BMS fields
+                    if (data.solarActive !== undefined || data.bmsActive !== undefined || data.battVolt !== undefined || data.batteryVoltage !== undefined) {
+                        updateSolarBmsUI(data);
+                    }
+
                     if (!window.sensor1Enabled) {
                         document.getElementById('txtS1').innerHTML = '<span style="background:#feca57; color:#000; padding:2px 6px; border-radius:4px; font-size:11px;">DISABLED</span>';
                     } else if(data.sensor1Cm > 0) {
@@ -3998,6 +4262,11 @@
                         updateActiveWifiDisplay(activeHotspot);
                     }
 
+                    // Support BMS properties if sent inside /state
+                    if (state.solarActive !== undefined || state.bmsActive !== undefined || state.battVolt !== undefined) {
+                        updateSolarBmsUI(state);
+                    }
+
                     if (window.isFirstStateLoad) {
                         window.isFirstStateLoad = false;
                     }
@@ -4022,7 +4291,6 @@
                             window.pumpTimerInterval = null;
                         }
                         
-                        // Temporarily hold current value on screen until history updates it
                         if (currentPumpState === true) {
                             window.lastSavedRuntime = window.maxRunSecs;
                             let instantTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
@@ -4081,7 +4349,7 @@
                 }
             });
 
-            // --- FIXED: CALCULATE RUNTIME FROM HISTORY TO PREVENT 00:00 BUG (NOW AVAILABLE FOR CUSTOMER PORTAL TOO) ---
+            // --- CALCULATE RUNTIME FROM HISTORY ---
             database.ref(basePath + '/pumpHistory').limitToLast(20).on('value', snap => {
                 let html = "";
                 let items = [];
@@ -4093,14 +4361,12 @@
                     }
                 });
                 
-                // Sort chronologically (oldest to newest) to do accurate math
                 items.sort((a,b) => (a.ms || 0) - (b.ms || 0));
 
                 let calcRunSecs = 0;
                 let calcDateStr = "Waiting for data...";
                 let foundOff = false;
                 
-                // Scan backwards to find the exact last OFF event and its matching ON event
                 for(let i = items.length - 1; i >= 0; i--) {
                     let txt = items[i].text || "";
                     if (!foundOff && (txt.includes("OFF") || txt.includes("shutdown") || txt.includes("Stopped"))) {
@@ -4123,17 +4389,14 @@
                     }
                 }
 
-                // If pump is offline, push this precise historical duration to the UI
                 if (!currentPumpState && calcRunSecs > 0) {
                     window.lastSavedRuntime = calcRunSecs;
                     window.lastSavedRunDate = calcDateStr;
                     updateTimerUI(false, window.lastSavedRuntime, window.lastSavedRunDate);
                 }
 
-                // Reverse for UI display (Newest at top)
                 items.reverse();
                 
-                // Strictly slice array to ensure only 2 are displayed
                 let displayItems = items.slice(0, 2);
                 
                 displayItems.forEach(item => {
@@ -4195,10 +4458,8 @@
                 return; 
             }
 
-            // --- INSTANT UI TRIGGER FOR HISTORY ---
             insertOptimisticHistory(optLog);
 
-            // --- STRICT UNTOUCHED PUMP LOGIC WITH 12 SECOND TIMEOUT ---
             btn.innerText = "WAIT...";
             btn.style.pointerEvents = "none";
             btn.style.cursor = "not-allowed";
@@ -4241,6 +4502,77 @@
                 await customAlert("OTA Upload Started! Keep this page open.");
             }
         }
+
+        async function assignDeviceToUser() {
+            const uid = document.getElementById('assignUidInput').value.trim();
+            const devId = document.getElementById('assignDevInput').value.trim();
+            const type = document.getElementById('assignTypeInput').value;
+            const name = document.getElementById('assignNameInput').value.trim();
+            const email = document.getElementById('assignEmailInput').value.trim();
+            const pass = document.getElementById('assignPassInput').value.trim();
+            const radioTech = document.getElementById('assignRadioTech').value.trim();
+            const radioChannel = document.getElementById('assignRadioChannel').value.trim();
+            const radioRate = document.getElementById('assignRadioRate').value.trim();
+            const usesRepeater = document.getElementById('assignUsesRepeater').value;
+            const deployDate = document.getElementById('assignDeployDate').value;
+            const rooftopBoard = document.getElementById('assignRooftopBoard').value.trim();
+            const middlemanBoard = document.getElementById('assignMiddlemanBoard').value.trim();
+
+            if (!devId) {
+                await customAlert("⚠️ Please enter a Device ID (MAC).");
+                return;
+            }
+
+            const pin = await customPrompt("🔒 Enter Admin PIN to link and configure device:", true);
+            if (pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+
+            if (uid) {
+                await database.ref('/Users/' + uid + '/deviceId').set(devId);
+            }
+
+            const customerInfo = {
+                deviceType: type,
+                assignedName: name,
+                email: email,
+                password: pass,
+                radioTech: radioTech || "nRF24L01",
+                radioChannel: radioChannel || "125",
+                radioRate: radioRate || "250 KBPS",
+                usesRepeater: usesRepeater,
+                deployDate: deployDate,
+                rooftopBoard: rooftopBoard,
+                middlemanBoard: middlemanBoard,
+                accountCreated: true
+            };
+
+            await database.ref('/Devices/' + devId + '/customerInfo').update(customerInfo);
+            await customAlert("✅ Device successfully linked and configured!");
+            document.getElementById('linkCustomerBox').style.display = 'none';
+        }
+
+        async function deleteDeviceProfile() {
+            if (!currentDeviceId) {
+                await customAlert("⚠️ Please connect to a device first before deleting it.");
+                return;
+            }
+
+            const pin = await customPrompt("⚠️ DANGER: PERMANENT DELETION\n\nEnter Admin PIN to erase " + currentDeviceId + ":", true);
+            if (pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+
+            if (await customConfirm("Are you ABSOLUTELY sure you want to permanently delete all data for [" + currentDeviceId + "]? This cannot be undone!")) {
+                await database.ref('/Devices/' + currentDeviceId).remove();
+                await database.ref('/AdminInbox/' + currentDeviceId).remove();
+                await customAlert("🗑️ Device Profile Permanently Deleted.");
+                window.location.reload();
+            }
+        }
     </script>
 </body>
-</html>
+        </html>
+                                        
