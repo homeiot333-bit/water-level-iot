@@ -2099,7 +2099,8 @@
             </div>
         </div>
                                         </div>
-        <script>
+          // Part 3
+       <script>
         const globalLogTimestamps = {};
         
         // --- ADVANCED STATE VARIABLES ---
@@ -3115,27 +3116,51 @@
                     
                     document.getElementById('adminCommandCenter').style.display = 'none';
                     document.getElementById('mainDashboardView').style.display = 'flex';
+
+                    const connectCustomerDevice = (devId) => {
+                        currentDeviceId = devId;
+                        startListeners();
+                        
+                        let mDevice = getMobileDeviceModel();
+                        let sessionKey = localStorage.getItem("waterIoT_sessionKey");
+                        if(!sessionKey) {
+                            sessionKey = "sess_" + Math.random().toString(36).substr(2, 9);
+                            localStorage.setItem("waterIoT_sessionKey", sessionKey);
+                        }
+                        
+                        database.ref('/Devices/' + devId + '/mobileLogins/' + sessionKey).update({
+                            modelName: mDevice,
+                            lastSeen: new Date().toLocaleString()
+                        });
+                    };
                     
                     database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
                         const devId = snapshot.val();
                         if(devId) {
-                            currentDeviceId = devId;
-                            startListeners();
-                            
-                            let mDevice = getMobileDeviceModel();
-                            let sessionKey = localStorage.getItem("waterIoT_sessionKey");
-                            if(!sessionKey) {
-                                sessionKey = "sess_" + Math.random().toString(36).substr(2, 9);
-                                localStorage.setItem("waterIoT_sessionKey", sessionKey);
-                            }
-                            
-                            database.ref('/Devices/' + devId + '/mobileLogins/' + sessionKey).update({
-                                modelName: mDevice,
-                                lastSeen: new Date().toLocaleString()
-                            });
-
+                            connectCustomerDevice(devId);
                         } else {
-                            customAlert("Account error: Your profile has not been linked to a Device ID yet.");
+                            // SELF-HEALING AUTO-LINK: Scan /Devices for matching customer email or MAC prefix
+                            database.ref('Devices').once('value').then((devSnap) => {
+                                let matchedDevId = null;
+                                let userEmailLower = (user.email || "").toLowerCase().trim();
+
+                                devSnap.forEach((child) => {
+                                    let d = child.val();
+                                    let savedEmail = (d.customerInfo && d.customerInfo.email) ? d.customerInfo.email.toLowerCase().trim() : "";
+                                    
+                                    if (savedEmail === userEmailLower || userEmailLower.startsWith(child.key.toLowerCase() + "@")) {
+                                        matchedDevId = child.key;
+                                    }
+                                });
+
+                                if (matchedDevId) {
+                                    database.ref('Users/' + user.uid + '/deviceId').set(matchedDevId);
+                                    database.ref('Devices/' + matchedDevId + '/customerInfo/accountCreated').set(true);
+                                    connectCustomerDevice(matchedDevId);
+                                } else {
+                                    customAlert("Account error: Your profile has not been linked to a Device ID yet.");
+                                }
+                            });
                         }
                     });
                 }
@@ -4531,6 +4556,22 @@
 
             if (uid) {
                 await database.ref('/Users/' + uid + '/deviceId').set(devId);
+            } else if (email && pass && pass.length >= 6) {
+                try {
+                    let userCred = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
+                    await database.ref('/Users/' + userCred.user.uid + '/deviceId').set(devId);
+                    await secondaryApp.auth().signOut();
+                } catch (err) {
+                    if (err.code === "auth/email-already-in-use") {
+                        try {
+                            let loginCred = await secondaryApp.auth().signInWithEmailAndPassword(email, pass);
+                            await database.ref('/Users/' + loginCred.user.uid + '/deviceId').set(devId);
+                            await secondaryApp.auth().signOut();
+                        } catch (e) {
+                            console.warn("Could not auto-fetch UID on link, customer login will auto-heal instead.");
+                        }
+                    }
+                }
             }
 
             const customerInfo = {
@@ -4574,5 +4615,4 @@
         }
     </script>
 </body>
-        </html>
-                                        
+</html>
