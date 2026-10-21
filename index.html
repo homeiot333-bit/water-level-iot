@@ -2151,22 +2151,30 @@
         window.lastSavedRunDate = "Waiting for data...";
         window.isFirstStateLoad = true;
 
-        // --- PERSISTENT PASSWORD & BMS CACHE ---
+        // --- 32140 LiFePO4 3.2V 15Ah (15000mAh) CONSTANTS & BMS CACHE ---
+        const BATTERY_CAPACITY_MAH = 15000; // 15Ah 32140 LiFePO4
+        const BATTERY_CAPACITY_AH = 15.0;
+        const BATTERY_NOMINAL_V = 3.20;
+
         window.latestCustomerPass = null;
         window.latestPortalPassOverride = null;
         window.bmsCache = {
             active: false,
             soc: null,
             bVolt: null,
-            bCurr: null,
+            prevVolt: null,
+            bCurrMa: null,
+            rawSignedCurrMa: null,
+            bPowerMw: null,
             sVolt: null,
             isCharging: false,
+            explicitChargeFlag: null,
             health: 100,
             backupStr: null,
             rawLine: ""
         };
 
-        // --- PREMIUM GLASSMORPHISM SOLAR & BATTERY BMS UPGRADE ---
+        // --- PREMIUM GLASSMORPHISM SOLAR & BATTERY BMS UI (32140 15Ah 3.2V) ---
         function initPremiumGlassBmsUI() {
             if (!document.getElementById('premiumGlassBmsStyles')) {
                 const style = document.createElement('style');
@@ -2220,7 +2228,6 @@
                         display: inline-block;
                         margin-top: 4px;
                     }
-                    /* Energy Flow Visualizer */
                     .bms-flow-bar {
                         display: flex;
                         align-items: center;
@@ -2272,7 +2279,6 @@
                         0% { left: -100%; }
                         100% { left: 100%; }
                     }
-                    /* 3D Glass Capsule Battery */
                     .bms-3d-capsule-wrap {
                         display: flex;
                         align-items: center;
@@ -2345,7 +2351,6 @@
                         0% { background-position: 0 0; }
                         100% { background-position: 60px 0; }
                     }
-                    /* Glass Stat Tiles */
                     .bms-glass-grid {
                         display: grid;
                         grid-template-columns: repeat(2, 1fr);
@@ -2377,7 +2382,7 @@
                         align-items: center;
                     }
                     .bms-tile-val {
-                        font-size: 15px;
+                        font-size: 14px;
                         font-weight: 800;
                         margin-top: 4px;
                         display: block;
@@ -2420,7 +2425,7 @@
                             <h3 style="margin: 0; color: #7bed9f; display: flex; align-items: center; gap: 8px; font-size: 17px;">
                                 <span id="bmsSunIcon" style="display:inline-block;">☀️</span> Solar & Battery BMS
                             </h3>
-                            <span id="bmsChemBadge" class="bms-chem-sub">LiFePO4 32700 • 6000mAh</span>
+                            <span id="bmsChemBadge" class="bms-chem-sub">LiFePO4 32140 • 3.2V 15Ah (15000mAh)</span>
                         </div>
                         <span id="bmsStatusBadge" class="bms-status-pill">🔋 STANDBY</span>
                     </div>
@@ -2435,14 +2440,14 @@
                         </div>
                         <div class="bms-flow-node">
                             <span>🔋</span>
-                            <span id="bmsFlowBattNode" style="color:#2ed573;">BMS</span>
+                            <span id="bmsFlowBattNode" style="color:#2ed573;">32140 15Ah</span>
                         </div>
                         <div class="bms-flow-line">
                             <div class="bms-flow-particles batt-to-load"></div>
                         </div>
                         <div class="bms-flow-node">
                             <span>📡</span>
-                            <span style="color:#00d2ff;">Node</span>
+                            <span style="color:#00d2ff;">INA219</span>
                         </div>
                     </div>
 
@@ -2460,181 +2465,323 @@
 
                     <div class="bms-glass-grid">
                         <div class="bms-glass-tile">
-                            <div class="bms-tile-label"><span>Battery Telemetry</span><span>⚡</span></div>
-                            <span id="bmsVoltCurrText" class="bms-tile-val" style="color: #7bed9f;">-- V | -- mA</span>
-                            <span id="bmsVoltRangeSub" class="bms-tile-sub">Nominal: 3.20V LiFePO4</span>
+                            <div class="bms-tile-label"><span>INA219 Telemetry</span><span>⚡</span></div>
+                            <span id="bmsVoltCurrText" class="bms-tile-val" style="color: #7bed9f;">-- V | -- A (-- mA)</span>
+                            <span id="bmsVoltRangeSub" class="bms-tile-sub">32140 LiFePO4: 2.50V – 3.65V</span>
                         </div>
                         <div class="bms-glass-tile">
-                            <div class="bms-tile-label"><span>Solar Input</span><span>☀️</span></div>
-                            <span id="bmsSolarVoltText" class="bms-tile-val" style="color: #feca57;">-- V</span>
-                            <span id="bmsSolarStateSub" class="bms-tile-sub">MPPT / CC-CV Ready</span>
+                            <div class="bms-tile-label"><span>Solar / Charge Status</span><span>☀️</span></div>
+                            <span id="bmsSolarVoltText" class="bms-tile-val" style="color: #feca57;">--</span>
+                            <span id="bmsSolarStateSub" class="bms-tile-sub">INA219 Current Sensor Active</span>
                         </div>
                         <div class="bms-glass-tile">
-                            <div class="bms-tile-label"><span>Est. Backup Time</span><span>⏱️</span></div>
+                            <div class="bms-tile-label"><span>15Ah Backup Time</span><span>⏱️</span></div>
                             <span id="bmsBackupTimeText" class="bms-tile-val" style="color: #00d2ff;">--</span>
-                            <span id="bmsCapMahSub" class="bms-tile-sub">Rem: -- / 6000 mAh</span>
+                            <span id="bmsCapMahSub" class="bms-tile-sub">Rem: -- Ah (-- / 15000 mAh)</span>
                         </div>
                         <div class="bms-glass-tile">
-                            <div class="bms-tile-label"><span>LiFePO4 Health</span><span>🛡️</span></div>
+                            <div class="bms-tile-label"><span>Cell Health & Power</span><span>🛡️</span></div>
                             <span id="bmsHealthText" class="bms-tile-val" style="color: #2ed573;">--%</span>
-                            <span id="bmsPowerSub" class="bms-tile-sub">Power: -- W</span>
+                            <span id="bmsPowerSub" class="bms-tile-sub">INA219 Power: -- W</span>
                         </div>
                     </div>
 
                     <div id="bmsStreamFooter" class="bms-stream-footer">
-                        📡 BMS Telemetry: Waiting for Rooftop Node stream...
+                        📡 INA219 BMS: Waiting for Rooftop Node telemetry...
                     </div>
                 `;
             }
         }
 
-        // Convert 3.2V LiFePO4 voltage to accurate SOC % when percentage isn't explicitly sent
-        function lifepo4VoltageToSoc(v, isCharging) {
-            if (!v || isNaN(v) || v <= 0) return 0;
-            // Support 1S LiFePO4 (2.5V - 3.65V) or 1S Li-Ion (3.0V - 4.2V)
-            if (v > 3.72 && v <= 4.35) {
-                return Math.max(0, Math.min(100, ((v - 3.1) / (4.18 - 3.1)) * 100));
+        // Accurate 32140 LiFePO4 3.2V 15Ah Voltage-to-SOC (%) Curve with INA219 Charge Compensation
+        function lifepo4_32140_VoltageToSoc(v, isCharging, currMa) {
+            if (v === null || isNaN(v) || v <= 0) return 0;
+
+            let vEffective = v;
+            if (isCharging) {
+                // Compensate for LiFePO4 terminal voltage rise during charging (I * R_internal + polarization)
+                const chargeAmps = currMa !== null ? Math.abs(currMa) / 1000.0 : 0.5;
+                const overPotential = Math.min(0.22, Math.max(0.05, (chargeAmps * 0.055) + 0.045));
+                if (v >= 3.58) return 100;
+                vEffective = Math.max(2.50, v - overPotential);
             }
-            const vAdj = isCharging ? Math.max(2.5, v - 0.06) : v;
+
+            // 32140 3.2V 15Ah LiFePO4 true discharge/resting curve
             const curve = [
-                [2.50, 0], [2.80, 3], [3.00, 9], [3.12, 18],
-                [3.20, 32], [3.24, 48], [3.28, 68], [3.31, 82],
-                [3.34, 92], [3.38, 98], [3.42, 100]
+                [2.50, 0],
+                [2.80, 2],
+                [3.00, 6],
+                [3.10, 11],
+                [3.15, 17],
+                [3.20, 26],
+                [3.22, 36],
+                [3.25, 50],
+                [3.27, 62],
+                [3.29, 73],
+                [3.31, 83],
+                [3.33, 91],
+                [3.35, 96],
+                [3.40, 100]
             ];
-            if (vAdj <= curve[0][0]) return 0;
-            if (vAdj >= curve[curve.length - 1][0]) return 100;
+
+            if (vEffective <= curve[0][0]) return 0;
+            if (vEffective >= curve[curve.length - 1][0]) return 100;
+
             for (let i = 0; i < curve.length - 1; i++) {
                 const [v1, s1] = curve[i];
                 const [v2, s2] = curve[i + 1];
-                if (vAdj >= v1 && vAdj <= v2) {
-                    return s1 + ((vAdj - v1) / (v2 - v1)) * (s2 - s1);
+                if (vEffective >= v1 && vEffective <= v2) {
+                    return s1 + ((vEffective - v1) / (v2 - v1)) * (s2 - s1);
                 }
             }
             return 50;
         }
 
-        // --- SMART PARSER FOR NANOLOG, LOGS & JSON TELEMETRY ---
+        // --- UNIVERSAL INA219 & 32140 LiFePO4 PARSER (JSON + NANOLOG) ---
         function parseAndUpdateSolarBms(data) {
             if (!data) return;
             initPremiumGlassBmsUI();
 
             const c = window.bmsCache;
 
-            // 1. Check direct JSON fields across all common naming conventions
-            const jsonVolt = data.battVolt ?? data.batteryVoltage ?? data.batVolt ?? data.vbat ?? data.vBat ?? data.battV ?? data.batV ?? data.cellVolt ?? data.voltage;
-            const jsonSoc  = data.battPct ?? data.batteryPercent ?? data.soc ?? data.SOC ?? data.batPct ?? data.battPercent ?? data.batPercent ?? data.battery;
-            const jsonCurr = data.battCurr ?? data.batteryCurrent ?? data.currentMa ?? data.batCurr ?? data.current ?? data.loadCurrent ?? data.mA;
+            // 1. Parse JSON telemetry keys (supports INA219 & custom keys)
+            const jsonVolt = data.battVolt ?? data.batteryVoltage ?? data.batVolt ?? data.vbat ?? data.vBat ??
+                             data.battV ?? data.batV ?? data.cellVolt ?? data.busVoltage ?? data.busVolt ??
+                             data.loadVoltage ?? data.loadVolt ?? data.inaVolt ?? data.inaVoltage ?? data.voltage;
+
+            const jsonSoc  = data.battPct ?? data.batteryPercent ?? data.soc ?? data.SOC ?? data.batPct ??
+                             data.battPercent ?? data.batPercent ?? data.battery;
+
+            const jsonCurrMa = data.battCurr ?? data.batteryCurrent ?? data.currentMa ?? data.current_mA ??
+                               data.batCurr ?? data.inaCurrent ?? data.inaCurr ?? data.shuntCurrent ??
+                               data.chgCurrent ?? data.chargeCurrent ?? data.loadCurrent ?? data.mA ?? data.ibat;
+
+            const jsonCurrA  = data.amp ?? data.amps ?? data.currentA ?? data.current_A ?? data.battAmp ?? data.chgAmp;
+            const jsonGenericCurr = data.current ?? data.curr;
+
+            const jsonPowerMw = data.power_mW ?? data.powerMw ?? data.inaPower;
+            const jsonPowerW  = data.power ?? data.powerW ?? data.battPower ?? data.watts;
+
             const jsonSolV = data.solarVolt ?? data.solarVoltage ?? data.panelVoltage ?? data.vSolar ?? data.solV ?? data.solarV;
-            const jsonChg  = data.isCharging ?? data.solarCharging ?? data.charging ?? data.chg;
+            const jsonChg  = data.isCharging ?? data.solarCharging ?? data.charging ?? data.chg ??
+                             data.chargeStatus ?? data.chgStatus ?? data.solarStatus ?? data.solarStat ?? data.battStatus;
             const jsonHlth = data.battHealth ?? data.batteryHealth ?? data.cellHealth ?? data.health ?? data.soh;
             const jsonBkup = data.backupTime ?? data.estBackup ?? data.backupHours ?? data.backup;
 
-            if (jsonVolt !== undefined && !isNaN(parseFloat(jsonVolt))) {
-                c.bVolt = parseFloat(jsonVolt);
-                if (c.bVolt > 0.5) c.active = true;
+            if (jsonVolt !== undefined && jsonVolt !== null && !isNaN(parseFloat(jsonVolt))) {
+                const parsedV = parseFloat(jsonVolt);
+                if (parsedV > 0.3) {
+                    if (c.bVolt !== null && Math.abs(parsedV - c.bVolt) >= 0.01) {
+                        c.prevVolt = c.bVolt;
+                    }
+                    c.bVolt = parsedV;
+                    c.active = true;
+                }
             }
-            if (jsonSoc !== undefined && !isNaN(parseFloat(jsonSoc))) {
+
+            if (jsonCurrMa !== undefined && jsonCurrMa !== null && !isNaN(parseFloat(jsonCurrMa))) {
+                const rawMa = parseFloat(jsonCurrMa);
+                c.rawSignedCurrMa = rawMa;
+                c.bCurrMa = Math.abs(rawMa);
+                c.active = true;
+            } else if (jsonCurrA !== undefined && jsonCurrA !== null && !isNaN(parseFloat(jsonCurrA))) {
+                const rawA = parseFloat(jsonCurrA);
+                c.rawSignedCurrMa = rawA * 1000.0;
+                c.bCurrMa = Math.abs(rawA * 1000.0);
+                c.active = true;
+            } else if (jsonGenericCurr !== undefined && jsonGenericCurr !== null && !isNaN(parseFloat(jsonGenericCurr))) {
+                const rawVal = parseFloat(jsonGenericCurr);
+                // If value is small decimal like 0.45 or 1.25, treat as Amps if < 15 and has decimal, otherwise mA
+                const isAmps = String(jsonGenericCurr).includes('.') && Math.abs(rawVal) < 15.0;
+                c.rawSignedCurrMa = isAmps ? rawVal * 1000.0 : rawVal;
+                c.bCurrMa = Math.abs(c.rawSignedCurrMa);
+                c.active = true;
+            }
+
+            if (jsonPowerMw !== undefined && !isNaN(parseFloat(jsonPowerMw))) {
+                c.bPowerMw = Math.abs(parseFloat(jsonPowerMw));
+            } else if (jsonPowerW !== undefined && !isNaN(parseFloat(jsonPowerW))) {
+                c.bPowerMw = Math.abs(parseFloat(jsonPowerW)) * 1000.0;
+            }
+
+            if (jsonSoc !== undefined && jsonSoc !== null && !isNaN(parseFloat(jsonSoc))) {
                 c.soc = Math.max(0, Math.min(100, parseFloat(jsonSoc)));
                 if (c.soc > 0) c.active = true;
             }
-            if (jsonCurr !== undefined && !isNaN(parseFloat(jsonCurr))) c.bCurr = parseFloat(jsonCurr);
-            if (jsonSolV !== undefined && !isNaN(parseFloat(jsonSolV))) c.sVolt = parseFloat(jsonSolV);
-            if (jsonChg !== undefined) {
-                c.isCharging = (jsonChg === true || jsonChg === 1 || String(jsonChg).toLowerCase() === "true" || String(jsonChg).toLowerCase() === "charging" || String(jsonChg).toLowerCase() === "on");
-                c.active = true;
+
+            if (jsonSolV !== undefined && jsonSolV !== null && !isNaN(parseFloat(jsonSolV))) {
+                c.sVolt = parseFloat(jsonSolV);
+                if (c.sVolt > 0.5) c.active = true;
             }
+
+            if (jsonChg !== undefined && jsonChg !== null) {
+                const sVal = String(jsonChg).toLowerCase().trim();
+                if (jsonChg === true || jsonChg === 1 || sVal === "true" || sVal === "1" || sVal.includes("charg") || sVal === "chg" || sVal === "on" || sVal === "active" || sVal === "yes") {
+                    if (!sVal.includes("discharg") && !sVal.includes("not")) {
+                        c.explicitChargeFlag = true;
+                        c.active = true;
+                    } else {
+                        c.explicitChargeFlag = false;
+                    }
+                } else if (jsonChg === false || jsonChg === 0 || sVal === "false" || sVal === "0" || sVal.includes("discharg") || sVal === "off" || sVal === "idle") {
+                    c.explicitChargeFlag = false;
+                }
+            }
+
             if (jsonHlth !== undefined && !isNaN(parseFloat(jsonHlth))) c.health = parseFloat(jsonHlth);
             if (jsonBkup !== undefined && String(jsonBkup).trim() !== "" && String(jsonBkup) !== "--") c.backupStr = String(jsonBkup);
             if (data.solarActive === true || data.bmsActive === true) c.active = true;
 
-            // 2. Scan nanoLog, log, and hardwareLog for battery telemetry text!
+            // 2. Parse Nano Terminal (nanoLog), ESP Log (log), and Hardware Log
             const rawLogs = [data.nanoLog, data.log, data.hardwareLog].filter(Boolean).join("\n");
             if (rawLogs) {
                 const lines = rawLogs.split('\n');
+                let logFoundChargeTrue = false;
+                let logFoundChargeFalse = false;
+
                 for (const rawLine of lines) {
-                    const line = rawLine.trim();
-                    if (!line) continue;
+                    const cleanLine = rawLine.replace(/\[(?:TX|RX)\]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
+                    if (!cleanLine) continue;
 
-                    const hasBmsKeyword = /(?:bat(?:t|tery)?|bms|sol(?:ar)?|lifepo4|vbat|soc|chg|charging|cell|\d+\.\d+\s*v\b|\d+\s*ma\b)/i.test(line);
-                    if (!hasBmsKeyword) continue;
+                    const hasBmsSignal = /(?:bat(?:t|tery)?|bms|ina(?:219)?|lifepo4|vbat|bus|shunt|soc|chg|charg|sol(?:ar)?|\d+\.\d+\s*v\b|[-+]?\d+(?:\.\d+)?\s*m?a\b)/i.test(cleanLine);
+                    if (!hasBmsSignal) continue;
 
-                    // Extract Solar Voltage first (e.g. "Solar: 5.12V" or "PV: 4.9V")
-                    const solVMatch = line.match(/(?:sol(?:ar)?|pv|panel|in(?:put)?)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*v\b/i);
-                    if (solVMatch) {
-                        c.sVolt = parseFloat(solVMatch[1]);
-                        c.active = true;
+                    // A. Extract explicit Solar/Panel Voltage ONLY if labeled as Solar/PV/Panel V
+                    const solMatch = cleanLine.match(/(?:sol(?:ar)?\s*(?:v(?:olt(?:age)?)?|in(?:put)?)|pv\s*v?(?:olt)?|panel\s*v?(?:olt)?)\s*[:=]\s*(\d+(?:\.\d+)?)\s*v?\b/i);
+                    if (solMatch) {
+                        const sv = parseFloat(solMatch[1]);
+                        if (sv >= 0 && sv <= 30) {
+                            c.sVolt = sv;
+                            c.active = true;
+                        }
                     }
 
-                    // Extract Battery Voltage (e.g. "Batt: 3.32V", "V: 3.28V", or standalone "3.32V")
-                    const batVMatch = line.match(/(?:bat(?:t|tery)?|vbat|cell|lifepo4|volt(?:age)?|bms|v)\s*[:=]?\s*(\d+\.\d+)\s*v\b/i);
-                    if (batVMatch) {
-                        const vVal = parseFloat(batVMatch[1]);
-                        if (vVal >= 1.8 && vVal <= 16.0) {
-                            c.bVolt = vVal;
-                            c.active = true;
-                            c.rawLine = line.replace(/[TX]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
-                        }
+                    // B. Extract Battery / INA219 Bus Voltage
+                    const lineWithoutSolarV = solMatch ? cleanLine.replace(solMatch[0], "") : cleanLine;
+                    const labeledBatV = lineWithoutSolarV.match(/(?:bat(?:t|tery)?(?:\s*v(?:olt(?:age)?)?)?|vbat|bus(?:\s*v(?:olt)?)?|load(?:\s*v(?:olt)?)?|cell(?:\s*v(?:olt)?)?|ina(?:219)?(?:\s*v(?:olt)?)?|volt(?:age)?|\bv)\s*[:=]\s*(\d+\.\d+)\s*v?\b/i);
+                    
+                    let extractedV = null;
+                    if (labeledBatV) {
+                        extractedV = parseFloat(labeledBatV[1]);
                     } else {
-                        // Fallback: check any decimal voltage in the line that isn't the solar voltage
-                        const allVolts = [...line.matchAll(/(\d+\.\d+)\s*v\b/ig)];
-                        for (const m of allVolts) {
-                            const vVal = parseFloat(m[1]);
-                            if (vVal >= 2.2 && vVal <= 4.4 && (!solVMatch || Math.abs(vVal - parseFloat(solVMatch[1])) > 0.05)) {
-                                c.bVolt = vVal;
-                                c.active = true;
-                                c.rawLine = line.replace(/[TX]\s*Pkt:\s*\d+\s*\|\s*/gi, "").trim();
+                        const anyVoltMatches = [...lineWithoutSolarV.matchAll(/(\d+\.\d+)\s*v\b/ig)];
+                        for (const m of anyVoltMatches) {
+                            const vCandidate = parseFloat(m[1]);
+                            if (vCandidate >= 1.80 && vCandidate <= 15.50) {
+                                extractedV = vCandidate;
                                 break;
                             }
                         }
                     }
 
-                    // Extract Battery Percentage (avoiding Water Level %)
-                    const batPctMatch1 = line.match(/(?:bat(?:t|tery)?|soc|cell|lifepo4|bms)\s*[:=]?\s*\d+(?:\.\d+)?\s*v?\s*[\(\|,-]?\s*(\d{1,3}(?:\.\d+)?)\s*%/i);
-                    const batPctMatch2 = line.match(/(?:bat(?:t|tery)?|soc|bms|cell|chg|charge)\s*[:=]?\s*(\d{1,3}(?:\.\d+)?)\s*%/i);
-                    const batPctMatch3 = line.match(/(\d+\.\d+)\s*v\s*[\(\|,-]?\s*(\d{1,3}(?:\.\d+)?)\s*%/i);
-
-                    if (batPctMatch1) {
-                        c.soc = Math.max(0, Math.min(100, parseFloat(batPctMatch1[1])));
+                    if (extractedV !== null && !isNaN(extractedV) && extractedV >= 1.80 && extractedV <= 15.50) {
+                        if (c.bVolt !== null && Math.abs(extractedV - c.bVolt) >= 0.01) {
+                            c.prevVolt = c.bVolt;
+                        }
+                        c.bVolt = extractedV;
                         c.active = true;
-                    } else if (batPctMatch2) {
-                        c.soc = Math.max(0, Math.min(100, parseFloat(batPctMatch2[1])));
-                        c.active = true;
-                    } else if (batPctMatch3) {
-                        c.soc = Math.max(0, Math.min(100, parseFloat(batPctMatch3[2])));
-                        c.active = true;
+                        c.rawLine = cleanLine;
                     }
 
-                    // Extract Current in mA or A
-                    const currMaMatch = line.match(/(\d+(?:\.\d+)?)\s*ma\b/i);
-                    const currAMatch = line.match(/(?:curr(?:ent)?|load|amp|ibat)\s*[:=]?\s*(\d+\.\d+)\s*a\b/i);
-                    if (currMaMatch) {
-                        c.bCurr = parseFloat(currMaMatch[1]);
-                        c.active = true;
-                    } else if (currAMatch) {
-                        c.bCurr = parseFloat(currAMatch[1]) * 1000;
-                        c.active = true;
+                    // C. Extract INA219 Current in mA or A (with +/- sign support)
+                    const maExplicit = cleanLine.match(/([-+]?\s*\d+(?:\.\d+)?)\s*ma\b/i);
+                    const ampExplicit = cleanLine.match(/(?:curr(?:ent)?|ina(?:219)?|amp(?:s)?|ibat|chg|load|\bi)\s*[:=]?\s*([-+]?\s*\d+(?:\.\d+)?)\s*(?:a|amp|amps)\b/i) ||
+                                        cleanLine.match(/\b([-+]?\s*\d+\.\d+)\s*(?:a|amp|amps)\b/i);
+                    const currNoUnit = cleanLine.match(/(?:curr(?:ent)?|ibat|ma|amp(?:s)?)\s*[:=]\s*([-+]?\s*\d+(?:\.\d+)?)\b/i);
+
+                    if (maExplicit) {
+                        const rawVal = parseFloat(maExplicit[1].replace(/\s+/g, ''));
+                        if (!isNaN(rawVal)) {
+                            c.rawSignedCurrMa = rawVal;
+                            c.bCurrMa = Math.abs(rawVal);
+                            c.active = true;
+                            c.rawLine = cleanLine;
+                        }
+                    } else if (ampExplicit) {
+                        const rawValA = parseFloat(ampExplicit[1].replace(/\s+/g, ''));
+                        if (!isNaN(rawValA)) {
+                            c.rawSignedCurrMa = rawValA * 1000.0;
+                            c.bCurrMa = Math.abs(rawValA * 1000.0);
+                            c.active = true;
+                            c.rawLine = cleanLine;
+                        }
+                    } else if (currNoUnit) {
+                        const rawVal = parseFloat(currNoUnit[1].replace(/\s+/g, ''));
+                        if (!isNaN(rawVal)) {
+                            const isAmps = /amp/i.test(currNoUnit[0]) && Math.abs(rawVal) < 20;
+                            c.rawSignedCurrMa = isAmps ? rawVal * 1000.0 : rawVal;
+                            c.bCurrMa = Math.abs(c.rawSignedCurrMa);
+                            c.active = true;
+                            c.rawLine = cleanLine;
+                        }
                     }
 
-                    // Extract Charging State
-                    if (/\b(charging|solar\s*on|solar\s*active|chg\s*[:=]\s*(?:1|on|yes|true|ok|active)|sun\s*active|⚡)\b/i.test(line) && !/\bnot\s+charging\b/i.test(line)) {
-                        c.isCharging = true;
+                    // D. Extract INA219 Power (mW or W) if present
+                    const mwMatch = cleanLine.match(/(\d+(?:\.\d+)?)\s*mw\b/i);
+                    const wMatch = cleanLine.match(/(?:pwr|power|watt(?:s)?|\bp)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*w\b/i);
+                    if (mwMatch) {
+                        c.bPowerMw = parseFloat(mwMatch[1]);
+                    } else if (wMatch) {
+                        c.bPowerMw = parseFloat(wMatch[1]) * 1000.0;
+                    }
+
+                    // E. Extract Charging Status from Log Text
+                    if (/\b(?:discharging|not\s*charging|chg\s*[:=]\s*(?:0|off|no|false|idle)|solar\s*[:=]\s*(?:0|off|no|idle)|bat(?:tery)?\s*mode|on\s*battery)\b/i.test(cleanLine)) {
+                        logFoundChargeFalse = true;
+                    } else if (/(?:\bcharging\b|\bchrg\b|\bchg\s*[:=]\s*(?:1|on|yes|true|ok|active)\b|\bsolar\s*[:=]\s*(?:1|on|yes|true|active|ok|charging)\b|\bstat(?:us)?\s*[:=]\s*chg\b|\bmode\s*[:=]\s*chg\b|[chg]|⚡)/i.test(cleanLine)) {
+                        logFoundChargeTrue = true;
                         c.active = true;
-                    } else if (/\b(discharging|solar\s*off|solar\s*idle|chg\s*[:=]\s*(?:0|off|no|false|idle)|on\s*battery)\b/i.test(line)) {
-                        c.isCharging = false;
+                        c.rawLine = cleanLine;
                     }
 
-                    // Extract Backup Time
-                    const bkupMatch = line.match(/(?:backup|rem(?:aining)?|runtime|est)\s*[:=]?\s*(\d+\s*d\s*\d+\s*h|\d+(?:\.\d+)?\s*(?:hrs?|hours?|days?|d|h))\b/i);
-                    if (bkupMatch) {
-                        c.backupStr = bkupMatch[1];
+                    // F. Extract Battery SOC % if explicitly tagged as Battery/BMS/SOC
+                    const socMatch = cleanLine.match(/(?:bat(?:t|tery)?|soc|bms|cell|lifepo4)\s*[:=]?\s*(?:\d+\.\d+\s*v\s*[\(\|,-]?\s*)?(\d{1,3}(?:\.\d+)?)\s*%/i) ||
+                                     cleanLine.match(/\b\d+\.\d+\s*v\s*[\(\|,-]\s*(\d{1,3}(?:\.\d+)?)\s*%/i);
+                    if (socMatch) {
+                        const parsedPct = parseFloat(socMatch[1]);
+                        if (!isNaN(parsedPct) && parsedPct >= 0 && parsedPct <= 100) {
+                            c.soc = parsedPct;
+                            c.active = true;
+                        }
                     }
 
-                    // Extract Health
-                    const hlthMatch = line.match(/(?:health|soh)\s*[:=]?\s*(\d{1,3}(?:\.\d+)?)\s*%/i);
-                    if (hlthMatch) {
-                        c.health = Math.max(0, Math.min(100, parseFloat(hlthMatch[1])));
-                    }
+                    // G. Extract Backup Time & Health if present
+                    const bkupMatch = cleanLine.match(/(?:backup|rem(?:aining)?|runtime)\s*[:=]?\s*(\d+\s*d\s*\d+\s*h|\d+(?:\.\d+)?\s*(?:hrs?|hours?|days?|d|h))\b/i);
+                    if (bkupMatch) c.backupStr = bkupMatch[1];
+
+                    const hlthMatch = cleanLine.match(/(?:health|soh)\s*[:=]?\s*(\d{1,3}(?:\.\d+)?)\s*%/i);
+                    if (hlthMatch) c.health = Math.max(0, Math.min(100, parseFloat(hlthMatch[1])));
                 }
+
+                if (logFoundChargeTrue) {
+                    c.explicitChargeFlag = true;
+                } else if (logFoundChargeFalse) {
+                    c.explicitChargeFlag = false;
+                }
+            }
+
+            // 3. Determine Final Charging Status for 3.2V 32140 LiFePO4 + INA219
+            if (c.explicitChargeFlag !== null) {
+                c.isCharging = c.explicitChargeFlag;
+            } else {
+                // Intelligent INA219 + 32140 LiFePO4 electrical charging detection:
+                // - A 3.2V LiFePO4 cell above 3.36V is actively being charged (resting max is ~3.33V-3.34V)
+                // - Or if solar voltage is above battery voltage + 0.3V
+                // - Or if INA219 current is negative (< -20mA) or high charging current (> 110mA, since Nano+nRF24 draws ~35-65mA)
+                // - Or if battery voltage jumped up by >= 0.02V while >= 3.22V
+                const voltIndicatesCharge = (c.bVolt !== null && c.bVolt >= 3.36 && c.bVolt <= 3.75);
+                const solarInputIndicatesCharge = (c.sVolt !== null && c.bVolt !== null && c.sVolt > c.bVolt + 0.30);
+                const signedCurrIndicatesCharge = (c.rawSignedCurrMa !== null && c.rawSignedCurrMa < -20);
+                const highCurrIndicatesCharge = (c.bCurrMa !== null && c.bCurrMa >= 110 && c.bVolt !== null && c.bVolt >= 3.22);
+                const risingVoltIndicatesCharge = (c.bVolt !== null && c.prevVolt !== null && (c.bVolt - c.prevVolt) >= 0.02 && c.bVolt >= 3.24);
+
+                c.isCharging = Boolean(
+                    voltIndicatesCharge ||
+                    solarInputIndicatesCharge ||
+                    signedCurrIndicatesCharge ||
+                    highCurrIndicatesCharge ||
+                    risingVoltIndicatesCharge
+                );
             }
 
             renderSolarBmsUI();
@@ -2646,9 +2793,13 @@
                 active: false,
                 soc: null,
                 bVolt: null,
-                bCurr: null,
+                prevVolt: null,
+                bCurrMa: null,
+                rawSignedCurrMa: null,
+                bPowerMw: null,
                 sVolt: null,
                 isCharging: false,
+                explicitChargeFlag: null,
                 health: 100,
                 backupStr: null,
                 rawLine: ""
@@ -2676,26 +2827,62 @@
             if (card) card.style.display = 'block';
             if (adminRow) adminRow.style.display = 'flex';
 
-            // Derive missing values intelligently so the UI is always complete
-            let bVolt = (c.bVolt !== null && c.bVolt > 0) ? c.bVolt : (c.soc !== null ? (2.80 + (c.soc / 100) * 0.58) : 3.28);
-            let soc = (c.soc !== null) ? c.soc : lifepo4VoltageToSoc(bVolt, c.isCharging);
+            const isCharging = Boolean(c.isCharging);
+            const hasRealVolt = (c.bVolt !== null && !isNaN(c.bVolt) && c.bVolt > 0);
+            const bVolt = hasRealVolt ? c.bVolt : 0;
+
+            const hasRealCurr = (c.bCurrMa !== null && !isNaN(c.bCurrMa));
+            const bCurrMa = hasRealCurr ? Math.abs(c.bCurrMa) : 0;
+            const bCurrAmps = bCurrMa / 1000.0;
+
+            // Calculate accurate SOC % for 32140 3.2V 15Ah LiFePO4
+            let soc = 0;
+            if (hasRealVolt) {
+                const curveSoc = lifepo4_32140_VoltageToSoc(bVolt, isCharging, bCurrMa);
+                // If hardware sent an SOC that was mistakenly mapped for 3.7V/4.2V Li-Ion (e.g., showing <30% at 3.26V), trust the 3.2V LiFePO4 curve!
+                if (c.soc !== null && Math.abs(c.soc - curveSoc) <= 18) {
+                    soc = c.soc;
+                } else {
+                    soc = curveSoc;
+                }
+            } else if (c.soc !== null) {
+                soc = c.soc;
+            }
             soc = Math.max(0, Math.min(100, soc));
 
-            let bCurr = (c.bCurr !== null && c.bCurr > 0) ? c.bCurr : (c.isCharging ? 185 : 42);
-            let sVolt = (c.sVolt !== null && c.sVolt > 0) ? c.sVolt : (c.isCharging ? Math.max(4.85, bVolt + 1.45) : 0.0);
-            let isCharging = c.isCharging || (c.sVolt !== null && c.sVolt > bVolt + 0.4);
-            let health = c.health || 100;
+            // 15Ah (15,000mAh) Capacity & Backup Time Calculations
+            const remMah = Math.round(BATTERY_CAPACITY_MAH * (soc / 100.0));
+            const remAh = (remMah / 1000.0).toFixed(2);
+            const remWh = ((remMah / 1000.0) * (hasRealVolt ? bVolt : BATTERY_NOMINAL_V)).toFixed(1);
 
-            let remMah = Math.round(6000 * (soc / 100));
-            let powerW = (bVolt * (bCurr / 1000)).toFixed(2);
+            const powerW = (c.bPowerMw !== null && c.bPowerMw > 0)
+                ? (c.bPowerMw / 1000.0).toFixed(2)
+                : ((bVolt * bCurrAmps).toFixed(2));
 
             let backupStr = c.backupStr;
             if (!backupStr || backupStr === "--") {
-                const drainMa = bCurr > 5 && !isCharging ? bCurr : 42;
-                const estHrs = remMah / drainMa;
-                const d = Math.floor(estHrs / 24);
-                const h = Math.round(estHrs % 24);
-                backupStr = d > 0 ? `${d}d ${h}h` : `${Math.max(1, Math.round(estHrs))} hrs`;
+                if (isCharging && bCurrMa > 20) {
+                    // Show estimated time to full 15Ah charge AND standby backup
+                    const missingMah = Math.max(0, BATTERY_CAPACITY_MAH - remMah);
+                    const chgHrs = missingMah / Math.max(50, bCurrMa);
+                    if (soc >= 99) {
+                        backupStr = "Full (15Ah Ready)";
+                    } else if (chgHrs < 1) {
+                        backupStr = `~${Math.max(5, Math.round(chgHrs * 60))}m to Full`;
+                    } else {
+                        backupStr = `~${chgHrs.toFixed(1)}h to Full`;
+                    }
+                } else {
+                    const drainMa = (hasRealCurr && bCurrMa >= 5) ? bCurrMa : 45; // 45mA typical Nano+nRF24 load
+                    const estHrs = remMah / drainMa;
+                    if (estHrs >= 24) {
+                        const d = Math.floor(estHrs / 24);
+                        const h = Math.round(estHrs % 24);
+                        backupStr = `${d}d ${h}h`;
+                    } else {
+                        backupStr = `${Math.max(0, estHrs).toFixed(1)} hrs`;
+                    }
+                }
             }
 
             if (card) {
@@ -2725,7 +2912,9 @@
             }
 
             if (pctTextEl) {
-                pctTextEl.innerText = `${soc.toFixed(0)}% (${bVolt.toFixed(2)}V)`;
+                pctTextEl.innerText = hasRealVolt
+                    ? `${soc.toFixed(0)}% (${bVolt.toFixed(2)}V)`
+                    : `${soc.toFixed(0)}%`;
             }
 
             if (badgeEl) {
@@ -2734,50 +2923,79 @@
                     badgeEl.innerText = '⚡ SOLAR CHARGING';
                 } else if (soc >= 99) {
                     badgeEl.className = 'bms-status-pill charging';
-                    badgeEl.innerText = '🛡️ FULL FLOAT';
+                    badgeEl.innerText = '🛡️ FULL (15Ah)';
                 } else {
                     badgeEl.className = 'bms-status-pill';
                     badgeEl.innerText = '🔋 ON BATTERY';
                 }
             }
 
+            // Tile 1: INA219 Voltage & Current (shows both V, Amps, and mA)
             if (document.getElementById('bmsVoltCurrText')) {
-                document.getElementById('bmsVoltCurrText').innerText = `${bVolt.toFixed(2)} V | ${Math.abs(bCurr).toFixed(0)} mA`;
+                const vStr = hasRealVolt ? `${bVolt.toFixed(2)} V` : `-- V`;
+                const iStr = hasRealCurr
+                    ? `${bCurrAmps.toFixed(2)} A (${bCurrMa.toFixed(0)} mA)`
+                    : `-- A (-- mA)`;
+                document.getElementById('bmsVoltCurrText').innerText = `${vStr} | ${iStr}`;
             }
+            if (document.getElementById('bmsVoltRangeSub')) {
+                document.getElementById('bmsVoltRangeSub').innerText = isCharging
+                    ? `INA219 Charging Current: +${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA)`
+                    : `INA219 Load Current: ${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA)`;
+            }
+
+            // Tile 2: Solar / Charging Status
             if (document.getElementById('bmsSolarVoltText')) {
-                document.getElementById('bmsSolarVoltText').innerText = isCharging ? `${sVolt.toFixed(2)} V (Charging)` : `${sVolt.toFixed(2)} V (Standby)`;
+                if (c.sVolt !== null && c.sVolt > 0) {
+                    document.getElementById('bmsSolarVoltText').innerText = isCharging
+                        ? `⚡ ${c.sVolt.toFixed(2)} V (Charging)`
+                        : `${c.sVolt.toFixed(2)} V (Standby)`;
+                } else {
+                    document.getElementById('bmsSolarVoltText').innerText = isCharging
+                        ? `⚡ CHARGING (${bCurrAmps.toFixed(2)} A)`
+                        : `🌙 DISCHARGING`;
+                }
+                document.getElementById('bmsSolarVoltText').style.color = isCharging ? '#2ed573' : '#feca57';
             }
             if (document.getElementById('bmsSolarStateSub')) {
-                document.getElementById('bmsSolarStateSub').innerText = isCharging ? '☀️ Harvesting Solar Energy' : '🌙 Running on LiFePO4 Cell';
+                document.getElementById('bmsSolarStateSub').innerText = isCharging
+                    ? `☀️ CC-CV Charging 32140 LiFePO4 Cell`
+                    : `🔋 Running on 32140 15Ah LiFePO4`;
             }
+
+            // Tile 3: 15Ah Backup Time & Remaining Capacity
             if (document.getElementById('bmsBackupTimeText')) {
-                document.getElementById('bmsBackupTimeText').innerText = isCharging ? `Charging ☀️ (${backupStr})` : backupStr;
+                document.getElementById('bmsBackupTimeText').innerText = backupStr;
             }
             if (document.getElementById('bmsCapMahSub')) {
-                document.getElementById('bmsCapMahSub').innerText = `Capacity: ${remMah} / 6000 mAh`;
+                document.getElementById('bmsCapMahSub').innerText = `Rem: ${remAh} Ah (${remMah} / 15000 mAh)`;
             }
+
+            // Tile 4: Health & INA219 Wattage / Energy
+            const health = c.health || 100;
             if (document.getElementById('bmsHealthText')) {
                 const hEl = document.getElementById('bmsHealthText');
-                hEl.innerText = `${health.toFixed(0)}%`;
+                hEl.innerText = `${health.toFixed(0)}% (${remWh} Wh)`;
                 hEl.style.color = health >= 80 ? '#2ed573' : (health >= 50 ? '#feca57' : '#ff4757');
             }
             if (document.getElementById('bmsPowerSub')) {
                 document.getElementById('bmsPowerSub').innerText = `${isCharging ? 'Charge' : 'Load'} Power: ${powerW} W`;
             }
+
             if (document.getElementById('bmsStreamFooter')) {
                 document.getElementById('bmsStreamFooter').innerText = c.rawLine
-                    ? `📡 Live Node: ${c.rawLine}`
-                    : `📡 BMS Sync: ${bVolt.toFixed(2)}V • ${soc.toFixed(0)}% • ${isCharging ? 'Solar Active' : 'Battery Mode'}`;
+                    ? `📡 Live INA219: ${c.rawLine}`
+                    : `📡 32140 BMS: ${bVolt.toFixed(2)}V • ${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA) • ${soc.toFixed(0)}% • ${isCharging ? 'CHARGING' : 'DISCHARGING'}`;
             }
 
             // Admin Diagnostics BMS Row
             if (document.getElementById('adminTxtBmsSoc')) document.getElementById('adminTxtBmsSoc').innerText = `${soc.toFixed(0)}%`;
-            if (document.getElementById('adminTxtBmsVolt')) document.getElementById('adminTxtBmsVolt').innerText = `${bVolt.toFixed(2)}V`;
+            if (document.getElementById('adminTxtBmsVolt')) document.getElementById('adminTxtBmsVolt').innerText = `${bVolt.toFixed(2)}V | ${bCurrAmps.toFixed(2)}A`;
             if (document.getElementById('adminTxtSolarState')) {
-                document.getElementById('adminTxtSolarState').innerText = isCharging ? '⚡ Charging' : '🔋 Discharging';
+                document.getElementById('adminTxtSolarState').innerText = isCharging ? `⚡ Charging (${bCurrMa.toFixed(0)}mA)` : `🔋 Discharging (${bCurrMa.toFixed(0)}mA)`;
                 document.getElementById('adminTxtSolarState').style.color = isCharging ? '#2ed573' : '#feca57';
             }
-            if (document.getElementById('adminTxtBmsHealth')) document.getElementById('adminTxtBmsHealth').innerText = `${health.toFixed(0)}%`;
+            if (document.getElementById('adminTxtBmsHealth')) document.getElementById('adminTxtBmsHealth').innerText = `${remAh}Ah (${health.toFixed(0)}%)`;
         }
 
         // --- PDF GENERATION LOGIC ---
@@ -3592,7 +3810,6 @@
 
         // --- 4-STAGE CUSTOMER DEVICE ID RESOLVER (BYPASSES ROOT /Devices PERMISSION BLOCK) ---
         async function resolveCustomerDeviceId(user) {
-            // Stage 1: Check /Users/{uid}/deviceId in Firebase
             try {
                 const snap = await database.ref('Users/' + user.uid + '/deviceId').once('value');
                 if (snap.exists() && snap.val()) {
@@ -3604,13 +3821,11 @@
                 console.warn("Stage 1 (/Users read) skipped:", e.message);
             }
 
-            // Stage 2: Check LocalStorage cache on this phone/browser
             const cachedId = localStorage.getItem('waterIoT_linkedDev_' + user.uid);
             if (cachedId) {
                 return cachedId;
             }
 
-            // Stage 3: Extract candidate MAC / Device IDs from customer's email address
             const emailPrefix = (user.email || "").split('@')[0].trim();
             const candidates = new Set();
             if (emailPrefix) {
@@ -3643,7 +3858,6 @@
                 } catch (e) {}
             }
 
-            // Stage 4: Try scanning /Devices if rules allow
             try {
                 const allSnap = await database.ref('Devices').once('value');
                 let matched = null;
@@ -3662,7 +3876,6 @@
                 }
             } catch (e) {}
 
-            // Stage 5: 1-Time Device ID Prompt
             const manualId = await customPrompt("🔗 FIRST-TIME DEVICE LINK\n\nPlease enter your Device ID (e.g., a4e1) one time to link your account:", false);
             if (manualId && manualId.trim() !== "") {
                 const cleanId = manualId.trim();
@@ -3879,7 +4092,6 @@
                         let telStr = JSON.stringify(val.telemetry || {});
                         let stateStr = JSON.stringify(val.state || {});
 
-                        // Auto-sync customer password changes from /control/updatePortalPass into /customerInfo/password
                         let portalPass = val.control && val.control.updatePortalPass ? String(val.control.updatePortalPass).trim() : "";
                         let changedPass = val.customerInfo && val.customerInfo.customerChangedPass ? String(val.customerInfo.customerChangedPass).trim() : "";
                         let currentSavedPass = val.customerInfo && val.customerInfo.password ? String(val.customerInfo.password).trim() : "";
@@ -3895,7 +4107,6 @@
                             }
                         }
                         
-                        // --- SILENT AUTO-RECOVERY & UID LINKER ---
                         let passForSync = newestPass || currentSavedPass;
                         if(val.customerInfo && val.customerInfo.email && passForSync && (!val.customerInfo.accountCreated || !val.customerInfo.linkedUid)) {
                             syncCustomerUidLink(devId, val.customerInfo.email, passForSync);
@@ -4701,7 +4912,6 @@
                     if (document.getElementById('adminEnableS1')) document.getElementById('adminEnableS1').checked = window.sensor1Enabled;
                     if (document.getElementById('adminEnableS2')) document.getElementById('adminEnableS2').checked = window.sensor2Enabled;
 
-                    // Sync customer password change from /control/updatePortalPass into Admin Portal
                     if (ctrl.updatePortalPass && String(ctrl.updatePortalPass).trim() !== "") {
                         window.latestPortalPassOverride = String(ctrl.updatePortalPass).trim();
                         refreshDisplayedAdminPassword();
@@ -4772,7 +4982,7 @@
                         if(document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = parseFloat(data.bucketFullHeight).toFixed(1) + ' cm';
                     }
 
-                    // Always run Universal BMS Parser on telemetry & nanoLog!
+                    // Always run Universal 32140 LiFePO4 + INA219 BMS Parser on telemetry & nanoLog!
                     parseAndUpdateSolarBms(data);
 
                     if (!window.sensor1Enabled) {
@@ -4930,7 +5140,6 @@
                         updateActiveWifiDisplay(activeHotspot);
                     }
 
-                    // Parse any BMS properties sent inside /state
                     parseAndUpdateSolarBms(state);
 
                     if (window.isFirstStateLoad) {
