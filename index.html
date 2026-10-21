@@ -2099,7 +2099,8 @@
             </div>
         </div>
                                         </div>
-       <script>
+
+<script>
         const globalLogTimestamps = {};
         
         // --- ADVANCED STATE VARIABLES ---
@@ -2109,6 +2110,7 @@
         window.knownNetworkSlots = []; 
         window.lastKnownHeartbeat = -1; 
         window.liveHeartbeatReceived = false; 
+        window.isAutoLinking = false;
 
         // --- GLOBAL OVERRIDE SENSOR STATES ---
         window.sensor1Enabled = true;
@@ -3083,7 +3085,123 @@
             });
         }
 
-        firebase.auth().onAuthStateChanged((user) => {
+        // --- 4-STAGE CUSTOMER DEVICE ID RESOLVER (BYPASSES ROOT /Devices PERMISSION BLOCK) ---
+        async function resolveCustomerDeviceId(user) {
+            // Stage 1: Check /Users/{uid}/deviceId in Firebase
+            try {
+                const snap = await database.ref('Users/' + user.uid + '/deviceId').once('value');
+                if (snap.exists() && snap.val()) {
+                    const id = String(snap.val()).trim();
+                    localStorage.setItem('waterIoT_linkedDev_' + user.uid, id);
+                    return id;
+                }
+            } catch (e) {
+                console.warn("Stage 1 (/Users read) skipped:", e.message);
+            }
+
+            // Stage 2: Check LocalStorage cache on this phone/browser
+            const cachedId = localStorage.getItem('waterIoT_linkedDev_' + user.uid);
+            if (cachedId) {
+                return cachedId;
+            }
+
+            // Stage 3: Extract candidate MAC / Device IDs from customer's email address
+            // (Checks single child node /Devices/{candidate} which is allowed by Firebase rules)
+            const emailPrefix = (user.email || "").split('@')[0].trim();
+            const candidates = new Set();
+            if (emailPrefix) {
+                candidates.add(emailPrefix.toLowerCase());
+                candidates.add(emailPrefix.toUpperCase());
+                const parts = emailPrefix.split(/[_\-\.]/);
+                parts.forEach(p => {
+                    if (p.length >= 3) {
+                        candidates.add(p.toLowerCase());
+                        candidates.add(p.toUpperCase());
+                    }
+                });
+                const hexMatches = emailPrefix.match(/[0-9a-fA-F]{4,12}/g);
+                if (hexMatches) {
+                    hexMatches.forEach(h => {
+                        candidates.add(h.toLowerCase());
+                        candidates.add(h.toUpperCase());
+                    });
+                }
+            }
+
+            for (const cand of candidates) {
+                try {
+                    const devCheck = await database.ref('Devices/' + cand + '/deviceStatus').once('value');
+                    if (devCheck.exists()) {
+                        localStorage.setItem('waterIoT_linkedDev_' + user.uid, cand);
+                        database.ref('Users/' + user.uid + '/deviceId').set(cand).catch(() => {});
+                        return cand;
+                    }
+                } catch (e) {}
+            }
+
+            // Stage 4: Try scanning /Devices if rules allow, otherwise prompt 1-time Device ID entry
+            try {
+                const allSnap = await database.ref('Devices').once('value');
+                let matched = null;
+                const userEmailLower = (user.email || "").toLowerCase().trim();
+                allSnap.forEach(child => {
+                    const d = child.val();
+                    const savedEmail = (d.customerInfo && d.customerInfo.email) ? d.customerInfo.email.toLowerCase().trim() : "";
+                    if (savedEmail === userEmailLower) {
+                        matched = child.key;
+                    }
+                });
+                if (matched) {
+                    localStorage.setItem('waterIoT_linkedDev_' + user.uid, matched);
+                    database.ref('Users/' + user.uid + '/deviceId').set(matched).catch(() => {});
+                    return matched;
+                }
+            } catch (e) {
+                // Expected if Firebase rules block non-admin root /Devices scan
+            }
+
+            // Stage 5: 1-Time Device ID Prompt (saves permanently so customer never has to enter it again)
+            const manualId = await customPrompt("🔗 FIRST-TIME DEVICE LINK\n\nPlease enter your Device ID (e.g., a4e1) one time to link your account:", false);
+            if (manualId && manualId.trim() !== "") {
+                const cleanId = manualId.trim();
+                localStorage.setItem('waterIoT_linkedDev_' + user.uid, cleanId);
+                database.ref('Users/' + user.uid + '/deviceId').set(cleanId).catch(() => {});
+                return cleanId;
+            }
+
+            return null;
+        }
+
+        // --- ADMIN HELPER: ENSURE CUSTOMER UID IS LINKED IN /Users/{uid}/deviceId ---
+        async function syncCustomerUidLink(devId, email, pass) {
+            if (!devId || !email || !pass || pass.length < 6 || window.isAutoLinking) return;
+            window.isAutoLinking = true;
+            try {
+                let uid = null;
+                try {
+                    const cred = await secondaryApp.auth().createUserWithEmailAndPassword(email.trim(), pass);
+                    uid = cred.user.uid;
+                } catch (err) {
+                    if (err.code === "auth/email-already-in-use") {
+                        const loginCred = await secondaryApp.auth().signInWithEmailAndPassword(email.trim(), pass);
+                        uid = loginCred.user.uid;
+                    }
+                }
+                if (uid) {
+                    await database.ref('/Users/' + uid + '/deviceId').set(devId);
+                    await database.ref('/Devices/' + devId + '/customerInfo').update({
+                        accountCreated: true,
+                        linkedUid: uid
+                    });
+                    await secondaryApp.auth().signOut();
+                }
+            } catch (e) {
+                console.warn("Background UID sync skipped for " + devId + ":", e.message);
+            }
+            window.isAutoLinking = false;
+        }
+
+        firebase.auth().onAuthStateChanged(async (user) => {
             if(user) {
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('dashboardScreen').style.display = 'flex';
@@ -3116,9 +3234,9 @@
                     document.getElementById('adminCommandCenter').style.display = 'none';
                     document.getElementById('mainDashboardView').style.display = 'flex';
 
-                    const connectCustomerDevice = (devId) => {
-                        currentDeviceId = devId;
-                        startListeners();
+                    const resolvedDevId = await resolveCustomerDeviceId(user);
+                    if (resolvedDevId) {
+                        executeConnection(resolvedDevId);
                         
                         let mDevice = getMobileDeviceModel();
                         let sessionKey = localStorage.getItem("waterIoT_sessionKey");
@@ -3127,41 +3245,13 @@
                             localStorage.setItem("waterIoT_sessionKey", sessionKey);
                         }
                         
-                        database.ref('/Devices/' + devId + '/mobileLogins/' + sessionKey).update({
+                        database.ref('/Devices/' + resolvedDevId + '/mobileLogins/' + sessionKey).update({
                             modelName: mDevice,
                             lastSeen: new Date().toLocaleString()
-                        });
-                    };
-                    
-                    database.ref('Users/' + user.uid + '/deviceId').once('value').then((snapshot) => {
-                        const devId = snapshot.val();
-                        if(devId) {
-                            connectCustomerDevice(devId);
-                        } else {
-                            // SELF-HEALING AUTO-LINK: Scan /Devices for matching customer email or MAC prefix
-                            database.ref('Devices').once('value').then((devSnap) => {
-                                let matchedDevId = null;
-                                let userEmailLower = (user.email || "").toLowerCase().trim();
-
-                                devSnap.forEach((child) => {
-                                    let d = child.val();
-                                    let savedEmail = (d.customerInfo && d.customerInfo.email) ? d.customerInfo.email.toLowerCase().trim() : "";
-                                    
-                                    if (savedEmail === userEmailLower || userEmailLower.startsWith(child.key.toLowerCase() + "@")) {
-                                        matchedDevId = child.key;
-                                    }
-                                });
-
-                                if (matchedDevId) {
-                                    database.ref('Users/' + user.uid + '/deviceId').set(matchedDevId);
-                                    database.ref('Devices/' + matchedDevId + '/customerInfo/accountCreated').set(true);
-                                    connectCustomerDevice(matchedDevId);
-                                } else {
-                                    customAlert("Account error: Your profile has not been linked to a Device ID yet.");
-                                }
-                            });
-                        }
-                    });
+                        }).catch(() => {});
+                    } else {
+                        customAlert("Account error: Your profile has not been linked to a Device ID yet.");
+                    }
                 }
             } else {
                 document.getElementById('loginScreen').style.display = 'flex';
@@ -3188,6 +3278,10 @@
         });
 
         function fetchLinkedDevices(targetEmail) {
+            const currentUser = firebase.auth().currentUser;
+            const isAdmin = currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com");
+            if (!isAdmin) return;
+
             const adminListElement = document.getElementById('adminLinkedDevicesList');
             if(!adminListElement) return;
 
@@ -3282,35 +3376,9 @@
                         let telStr = JSON.stringify(val.telemetry || {});
                         let stateStr = JSON.stringify(val.state || {});
                         
-                        // --- SILENT AUTO-RECOVERY FIX SECTION ---
-                        if(val.customerInfo && val.customerInfo.email && val.customerInfo.accountCreated === false) {
-                            let autoEmail = val.customerInfo.email;
-                            let autoPass = val.customerInfo.password;
-                            
-                            secondaryApp.auth().createUserWithEmailAndPassword(autoEmail, autoPass)
-                            .then((userCred) => {
-                                let cleanUid = userCred.user.uid; 
-                                database.ref('/Users/' + cleanUid + '/deviceId').set(devId).then(() => {
-                                    database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
-                                    secondaryApp.auth().signOut();
-                                });
-                            }).catch(err => {
-                                if(err.code === "auth/email-already-in-use") {
-                                    secondaryApp.auth().signInWithEmailAndPassword(autoEmail, autoPass)
-                                    .then((loginCred) => {
-                                        let recoveredUid = loginCred.user.uid;
-                                        database.ref('/Users/' + recoveredUid + '/deviceId').set(devId).then(() => {
-                                            database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
-                                            secondaryApp.auth().signOut();
-                                        });
-                                    }).catch(loginErr => {
-                                        console.error("Auto-recovery login failed:", loginErr);
-                                        database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
-                                    });
-                                } else {
-                                    database.ref('/Devices/' + devId + '/customerInfo/accountCreated').set(true);
-                                }
-                            });
+                        // --- SILENT AUTO-RECOVERY & UID LINKER ---
+                        if(val.customerInfo && val.customerInfo.email && val.customerInfo.password && (!val.customerInfo.accountCreated || !val.customerInfo.linkedUid)) {
+                            syncCustomerUidLink(devId, val.customerInfo.email, val.customerInfo.password);
                         }
 
                         if (!globalDeviceState[devId]) {
@@ -3714,10 +3782,11 @@
             badge.innerText = "OFFLINE";
             
             document.getElementById('mainDashboardView').style.display = 'flex';
-            document.getElementById('adminTerminalContainer').style.display = 'block';
 
             const currentUser = firebase.auth().currentUser;
-            if (currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com")) {
+            const isAdmin = currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com");
+            if (isAdmin) {
+                document.getElementById('adminTerminalContainer').style.display = 'block';
                 document.getElementById('pumpControlCard').style.display = 'none'; 
             } else {
                 document.getElementById('pumpControlCard').style.display = 'block';
@@ -3730,7 +3799,7 @@
             document.getElementById('logConsole').innerText = "Connecting...";
             document.getElementById('nanoLogConsole').innerText = "Connecting...";
             
-            renderAdminInbox();
+            if (isAdmin) renderAdminInbox();
             startListeners();
         }
 
@@ -3812,6 +3881,12 @@
                     document.getElementById('credEmail').innerText = info.email ? info.email : "Not saved in DB";
                     document.getElementById('credPass').innerText = info.password ? info.password : "Not saved in DB";
                     
+                    const currentUser = firebase.auth().currentUser;
+                    const isAdmin = currentUser && (currentUser.email === "adminanish@gmail.com" || currentUser.email === "homeiot@gmail.com");
+                    if (isAdmin && info.email && info.password && !info.linkedUid) {
+                        syncCustomerUidLink(currentDeviceId, info.email, info.password);
+                    }
+
                     if(info.assignedName) {
                         document.getElementById('assignedNameDisplay').innerText = `- ${info.assignedName} (${info.deviceType || 'Unknown'})`;
                     } else {
@@ -4553,21 +4628,25 @@
                 return;
             }
 
+            let linkedUid = uid || null;
+
             if (uid) {
                 await database.ref('/Users/' + uid + '/deviceId').set(devId);
             } else if (email && pass && pass.length >= 6) {
                 try {
                     let userCred = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
-                    await database.ref('/Users/' + userCred.user.uid + '/deviceId').set(devId);
+                    linkedUid = userCred.user.uid;
+                    await database.ref('/Users/' + linkedUid + '/deviceId').set(devId);
                     await secondaryApp.auth().signOut();
                 } catch (err) {
                     if (err.code === "auth/email-already-in-use") {
                         try {
                             let loginCred = await secondaryApp.auth().signInWithEmailAndPassword(email, pass);
-                            await database.ref('/Users/' + loginCred.user.uid + '/deviceId').set(devId);
+                            linkedUid = loginCred.user.uid;
+                            await database.ref('/Users/' + linkedUid + '/deviceId').set(devId);
                             await secondaryApp.auth().signOut();
                         } catch (e) {
-                            console.warn("Could not auto-fetch UID on link, customer login will auto-heal instead.");
+                            console.warn("Could not auto-fetch UID on link:", e.message);
                         }
                     }
                 }
@@ -4587,6 +4666,7 @@
                 middlemanBoard: middlemanBoard,
                 accountCreated: true
             };
+            if (linkedUid) customerInfo.linkedUid = linkedUid;
 
             await database.ref('/Devices/' + devId + '/customerInfo').update(customerInfo);
             await customAlert("✅ Device successfully linked and configured!");
