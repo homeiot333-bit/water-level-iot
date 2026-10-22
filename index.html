@@ -2159,23 +2159,24 @@
         window.latestCustomerPass = null;
         window.latestPortalPassOverride = null;
         window.bmsCache = {
-            active: false,
-            soc: null,
+            active: true,
+            ina219Detected: true,
+            soc: 0,
             lockedSoc: null,
             lastRestingSoc: null,
             lastRestingVolt: null,
             lastIntegrateTime: null,
-            bVolt: null,
+            bVolt: 0.0,
             prevVolt: null,
-            bCurrMa: null,
-            lastValidCurrMa: null,
-            rawSignedCurrMa: null,
+            bCurrMa: 0.0,
+            lastValidCurrMa: 0.0,
+            rawSignedCurrMa: 0.0,
             bPowerMw: null,
-            sVolt: null,
+            sVolt: 0.0,
             isCharging: false,
             explicitChargeFlag: null,
             health: 100,
-            backupStr: null,
+            backupStr: "--",
             rawLine: ""
         };
 
@@ -2196,6 +2197,7 @@
                         position: relative;
                         overflow: hidden;
                         transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                        display: block !important;
                     }
                     .bms-glass-card.is-charging {
                         border-color: rgba(46, 213, 115, 0.65) !important;
@@ -2482,6 +2484,7 @@
             if (card && !card.dataset.upgradedGlass) {
                 card.dataset.upgradedGlass = "true";
                 card.classList.add('bms-glass-card');
+                card.style.display = 'block';
                 card.innerHTML = `
                     <div class="bms-ambient-glow"></div>
 
@@ -2517,7 +2520,7 @@
                         </div>
                         <div class="bms-flow-node">
                             <span>📡</span>
-                            <span style="color:#00d2ff;">INA219</span>
+                            <span id="bmsFlowInaNode" style="color:#00d2ff;">INA219</span>
                         </div>
                     </div>
 
@@ -2528,7 +2531,7 @@
                             <div id="bmsBatteryFill" class="bms-battery-fill" style="width: 0%;">
                                 <div class="bms-bubbles"></div>
                             </div>
-                            <div id="bmsBatteryPercentText" class="bms-battery-label">--%</div>
+                            <div id="bmsBatteryPercentText" class="bms-battery-label">0% (0.00V)</div>
                         </div>
                         <div class="bms-battery-cap"></div>
                     </div>
@@ -2536,28 +2539,28 @@
                     <div class="bms-glass-grid">
                         <div class="bms-glass-tile">
                             <div class="bms-tile-label"><span>Battery & INA219 Amp</span><span>⚡</span></div>
-                            <span id="bmsVoltCurrText" class="bms-tile-val" style="color: #7bed9f;">-- V | -- A (-- mA)</span>
+                            <span id="bmsVoltCurrText" class="bms-tile-val" style="color: #7bed9f;">0.00 V | 0.00 A (0 mA)</span>
                             <span id="bmsVoltRangeSub" class="bms-tile-sub">32140 LiFePO4: 2.50V – 3.65V</span>
                         </div>
                         <div class="bms-glass-tile">
                             <div class="bms-tile-label"><span>Solar & Charge Current</span><span>☀️</span></div>
-                            <span id="bmsSolarVoltText" class="bms-tile-val" style="color: #feca57;">--</span>
+                            <span id="bmsSolarVoltText" class="bms-tile-val" style="color: #feca57;">0.0V | 0.00A (0mA)</span>
                             <span id="bmsSolarStateSub" class="bms-tile-sub">INA219 Shunt Sensor Active</span>
                         </div>
                         <div class="bms-glass-tile">
                             <div class="bms-tile-label"><span>15Ah Backup / Charge</span><span>⏱️</span></div>
                             <span id="bmsBackupTimeText" class="bms-tile-val" style="color: #00d2ff;">--</span>
-                            <span id="bmsCapMahSub" class="bms-tile-sub">Rem: -- Ah (-- / 15000 mAh)</span>
+                            <span id="bmsCapMahSub" class="bms-tile-sub">Rem: 0.00 Ah (0 / 15000 mAh)</span>
                         </div>
                         <div class="bms-glass-tile">
                             <div class="bms-tile-label"><span>Cell Health & Power</span><span>🛡️</span></div>
-                            <span id="bmsHealthText" class="bms-tile-val" style="color: #2ed573;">--%</span>
-                            <span id="bmsPowerSub" class="bms-tile-sub">INA219 Power: -- W</span>
+                            <span id="bmsHealthText" class="bms-tile-val" style="color: #2ed573;">100% (0.0 Wh)</span>
+                            <span id="bmsPowerSub" class="bms-tile-sub">INA219 Power: 0.00 W</span>
                         </div>
                     </div>
 
                     <div id="bmsStreamFooter" class="bms-stream-footer">
-                        📡 NEXUS SOLAR NODE: Waiting for INA219 telemetry...
+                        📡 NEXUS SOLAR NODE: Waiting for rooftop packet...
                     </div>
                 `;
             }
@@ -2565,7 +2568,7 @@
 
         // True Resting/Discharging Voltage-to-SOC (%) Curve for 32140 3.2V 15Ah LiFePO4
         function lifepo4_32140_RestingVoltageToSoc(v) {
-            if (v === null || isNaN(v) || v <= 0) return 0;
+            if (v === null || isNaN(v) || v <= 0.5) return 0;
             const curve = [
                 [2.50, 0],
                 [2.80, 2],
@@ -2596,7 +2599,7 @@
 
         // Charge-Polarization Compensated Curve when Solar is ON (prevents sudden 100% jump!)
         function lifepo4_32140_ChargingVoltageToSoc(v, currMa) {
-            if (v === null || isNaN(v) || v <= 0) return 0;
+            if (v === null || isNaN(v) || v <= 0.5) return 0;
             const amps = (currMa !== null && !isNaN(currMa) && currMa > 0) ? (Math.abs(currMa) / 1000.0) : 0.65;
 
             if (v >= 3.60 && amps > 0.01 && amps <= 0.18) {
@@ -2632,6 +2635,7 @@
             initPremiumGlassBmsUI();
 
             const c = window.bmsCache;
+            c.active = true; // Always keep NEXUS SOLAR NODE card visible
 
             // Load persisted pre-solar resting SOC from localStorage if not loaded yet
             if (c.lastRestingSoc === null && currentDeviceId) {
@@ -2649,15 +2653,16 @@
                 parseAndUpdateSolarBms(data.powerTelemetry);
             }
 
-            // 1. Explicit Check for ESP32 /powerTelemetry & /telemetry Keys
-            if (data.solarActive === true || data.bmsActive === true) c.active = true;
+            // 1. Direct Check for ESP32 /powerTelemetry & /telemetry Keys (Accepts 0.00V & 0mA!)
+            if (data.ina219Detected !== undefined) {
+                c.ina219Detected = Boolean(data.ina219Detected);
+            }
 
             if (data.batteryVolts !== undefined || data.battVolt !== undefined) {
                 const v = parseFloat(data.batteryVolts ?? data.battVolt);
-                if (!isNaN(v) && v > 0.3) {
+                if (!isNaN(v) && v >= 0) {
                     if (c.bVolt !== null && Math.abs(v - c.bVolt) >= 0.01) c.prevVolt = c.bVolt;
                     c.bVolt = v;
-                    c.active = true;
                 }
             }
 
@@ -2665,7 +2670,6 @@
                 const sv = parseFloat(data.solarVolts ?? data.solarVolt);
                 if (!isNaN(sv) && sv >= 0) {
                     c.sVolt = sv;
-                    if (sv > 0.5) c.active = true;
                 }
             }
 
@@ -2674,30 +2678,30 @@
                 if (!isNaN(ma)) {
                     c.rawSignedCurrMa = ma;
                     c.bCurrMa = Math.abs(ma);
-                    if (c.bCurrMa > 0.5) c.lastValidCurrMa = c.bCurrMa;
-                    c.active = true;
+                    c.lastValidCurrMa = c.bCurrMa;
                 }
             } else if (data.currentAmps !== undefined || data.battAmp !== undefined) {
                 const amps = parseFloat(data.currentAmps ?? data.battAmp);
                 if (!isNaN(amps)) {
                     c.rawSignedCurrMa = amps * 1000.0;
                     c.bCurrMa = Math.abs(amps * 1000.0);
-                    if (c.bCurrMa > 0.5) c.lastValidCurrMa = c.bCurrMa;
-                    c.active = true;
+                    c.lastValidCurrMa = c.bCurrMa;
                 }
             }
 
             if (data.batteryPercent !== undefined || data.battPct !== undefined) {
                 const pct = parseFloat(data.batteryPercent ?? data.battPct);
-                if (!isNaN(pct) && pct >= 0 && pct <= 100) {
-                    c.soc = pct;
-                    if (pct > 0) c.active = true;
+                if (!isNaN(pct)) {
+                    if (pct === 255) {
+                        c.ina219Detected = false;
+                    } else if (pct >= 0 && pct <= 100) {
+                        c.soc = pct;
+                    }
                 }
             }
 
             if (data.isCharging !== undefined) {
                 c.explicitChargeFlag = Boolean(data.isCharging);
-                if (data.isCharging) c.active = true;
             }
 
             if (data.backupTimeText !== undefined || data.backupTime !== undefined) {
@@ -2715,6 +2719,12 @@
             // 2. Scan Nano Terminal (nanoLog), ESP Log (log), and Hardware Log for INA219 & Battery Telemetry
             const rawLogs = [data.nanoLog, data.log, data.hardwareLog].filter(Boolean).join("\n");
             if (rawLogs) {
+                if (rawLogs.includes("CHECK INA219") || rawLogs.includes("NOT DETECTED")) {
+                    c.ina219Detected = false;
+                } else if (rawLogs.includes("Curr:") || rawLogs.includes("[CHG]") || rawLogs.includes("[DISCHG]")) {
+                    c.ina219Detected = true;
+                }
+
                 const lines = rawLogs.split('\n');
                 let logFoundChargeTrue = false;
                 let logFoundChargeFalse = false;
@@ -2730,9 +2740,8 @@
                     const solMatch = cleanLine.match(/(?:sol(?:ar)?(?:\s*v(?:olt(?:age)?)?)?|pv\s*v?(?:olt)?|panel\s*v?(?:olt)?)\s*[:=]\s*(\d+(?:\.\d+)?)\s*v?\b/i);
                     if (solMatch) {
                         const sv = parseFloat(solMatch[1]);
-                        if (sv >= 0 && sv <= 35) {
+                        if (!isNaN(sv) && sv >= 0 && sv <= 35) {
                             c.sVolt = sv;
-                            c.active = true;
                         }
                     }
 
@@ -2747,19 +2756,18 @@
                         const anyVoltMatches = [...lineWithoutSolarV.matchAll(/(\d+\.\d+)\s*v\b/ig)];
                         for (const m of anyVoltMatches) {
                             const vCandidate = parseFloat(m[1]);
-                            if (vCandidate >= 1.80 && vCandidate <= 15.50) {
+                            if (vCandidate >= 0.0 && vCandidate <= 15.50) {
                                 extractedV = vCandidate;
                                 break;
                             }
                         }
                     }
 
-                    if (extractedV !== null && !isNaN(extractedV) && extractedV >= 1.80 && extractedV <= 15.50) {
+                    if (extractedV !== null && !isNaN(extractedV) && extractedV >= 0.0 && extractedV <= 15.50) {
                         if (c.bVolt !== null && Math.abs(extractedV - c.bVolt) >= 0.01) {
                             c.prevVolt = c.bVolt;
                         }
                         c.bVolt = extractedV;
-                        c.active = true;
                         c.rawLine = cleanLine;
                     }
 
@@ -2795,8 +2803,7 @@
                     if (parsedCurrMa !== null && !isNaN(parsedCurrMa)) {
                         c.rawSignedCurrMa = parsedCurrMa;
                         c.bCurrMa = Math.abs(parsedCurrMa);
-                        if (c.bCurrMa > 0.5) c.lastValidCurrMa = c.bCurrMa;
-                        c.active = true;
+                        c.lastValidCurrMa = c.bCurrMa;
                         c.rawLine = cleanLine;
                     }
 
@@ -2805,7 +2812,6 @@
                         logFoundChargeFalse = true;
                     } else if (/(?:\bcharging\b|\[chg\]|\bchrg\b|\bchg\s*[:=]\s*(?:1|on|yes|true|ok|active)\b|\bsolar\s*[:=]?\s*(?:1|on|yes|true|active|ok|charging|connected)\b|\bsolar\s+chg\b|⚡)/i.test(cleanLine)) {
                         logFoundChargeTrue = true;
-                        c.active = true;
                         c.rawLine = cleanLine;
                     }
 
@@ -2815,7 +2821,6 @@
                         const parsedPct = parseFloat(socMatch[1]);
                         if (!isNaN(parsedPct) && parsedPct >= 0 && parsedPct <= 100) {
                             c.soc = parsedPct;
-                            c.active = true;
                         }
                     }
                 }
@@ -2829,9 +2834,9 @@
 
             // 3. Determine Final Charging Status for 3.2V 32140 LiFePO4 + INA219
             const voltIndicatesCharge = (c.bVolt !== null && c.bVolt >= 3.36 && c.bVolt <= 3.85);
-            const solarInputIndicatesCharge = (c.sVolt !== null && c.sVolt >= 4.2 && (c.bVolt === null || c.sVolt > c.bVolt + 0.30));
-            const posCurrIndicatesCharge = (c.rawSignedCurrMa !== null && c.rawSignedCurrMa > 12);
-            const highCurrWithSolar = (c.sVolt !== null && c.sVolt >= 4.2 && c.bCurrMa !== null && c.bCurrMa >= 20);
+            const solarInputIndicatesCharge = (c.sVolt !== null && c.sVolt >= 4.0 && (c.bVolt === null || c.bVolt < 0.5 || c.sVolt > c.bVolt + 0.30));
+            const posCurrIndicatesCharge = (c.rawSignedCurrMa !== null && c.rawSignedCurrMa > 10);
+            const highCurrWithSolar = (c.sVolt !== null && c.sVolt >= 4.0 && c.bCurrMa !== null && c.bCurrMa >= 15);
 
             if (c.explicitChargeFlag === true || posCurrIndicatesCharge || voltIndicatesCharge || solarInputIndicatesCharge || highCurrWithSolar) {
                 c.isCharging = true;
@@ -2846,11 +2851,9 @@
 
             const activeCurrMa = (c.bCurrMa !== null && c.bCurrMa > 0) ? c.bCurrMa : (c.lastValidCurrMa || 0);
 
-            if (c.bVolt !== null && c.bVolt > 0) {
+            if (c.bVolt !== null && c.bVolt >= 2.0) {
                 if (!c.isCharging && c.bVolt <= 3.35) {
-                    // Battery is resting / discharging (Solar OFF)
                     const curveRestSoc = lifepo4_32140_RestingVoltageToSoc(c.bVolt);
-                    // If ESP8266 sent a realistic non-100% coulomb-counted SOC, blend it with resting voltage curve
                     const trueRestSoc = (c.soc !== null && c.soc > 0 && c.soc < 98 && Math.abs(c.soc - curveRestSoc) <= 20)
                         ? c.soc
                         : curveRestSoc;
@@ -2868,23 +2871,19 @@
                         } catch (e) {}
                     }
                 } else {
-                    // Solar Charging is ON: prevent false 100% jump!
                     const compSoc = lifepo4_32140_ChargingVoltageToSoc(c.bVolt, activeCurrMa);
 
                     if (c.lockedSoc === null) {
-                        // If hardware reports < 95%, trust hardware coulomb counter; if hardware jumped to 100% at < 3.58V, use compensated SOC
                         if (c.soc !== null && c.soc > 0 && c.soc < 95) {
                             c.lockedSoc = c.soc;
                         } else {
                             c.lockedSoc = (c.lastRestingSoc !== null) ? c.lastRestingSoc : compSoc;
                         }
                     } else {
-                        // Integrate real INA219 charging current into the 15,000mAh 32140 cell
                         const chgMa = activeCurrMa > 10 ? activeCurrMa : 250;
                         const addedSoc = ((chgMa * dtHours) / BATTERY_CAPACITY_MAH) * 100.0;
                         c.lockedSoc = Math.min(99.0, c.lockedSoc + addedSoc);
 
-                        // Only allow 100% if voltage is >= 3.58V AND tail current has tapered down (<= 180mA)
                         if (c.bVolt >= 3.58 && activeCurrMa > 0 && activeCurrMa <= 180 && c.soc === 100) {
                             c.lockedSoc = 100;
                         }
@@ -2908,32 +2907,34 @@
         function resetSolarBmsUI() {
             initPremiumGlassBmsUI();
             window.bmsCache = {
-                active: false,
-                soc: null,
+                active: true,
+                ina219Detected: true,
+                soc: 0,
                 lockedSoc: null,
                 lastRestingSoc: null,
                 lastRestingVolt: null,
                 lastIntegrateTime: null,
-                bVolt: null,
+                bVolt: 0.0,
                 prevVolt: null,
-                bCurrMa: null,
-                lastValidCurrMa: null,
-                rawSignedCurrMa: null,
+                bCurrMa: 0.0,
+                lastValidCurrMa: 0.0,
+                rawSignedCurrMa: 0.0,
                 bPowerMw: null,
-                sVolt: null,
+                sVolt: 0.0,
                 isCharging: false,
                 explicitChargeFlag: null,
                 health: 100,
-                backupStr: null,
+                backupStr: "--",
                 rawLine: ""
             };
             const card = document.getElementById('solarBatteryCard');
             const adminRow = document.getElementById('adminSolarDiagRow');
             if (card) {
-                card.style.display = 'none';
+                card.style.display = 'block';
                 card.classList.remove('is-charging');
             }
-            if (adminRow) adminRow.style.display = 'none';
+            if (adminRow) adminRow.style.display = 'flex';
+            renderSolarBmsUI();
         }
 
         function renderSolarBmsUI() {
@@ -2941,34 +2942,26 @@
             const card = document.getElementById('solarBatteryCard');
             const adminRow = document.getElementById('adminSolarDiagRow');
 
-            if (!c.active) {
-                if (card) card.style.display = 'none';
-                if (adminRow) adminRow.style.display = 'none';
-                return;
-            }
-
+            // Always show the NEXUS SOLAR NODE card and Admin BMS diagnostics row
             if (card) card.style.display = 'block';
             if (adminRow) adminRow.style.display = 'flex';
 
             const isCharging = Boolean(c.isCharging);
-            const hasRealVolt = (c.bVolt !== null && !isNaN(c.bVolt) && c.bVolt > 0);
-            const bVolt = hasRealVolt ? c.bVolt : 0;
+            const bVolt = (c.bVolt !== null && !isNaN(c.bVolt)) ? c.bVolt : 0.0;
+            const sVolt = (c.sVolt !== null && !isNaN(c.sVolt)) ? c.sVolt : 0.0;
 
-            const rawCurrMa = (c.bCurrMa !== null && !isNaN(c.bCurrMa) && c.bCurrMa > 0)
-                ? c.bCurrMa
-                : (c.lastValidCurrMa !== null ? c.lastValidCurrMa : c.bCurrMa);
-            const hasRealCurr = (rawCurrMa !== null && !isNaN(rawCurrMa));
-            const bCurrMa = hasRealCurr ? Math.abs(rawCurrMa) : 0;
+            const rawCurrMa = (c.bCurrMa !== null && !isNaN(c.bCurrMa)) ? c.bCurrMa : 0.0;
+            const bCurrMa = Math.abs(rawCurrMa);
             const bCurrAmps = bCurrMa / 1000.0;
 
             let soc = 0;
             if (c.lockedSoc !== null && !isNaN(c.lockedSoc)) {
                 soc = c.lockedSoc;
-            } else if (hasRealVolt) {
+            } else if (bVolt >= 2.0) {
                 soc = isCharging
                     ? lifepo4_32140_ChargingVoltageToSoc(bVolt, bCurrMa)
                     : lifepo4_32140_RestingVoltageToSoc(bVolt);
-            } else if (c.soc !== null) {
+            } else if (c.soc !== null && !isNaN(c.soc) && c.soc <= 100) {
                 soc = c.soc;
             }
             soc = Math.max(0, Math.min(100, soc));
@@ -2978,13 +2971,16 @@
             const remAh = (remMah / 1000.0).toFixed(2);
             const remWh = ((remMah / 1000.0) * BATTERY_NOMINAL_V).toFixed(1);
 
+            const effectiveVolt = bVolt > 0.5 ? bVolt : BATTERY_NOMINAL_V;
             const powerW = (c.bPowerMw !== null && c.bPowerMw > 0)
                 ? (c.bPowerMw / 1000.0).toFixed(2)
-                : ((bVolt * bCurrAmps).toFixed(2));
+                : ((effectiveVolt * bCurrAmps).toFixed(2));
 
             let backupStr = c.backupStr;
-            if (!backupStr || backupStr === "--" || isCharging) {
-                if (isCharging && bCurrMa > 15) {
+            if (!c.ina219Detected && bVolt < 0.5) {
+                backupStr = "Check INA219 Wire";
+            } else if (!backupStr || backupStr === "--" || isCharging) {
+                if (isCharging && bCurrMa > 10) {
                     const missingMah = Math.max(0, BATTERY_CAPACITY_MAH - remMah);
                     const chgHrs = missingMah / Math.max(50, bCurrMa);
                     if (soc >= 99.5) {
@@ -2995,7 +2991,7 @@
                         backupStr = `~${chgHrs.toFixed(1)}h to Full`;
                     }
                 } else if (!backupStr || backupStr === "--") {
-                    const drainMa = (hasRealCurr && bCurrMa >= 15) ? bCurrMa : 85;
+                    const drainMa = (bCurrMa >= 15) ? bCurrMa : 85;
                     const estHrs = remMah / drainMa;
                     if (estHrs >= 24) {
                         const d = Math.floor(estHrs / 24);
@@ -3015,6 +3011,12 @@
             const fillEl = document.getElementById('bmsBatteryFill');
             const pctTextEl = document.getElementById('bmsBatteryPercentText');
             const badgeEl = document.getElementById('bmsStatusBadge');
+            const inaNodeEl = document.getElementById('bmsFlowInaNode');
+
+            if (inaNodeEl) {
+                inaNodeEl.innerText = c.ina219Detected ? 'INA219 OK' : 'INA219 ERR';
+                inaNodeEl.style.color = c.ina219Detected ? '#00d2ff' : '#ff4757';
+            }
 
             if (fillEl) {
                 fillEl.style.width = soc.toFixed(0) + '%';
@@ -3034,59 +3036,63 @@
             }
 
             if (pctTextEl) {
-                pctTextEl.innerText = hasRealVolt
-                    ? `${soc.toFixed(0)}% (${bVolt.toFixed(2)}V)`
-                    : `${soc.toFixed(0)}%`;
+                pctTextEl.innerText = `${soc.toFixed(0)}% (${bVolt.toFixed(2)}V)`;
             }
 
             if (badgeEl) {
-                if (isCharging) {
+                if (!c.ina219Detected && bVolt < 0.5) {
+                    badgeEl.className = 'bms-status-pill';
+                    badgeEl.style.borderColor = '#ff4757';
+                    badgeEl.style.color = '#ff6b81';
+                    badgeEl.innerText = '⚠️ CHECK INA219 I2C';
+                } else if (isCharging) {
                     badgeEl.className = 'bms-status-pill charging';
-                    badgeEl.innerText = hasRealCurr
-                        ? `⚡ CHARGING +${bCurrAmps.toFixed(2)}A`
-                        : '⚡ SOLAR CHARGING';
+                    badgeEl.style.borderColor = '';
+                    badgeEl.style.color = '';
+                    badgeEl.innerText = `⚡ CHARGING +${bCurrAmps.toFixed(2)}A`;
                 } else if (soc >= 99.5) {
                     badgeEl.className = 'bms-status-pill charging';
                     badgeEl.innerText = '🛡️ FULL (15Ah)';
                 } else {
                     badgeEl.className = 'bms-status-pill';
+                    badgeEl.style.borderColor = '';
+                    badgeEl.style.color = '';
                     badgeEl.innerText = '🔋 ON BATTERY';
                 }
             }
 
-            // Tile 1: INA219 Voltage & Current (shows V, Amps, and mA)
+            // Tile 1: INA219 Voltage & Current (Always shows V, Amps, and mA)
             if (document.getElementById('bmsVoltCurrText')) {
-                const vStr = hasRealVolt ? `${bVolt.toFixed(2)} V` : `-- V`;
-                const sign = isCharging ? '+' : '-';
-                const iStr = hasRealCurr
-                    ? `${sign}${bCurrAmps.toFixed(2)} A (${bCurrMa.toFixed(0)} mA)`
-                    : `-- A (-- mA)`;
-                document.getElementById('bmsVoltCurrText').innerText = `${vStr} | ${iStr}`;
+                const sign = isCharging ? '+' : (bCurrMa > 0 ? '-' : '');
+                document.getElementById('bmsVoltCurrText').innerText =
+                    `${bVolt.toFixed(2)} V | ${sign}${bCurrAmps.toFixed(2)} A (${bCurrMa.toFixed(0)} mA)`;
             }
             if (document.getElementById('bmsVoltRangeSub')) {
-                document.getElementById('bmsVoltRangeSub').innerText = isCharging
-                    ? `INA219 Charging: +${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA)`
-                    : `INA219 Load Draw: -${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA)`;
+                if (!c.ina219Detected && bVolt < 0.5) {
+                    document.getElementById('bmsVoltRangeSub').innerText = `⚠️ Check INA219 SDA(D2), SCL(D1) & Common GND`;
+                } else {
+                    document.getElementById('bmsVoltRangeSub').innerText = isCharging
+                        ? `INA219 Charging: +${bCurrAmps.toFixed(2)}A (+${bCurrMa.toFixed(0)}mA)`
+                        : `INA219 Load Draw: -${bCurrAmps.toFixed(2)}A (-${bCurrMa.toFixed(0)}mA)`;
+                }
             }
 
             // Tile 2: Solar Volts & INA219 Charging Current
             if (document.getElementById('bmsSolarVoltText')) {
-                const hasSolarV = (c.sVolt !== null && !isNaN(c.sVolt) && c.sVolt > 0);
                 if (isCharging) {
-                    const sVoltPart = hasSolarV ? `${c.sVolt.toFixed(1)}V | ` : '';
-                    const ampPart = hasRealCurr ? `+${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA)` : 'CHARGING';
-                    document.getElementById('bmsSolarVoltText').innerText = `⚡ ${sVoltPart}${ampPart}`;
+                    document.getElementById('bmsSolarVoltText').innerText =
+                        `⚡ ${sVolt.toFixed(1)}V | +${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA)`;
                     document.getElementById('bmsSolarVoltText').style.color = '#2ed573';
                 } else {
-                    const sVoltIdle = hasSolarV ? `${c.sVolt.toFixed(1)}V (Idle)` : `0.0V (Night/Off)`;
-                    document.getElementById('bmsSolarVoltText').innerText = `🌙 ${sVoltIdle}`;
+                    document.getElementById('bmsSolarVoltText').innerText =
+                        `☀️ ${sVolt.toFixed(1)}V | ${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA)`;
                     document.getElementById('bmsSolarVoltText').style.color = '#feca57';
                 }
             }
             if (document.getElementById('bmsSolarStateSub')) {
                 document.getElementById('bmsSolarStateSub').innerText = isCharging
                     ? `☀️ Solar Charging 32140 Cell (${powerW} W)`
-                    : `🔋 Running on 32140 15Ah LiFePO4`;
+                    : `🌙 Solar Input: ${sVolt.toFixed(1)}V (Discharging)`;
             }
 
             // Tile 3: 15Ah Backup Time & Remaining Capacity
@@ -3109,18 +3115,26 @@
             }
 
             if (document.getElementById('bmsStreamFooter')) {
-                const sVText = (c.sVolt !== null && !isNaN(c.sVolt)) ? `${c.sVolt.toFixed(1)}V` : '--V';
-                document.getElementById('bmsStreamFooter').innerText =
-                    `📡 INA219 Live: Batt ${bVolt.toFixed(2)}V | Curr ${isCharging ? '+' : '-'}${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA) | Solar ${sVText} | ${soc.toFixed(0)}%`;
+                if (!c.ina219Detected && bVolt < 0.5) {
+                    document.getElementById('bmsStreamFooter').innerText =
+                        `⚠️ INA219 I2C Not Detected on Rooftop D1/D2 (Solar A0: ${sVolt.toFixed(1)}V) — Check SDA/SCL/GND!`;
+                } else {
+                    const sign = isCharging ? '+' : (bCurrMa > 0 ? '-' : '');
+                    document.getElementById('bmsStreamFooter').innerText =
+                        `📡 INA219 Live: Batt ${bVolt.toFixed(2)}V | Curr ${sign}${bCurrAmps.toFixed(2)}A (${bCurrMa.toFixed(0)}mA) | Solar ${sVolt.toFixed(1)}V | ${soc.toFixed(0)}%`;
+                }
             }
 
             // Admin Diagnostics BMS Row
             if (document.getElementById('adminTxtBmsSoc')) document.getElementById('adminTxtBmsSoc').innerText = `${soc.toFixed(0)}%`;
-            if (document.getElementById('adminTxtBmsVolt')) document.getElementById('adminTxtBmsVolt').innerText = `${bVolt.toFixed(2)}V | ${isCharging ? '+' : '-'}${bCurrAmps.toFixed(2)}A`;
+            if (document.getElementById('adminTxtBmsVolt')) {
+                const sign = isCharging ? '+' : '-';
+                document.getElementById('adminTxtBmsVolt').innerText = `${bVolt.toFixed(2)}V | ${sign}${bCurrAmps.toFixed(2)}A`;
+            }
             if (document.getElementById('adminTxtSolarState')) {
                 document.getElementById('adminTxtSolarState').innerText = isCharging
-                    ? `⚡ Charging (+${bCurrAmps.toFixed(2)}A / ${bCurrMa.toFixed(0)}mA)`
-                    : `🔋 Discharging (-${bCurrAmps.toFixed(2)}A / ${bCurrMa.toFixed(0)}mA)`;
+                    ? `⚡ Charging (+${bCurrAmps.toFixed(2)}A / ${bCurrMa.toFixed(0)}mA | Solar ${sVolt.toFixed(1)}V)`
+                    : `🔋 Discharging (-${bCurrAmps.toFixed(2)}A / ${bCurrMa.toFixed(0)}mA | Solar ${sVolt.toFixed(1)}V)`;
                 document.getElementById('adminTxtSolarState').style.color = isCharging ? '#2ed573' : '#feca57';
             }
             if (document.getElementById('adminTxtBmsHealth')) document.getElementById('adminTxtBmsHealth').innerText = `${remAh}Ah (${health.toFixed(0)}%)`;
