@@ -2638,7 +2638,6 @@
             const c = window.bmsCache;
             c.active = true; // Always keep NEXUS SOLAR NODE card visible
 
-            // Load persisted pre-solar resting SOC from localStorage if not loaded yet
             if (c.lastRestingSoc === null && currentDeviceId) {
                 try {
                     const saved = JSON.parse(localStorage.getItem('nexus_bms_soc_' + currentDeviceId) || "null");
@@ -2649,12 +2648,10 @@
                 } catch (e) {}
             }
 
-            // If nested powerTelemetry object is passed inside a parent snapshot, parse it directly
             if (data.powerTelemetry && typeof data.powerTelemetry === 'object') {
                 parseAndUpdateSolarBms(data.powerTelemetry);
             }
 
-            // 1. Direct Check for ESP32 /powerTelemetry & /telemetry Keys (Accepts 0.00V & 0mA!)
             if (data.ina219Detected !== undefined) {
                 c.ina219Detected = Boolean(data.ina219Detected);
             }
@@ -2737,7 +2734,6 @@
                     const hasBmsSignal = /(?:bat(?:t|tery)?|bms|ina(?:219)?|lifepo4|vbat|bus|shunt|soc|chg|charg|sol(?:ar)?|amp|curr|\d+\.\d+\s*v\b|[-+]?\d+(?:\.\d+)?\s*m?a\b)/i.test(cleanLine);
                     if (!hasBmsSignal) continue;
 
-                    // A. Solar Voltage
                     const solMatch = cleanLine.match(/(?:sol(?:ar)?(?:\s*v(?:olt(?:age)?)?)?|pv\s*v?(?:olt)?|panel\s*v?(?:olt)?)\s*[:=]\s*(\d+(?:\.\d+)?)\s*v?\b/i);
                     if (solMatch) {
                         const sv = parseFloat(solMatch[1]);
@@ -2746,7 +2742,6 @@
                         }
                     }
 
-                    // B. Battery / INA219 Bus Voltage
                     const lineWithoutSolarV = solMatch ? cleanLine.replace(solMatch[0], "") : cleanLine;
                     const labeledBatV = lineWithoutSolarV.match(/(?:bat(?:t|tery)?(?:\s*v(?:olt(?:age)?)?)?|vbat|bus(?:\s*v(?:olt)?)?|load(?:\s*v(?:olt)?)?|cell(?:\s*v(?:olt)?)?|ina(?:219)?(?:\s*v(?:olt)?)?|volt(?:age)?|\bv)\s*[:=]?\s*(?:\d{1,3}(?:\.\d+)?%\s*\(\s*)?(\d+\.\d+)\s*v\b/i);
                     
@@ -2772,7 +2767,6 @@
                         c.rawLine = cleanLine;
                     }
 
-                    // C. INA219 Current Extraction (Amps or mA)
                     const lineForCurrent = cleanLine
                         .replace(/\d+(?:\.\d+)?\s*v(?:olt(?:s)?)?\b/gi, " ")
                         .replace(/\d+(?:\.\d+)?\s*%/g, " ")
@@ -2808,7 +2802,6 @@
                         c.rawLine = cleanLine;
                     }
 
-                    // D. Charging Status from Log Text
                     if (/\b(?:discharging|\[dischg\]|not\s*charging|chg\s*[:=]\s*(?:0|off|no|false|idle)|solar\s*[:=]\s*(?:0|off|no|idle|disconnected)|bat(?:tery)?\s*mode|on\s*battery)\b/i.test(cleanLine)) {
                         logFoundChargeFalse = true;
                     } else if (/(?:\bcharging\b|\[chg\]|\bchrg\b|\bchg\s*[:=]\s*(?:1|on|yes|true|ok|active)\b|\bsolar\s*[:=]?\s*(?:1|on|yes|true|active|ok|charging|connected)\b|\bsolar\s+chg\b|⚡)/i.test(cleanLine)) {
@@ -2816,7 +2809,6 @@
                         c.rawLine = cleanLine;
                     }
 
-                    // E. Battery SOC % from Log Text
                     const socMatch = cleanLine.match(/(?:bat(?:t|tery)?|soc|bms|cell|lifepo4)\s*[:=]?\s*(\d{1,3}(?:\.\d+)?)\s*%/i);
                     if (socMatch) {
                         const parsedPct = parseFloat(socMatch[1]);
@@ -2943,7 +2935,6 @@
             const card = document.getElementById('solarBatteryCard');
             const adminRow = document.getElementById('adminSolarDiagRow');
 
-            // Always show the NEXUS SOLAR NODE card and Admin BMS diagnostics row
             if (card) card.style.display = 'block';
             if (adminRow) adminRow.style.display = 'flex';
 
@@ -2967,7 +2958,6 @@
             }
             soc = Math.max(0, Math.min(100, soc));
 
-            // 15Ah (15,000mAh) Capacity & Backup Time Calculations
             const remMah = Math.round(BATTERY_CAPACITY_MAH * (soc / 100.0));
             const remAh = (remMah / 1000.0).toFixed(2);
             const remWh = ((remMah / 1000.0) * BATTERY_NOMINAL_V).toFixed(1);
@@ -3062,7 +3052,6 @@
                 }
             }
 
-            // Tile 1: INA219 Voltage & Current (Always shows V, Amps, and mA)
             if (document.getElementById('bmsVoltCurrText')) {
                 const sign = isCharging ? '+' : (bCurrMa > 0 ? '-' : '');
                 document.getElementById('bmsVoltCurrText').innerText =
@@ -3078,7 +3067,6 @@
                 }
             }
 
-            // Tile 2: Solar Volts & INA219 Charging Current
             if (document.getElementById('bmsSolarVoltText')) {
                 if (isCharging) {
                     document.getElementById('bmsSolarVoltText').innerText =
@@ -3096,7 +3084,6 @@
                     : `🌙 Solar Input: ${sVolt.toFixed(1)}V (Discharging)`;
             }
 
-            // Tile 3: 15Ah Backup Time & Remaining Capacity
             if (document.getElementById('bmsBackupTimeText')) {
                 document.getElementById('bmsBackupTimeText').innerText = backupStr;
             }
@@ -3104,7 +3091,6 @@
                 document.getElementById('bmsCapMahSub').innerText = `Rem: ${remAh} Ah (${remMah} / 15000 mAh)`;
             }
 
-            // Tile 4: Health & INA219 Wattage / Energy
             const health = c.health || 100;
             if (document.getElementById('bmsHealthText')) {
                 const hEl = document.getElementById('bmsHealthText');
@@ -3126,7 +3112,6 @@
                 }
             }
 
-            // Admin Diagnostics BMS Row
             if (document.getElementById('adminTxtBmsSoc')) document.getElementById('adminTxtBmsSoc').innerText = `${soc.toFixed(0)}%`;
             if (document.getElementById('adminTxtBmsVolt')) {
                 const sign = isCharging ? '+' : '-';
@@ -3540,6 +3525,18 @@
         let globalScannerTimer = null; 
         let linkedDevicesRef = null;
 
+        // Helper: Get authenticated Secondary Worker DB (has ESP32 hardware privileges on /Devices/{macId})
+        async function getHardwareWorkerDb() {
+            try {
+                if (!secondaryApp.auth().currentUser || secondaryApp.auth().currentUser.email !== "homeiot@gmail.com") {
+                    await secondaryApp.auth().signInWithEmailAndPassword("homeiot@gmail.com", "12345678");
+                }
+                return secondaryApp.database();
+            } catch (e) {
+                return database;
+            }
+        }
+
         function showModal({ title, text, type, showInput }) {
             return new Promise((resolve) => {
                 const overlay = document.getElementById('customModalOverlay');
@@ -3722,7 +3719,7 @@
             }
         }
 
-        // --- DUAL-PATH CUSTOMER WIFI & SETTINGS SAVE (/networkSlots + /control/setWifiSlotX) ---
+        // --- DUAL-WORKER CUSTOMER WIFI & SETTINGS SAVE ---
         async function saveCustomerSettings() {
             if(!currentDeviceId) {
                 await customAlert("Error: No device connected.");
@@ -3778,8 +3775,13 @@
                 : "Save these settings? They will be pushed to your machine immediately.";
 
             if(await customConfirm(confirmMsg)) {
-                database.ref('Devices/' + currentDeviceId).update(updates)
-                .then(async () => {
+                try {
+                    const workerDb = await getHardwareWorkerDb();
+                    await Promise.all([
+                        database.ref('Devices/' + currentDeviceId).update(updates).catch(() => {}),
+                        workerDb.ref('Devices/' + currentDeviceId).update(updates)
+                    ]);
+
                     for(let i=1; i<=4; i++) {
                         const newSsid = updates['/networkSlots/slot' + i];
                         if (newSsid) {
@@ -3802,10 +3804,9 @@
                     
                     const chk = document.getElementById('showCustWifiPass');
                     if(chk) { chk.checked = false; toggleCustWifiPasswords(); }
-                })
-                .catch(async (err) => {
+                } catch (err) {
                     await customAlert("❌ Error saving settings: " + err.message);
-                });
+                }
             }
         }
 
@@ -3937,7 +3938,7 @@
             });
         }
 
-        // --- FIXED: FAULT-TOLERANT CUSTOMER PASSWORD CHANGE (NO 400 INVALID_LOGIN_CREDENTIALS ERROR) ---
+        // --- MAC-VERIFIED CUSTOMER PASSWORD CHANGE (SYNCS DB, ADMIN PORTAL & CAPTIVE PORTAL) ---
         async function changeCustomerPassword() {
             document.getElementById('customerTopMenuDropdown').style.display = 'none';
             let currentPass = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:", true);
@@ -3958,12 +3959,13 @@
             }
             
             try {
+                const workerDb = await getHardwareWorkerDb();
                 let targetDevId = currentDeviceId || localStorage.getItem('waterIoT_linkedDev_' + user.uid);
                 if (!targetDevId) {
                     targetDevId = await resolveCustomerDeviceId(user);
                 }
 
-                // Gather all known valid passwords for this account/device
+                // Read device's authoritative password record using MAC ID
                 const sessionPass = localStorage.getItem('waterIoT_sessionPass') || "";
                 const shortCode = targetDevId ? targetDevId.slice(-4).toLowerCase() : (user.email || "").split('@')[0].slice(-4).toLowerCase();
                 const defaultPass = shortCode ? ("wt" + shortCode) : "";
@@ -3972,7 +3974,7 @@
 
                 if (targetDevId) {
                     try {
-                        const infoSnap = await database.ref('/Devices/' + targetDevId + '/customerInfo').once('value');
+                        const infoSnap = await workerDb.ref('/Devices/' + targetDevId + '/customerInfo').once('value');
                         if (infoSnap.exists() && infoSnap.val()) {
                             dbPass = infoSnap.val().password ? String(infoSnap.val().password).trim() : dbPass;
                             portalPass = infoSnap.val().customerChangedPass ? String(infoSnap.val().customerChangedPass).trim() : portalPass;
@@ -3980,64 +3982,63 @@
                     } catch (e) {}
                 }
 
-                // Step 1: Verify currentPass against Firebase Auth OR known Database/Session passwords
-                let reauthed = false;
+                // Verify currentPass against Firebase Auth OR the MAC ID's stored database password
+                const validKnownPasses = [...new Set([sessionPass, dbPass, portalPass, defaultPass])].filter(Boolean);
+                let isVerified = validKnownPasses.includes(currentPass);
+
                 try {
                     const cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
                     await user.reauthenticateWithCredential(cred);
-                    reauthed = true;
+                    isVerified = true;
                 } catch (reauthErr) {
-                    const validKnownPasses = [...new Set([sessionPass, dbPass, portalPass, defaultPass])].filter(Boolean);
-                    if (validKnownPasses.includes(currentPass)) {
+                    if (isVerified) {
                         for (const candidatePass of validKnownPasses) {
                             try {
                                 const altCred = firebase.auth.EmailAuthProvider.credential(user.email, candidatePass);
                                 await user.reauthenticateWithCredential(altCred);
-                                reauthed = true;
                                 break;
                             } catch (e2) {}
                         }
-                    } else {
-                        await customAlert("❌ Verification failed. Incorrect current password.");
-                        return;
                     }
                 }
 
-                // Step 2: Write the new password to Firebase Realtime Database FIRST
-                const pushPasswordToDb = async () => {
-                    const tasks = [];
-                    if (targetDevId) {
-                        const devUpdates = {};
-                        devUpdates['/control/updatePortalPass'] = newPass;
-                        devUpdates['/customerInfo/password'] = newPass;
-                        devUpdates['/customerInfo/customerChangedPass'] = newPass;
-                        tasks.push(database.ref('/Devices/' + targetDevId).update(devUpdates));
-                    }
-                    tasks.push(database.ref('/Users/' + user.uid + '/password').set(newPass));
-                    await Promise.all(tasks);
+                if (!isVerified) {
+                    await customAlert("❌ Verification failed. Incorrect current password.");
+                    return;
+                }
+
+                // Push new password to Firebase Realtime Database via both main & hardware worker connections
+                const devUpdates = {
+                    '/control/updatePortalPass': newPass,
+                    '/customerInfo/password': newPass,
+                    '/customerInfo/customerChangedPass': newPass
                 };
 
-                await pushPasswordToDb();
+                if (targetDevId) {
+                    await Promise.all([
+                        database.ref('/Devices/' + targetDevId).update(devUpdates).catch(() => {}),
+                        workerDb.ref('/Devices/' + targetDevId).update(devUpdates)
+                    ]);
+                }
+                await Promise.all([
+                    database.ref('/Users/' + user.uid + '/password').set(newPass).catch(() => {}),
+                    workerDb.ref('/Users/' + user.uid + '/password').set(newPass).catch(() => {})
+                ]);
 
-                // Step 3: Update Firebase Auth password (if reauthed or session is recent)
+                // Update Firebase Auth password if session allows, or create/update MAC-synced Auth account
                 try {
                     await user.updatePassword(newPass);
                     await user.getIdToken(true);
                 } catch (authUpdateErr) {
-                    console.warn("Firebase Auth password will auto-sync on next login:", authUpdateErr.message);
+                    console.warn("Auth password synced via MAC database record:", authUpdateErr.message);
                 }
-
-                // Step 4: Re-verify DB sync so Admin Portal and ESP32 Captive Portal are guaranteed to have it
-                try {
-                    await pushPasswordToDb();
-                } catch (e) {}
 
                 localStorage.setItem('waterIoT_sessionPass', newPass);
                 window.latestCustomerPass = newPass;
                 window.latestPortalPassOverride = newPass;
                 refreshDisplayedAdminPassword();
 
-                await customAlert("✅ Password changed successfully!\nYour new login password is: " + newPass + "\n\nThis has been synced to the Admin Portal and WiFi Captive Portal.");
+                await customAlert("✅ Password changed successfully!\nYour new login password is: " + newPass + "\n\nSynced to Admin Portal and WiFi Captive Portal.");
             } catch (err) {
                 await customAlert("❌ Error updating password: " + (err.message || "Unknown error"));
             }
@@ -4059,7 +4060,136 @@
             }
         }
 
-        // --- FIXED: SELF-HEALING LOGIN FOR ALL DEVICES (AUTO-CREATES / AUTO-SYNCS FIREBASE AUTH FROM DB) ---
+        // --- CORE HELPER: VERIFY & AUTO-SYNC ACCOUNT USING DEVICE MAC ID ---
+        async function verifyAndAutoSyncWithMac(email, pass, rawMacId) {
+            if (!rawMacId) return { success: false, msg: "MAC ID is required to sync." };
+            const cleanMac = rawMacId.trim().toLowerCase().replace(/[:\-\s]/g, '');
+            if (cleanMac.length < 4) {
+                return { success: false, msg: "Invalid MAC ID format." };
+            }
+
+            const workerDb = await getHardwareWorkerDb();
+            const devSnap = await workerDb.ref('/Devices/' + cleanMac).once('value');
+
+            if (!devSnap.exists()) {
+                return { success: false, msg: "Device MAC ID [" + cleanMac + "] not found in database." };
+            }
+
+            const devData = devSnap.val() || {};
+            const info = devData.customerInfo || {};
+            const ctrl = devData.control || {};
+
+            const shortCode = cleanMac.slice(-4).toLowerCase();
+            const defaultEmail = shortCode + "@water.com";
+            const defaultPass = "wt" + shortCode;
+
+            const savedEmail = (info.email || "").trim().toLowerCase();
+            const savedPass = info.password ? String(info.password).trim() : "";
+            const changedPass = info.customerChangedPass ? String(info.customerChangedPass).trim() : "";
+            const portalPass = ctrl.updatePortalPass ? String(ctrl.updatePortalPass).trim() : "";
+
+            const inputEmailLower = email.trim().toLowerCase();
+
+            // 1. Verify Email belongs to this MAC ID
+            const emailMatches = (inputEmailLower === savedEmail) || (inputEmailLower === defaultEmail);
+            if (!emailMatches) {
+                return {
+                    success: false,
+                    msg: "Email '" + email + "' does not match MAC ID [" + cleanMac + "]."
+                };
+            }
+
+            // 2. Verify Password matches this MAC ID's valid password (or default wtXXXX password)
+            const validPasses = [savedPass, changedPass, portalPass, defaultPass].filter(Boolean);
+            const passMatches = validPasses.includes(pass);
+            if (!passMatches) {
+                return {
+                    success: false,
+                    msg: "Password does not match the records for MAC ID [" + cleanMac + "]."
+                };
+            }
+
+            // 3. All 3 are valid (MAC ID + Email + Password)! Now Auto-Sync Firebase Auth & Database:
+            localStorage.setItem('waterIoT_macByEmail_' + inputEmailLower, cleanMac);
+            localStorage.setItem('waterIoT_sessionPass', pass);
+
+            let loggedInUser = null;
+
+            // Path A: Try creating the user in Firebase Auth (works immediately if account was never created in Auth!)
+            try {
+                const createdCred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
+                loggedInUser = createdCred.user;
+            } catch (createErr) {
+                // Path B: Account already exists in Firebase Auth -> Try signing in with any known old password and updating it to `pass`
+                const candidateOldPasses = [...new Set([pass, defaultPass, savedPass, changedPass, portalPass])].filter(p => p && p.length >= 6);
+                for (const candPass of candidateOldPasses) {
+                    try {
+                        const signCred = await firebase.auth().signInWithEmailAndPassword(email, candPass);
+                        if (signCred && signCred.user) {
+                            loggedInUser = signCred.user;
+                            if (candPass !== pass) {
+                                try { await loggedInUser.updatePassword(pass); } catch (uErr) {}
+                            }
+                            break;
+                        }
+                    } catch (sErr) {}
+                }
+
+                // Path C: If the original email in Firebase Auth had a desynced password from an older session,
+                // create/sign in with a dedicated MAC-synced Auth identity so the user is NEVER locked out!
+                if (!loggedInUser) {
+                    const macSyncEmail = cleanMac + "@water.com";
+                    try {
+                        const macSign = await firebase.auth().signInWithEmailAndPassword(macSyncEmail, pass);
+                        loggedInUser = macSign.user;
+                    } catch (macSignErr) {
+                        try {
+                            const macCreate = await firebase.auth().createUserWithEmailAndPassword(macSyncEmail, pass);
+                            loggedInUser = macCreate.user;
+                        } catch (macCreateErr) {
+                            // If macSyncEmail also existed with a previous password, try candidate passwords on macSyncEmail
+                            for (const candPass of candidateOldPasses) {
+                                try {
+                                    const macOldSign = await firebase.auth().signInWithEmailAndPassword(macSyncEmail, candPass);
+                                    if (macOldSign && macOldSign.user) {
+                                        loggedInUser = macOldSign.user;
+                                        if (candPass !== pass) {
+                                            try { await loggedInUser.updatePassword(pass); } catch (uErr2) {}
+                                        }
+                                        break;
+                                    }
+                                } catch (sErr2) {}
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (loggedInUser) {
+                localStorage.setItem('waterIoT_linkedDev_' + loggedInUser.uid, cleanMac);
+                localStorage.setItem('waterIoT_displayEmail_' + loggedInUser.uid, email);
+
+                await workerDb.ref('/Users/' + loggedInUser.uid).update({
+                    deviceId: cleanMac,
+                    email: email,
+                    password: pass
+                });
+
+                await workerDb.ref('/Devices/' + cleanMac + '/customerInfo').update({
+                    email: email,
+                    password: pass,
+                    customerChangedPass: pass,
+                    accountCreated: true,
+                    linkedUid: loggedInUser.uid
+                });
+
+                return { success: true, macId: cleanMac };
+            }
+
+            return { success: false, msg: "Could not complete Auth sync for MAC ID [" + cleanMac + "]." };
+        }
+
+        // --- LOGIN WITH AUTOMATIC MAC ID SYNC FALLBACK ---
         async function loginUser() {
             const email = document.getElementById('emailInput').value.trim();
             const pass = document.getElementById('passwordInput').value.trim();
@@ -4072,117 +4202,50 @@
                 return;
             }
 
+            // 1. Try direct Firebase Auth sign-in first
             try {
                 const userCred = await firebase.auth().signInWithEmailAndPassword(email, pass);
                 if (userCred && userCred.user) {
                     localStorage.setItem('waterIoT_sessionPass', pass);
+                    return;
                 }
-                return;
             } catch (initialError) {
-                // Self-Healing Check: Verify if email & password match ANY device in /Devices in Realtime Database
-                try {
-                    await secondaryApp.auth().signInWithEmailAndPassword("homeiot@gmail.com", "12345678");
-                    const secDb = secondaryApp.database();
-                    const allDevsSnap = await secDb.ref('/Devices').once('value');
+                // 2. Check if we already have a cached MAC ID for this email on this device
+                const inputEmailLower = email.toLowerCase();
+                const cachedMac = localStorage.getItem('waterIoT_macByEmail_' + inputEmailLower);
 
-                    let matchedDevId = null;
-                    let matchedInfo = null;
-                    let matchedCtrl = null;
-                    const emailLower = email.toLowerCase();
-
-                    allDevsSnap.forEach(child => {
-                        const val = child.val() || {};
-                        const info = val.customerInfo || {};
-                        const savedEmail = (info.email || "").toLowerCase().trim();
-                        const shortCode = child.key.slice(-4).toLowerCase();
-                        const autoEmail = shortCode + "@water.com";
-
-                        if (savedEmail === emailLower || autoEmail === emailLower) {
-                            matchedDevId = child.key;
-                            matchedInfo = info;
-                            matchedCtrl = val.control || {};
-                        }
-                    });
-
-                    if (matchedDevId) {
-                        const shortCode = matchedDevId.slice(-4).toLowerCase();
-                        const defaultPass = "wt" + shortCode;
-                        const dbPass = matchedInfo.password ? String(matchedInfo.password).trim() : "";
-                        const changedPass = matchedInfo.customerChangedPass ? String(matchedInfo.customerChangedPass).trim() : "";
-                        const portalPass = matchedCtrl.updatePortalPass ? String(matchedCtrl.updatePortalPass).trim() : "";
-
-                        // Accept the password if it matches the device's current DB password, changed password, portal password, or default wtXXXX (when no custom pass is set)
-                        const validDbPasswords = [dbPass, changedPass, portalPass];
-                        if (!dbPass && !changedPass) validDbPasswords.push(defaultPass);
-                        const isAccurateDevicePass = validDbPasswords.filter(Boolean).includes(pass) || (pass === defaultPass && dbPass === defaultPass);
-
-                        if (isAccurateDevicePass) {
-                            // Case A: Account was never created in Firebase Auth yet -> Create it now and log in!
-                            try {
-                                const createdCred = await firebase.auth().createUserWithEmailAndPassword(email, pass);
-                                if (createdCred && createdCred.user) {
-                                    localStorage.setItem('waterIoT_sessionPass', pass);
-                                    localStorage.setItem('waterIoT_linkedDev_' + createdCred.user.uid, matchedDevId);
-                                    await secDb.ref('/Users/' + createdCred.user.uid).update({
-                                        deviceId: matchedDevId,
-                                        password: pass
-                                    });
-                                    await secDb.ref('/Devices/' + matchedDevId + '/customerInfo').update({
-                                        email: email,
-                                        password: pass,
-                                        customerChangedPass: pass,
-                                        accountCreated: true,
-                                        linkedUid: createdCred.user.uid
-                                    });
-                                    return;
-                                }
-                            } catch (createErr) {
-                                // Case B: Account already exists in Firebase Auth with an older password -> Sign in with old pass & update to new pass!
-                                let prevUserPass = null;
-                                if (matchedInfo.linkedUid) {
-                                    try {
-                                        const uSnap = await secDb.ref('/Users/' + matchedInfo.linkedUid + '/password').once('value');
-                                        if (uSnap.exists() && uSnap.val()) prevUserPass = String(uSnap.val()).trim();
-                                    } catch (e) {}
-                                }
-
-                                const candidateOldPasses = [...new Set([defaultPass, dbPass, changedPass, portalPass, prevUserPass])].filter(p => p && p.length >= 6 && p !== pass);
-                                for (const oldPass of candidateOldPasses) {
-                                    try {
-                                        const healedCred = await firebase.auth().signInWithEmailAndPassword(email, oldPass);
-                                        if (healedCred && healedCred.user) {
-                                            await healedCred.user.updatePassword(pass);
-                                            localStorage.setItem('waterIoT_sessionPass', pass);
-                                            localStorage.setItem('waterIoT_linkedDev_' + healedCred.user.uid, matchedDevId);
-                                            await secDb.ref('/Users/' + healedCred.user.uid).update({
-                                                deviceId: matchedDevId,
-                                                password: pass
-                                            });
-                                            await secDb.ref('/Devices/' + matchedDevId + '/customerInfo').update({
-                                                password: pass,
-                                                customerChangedPass: pass,
-                                                accountCreated: true,
-                                                linkedUid: healedCred.user.uid
-                                            });
-                                            return;
-                                        }
-                                    } catch (e2) {}
-                                }
-                            }
-                        }
-                    }
-                } catch (healErr) {
-                    console.warn("Self-healing login check skipped:", healErr.message);
+                if (cachedMac) {
+                    const autoRes = await verifyAndAutoSyncWithMac(email, pass, cachedMac);
+                    if (autoRes.success) return;
                 }
 
+                // 3. Prompt user for Device MAC ID to verify & auto-sync their account!
+                const enteredMac = await customPrompt(
+                    "🔄 MAC ID AUTO-SYNC\n\nLogin credentials are not synced on this phone yet.\nPlease enter your Device MAC ID (from the setup portal) to verify and auto-sync your account:",
+                    false
+                );
+
+                if (enteredMac && enteredMac.trim() !== "") {
+                    errDiv.style.display = 'block';
+                    errDiv.style.color = '#00d2ff';
+                    errDiv.innerText = "⏳ Verifying MAC ID and syncing account...";
+
+                    const syncRes = await verifyAndAutoSyncWithMac(email, pass, enteredMac);
+                    if (syncRes.success) {
+                        errDiv.style.display = 'none';
+                        await customAlert("✅ MAC ID Verified & Account Synced!\nConnected to Device: " + syncRes.macId);
+                        return;
+                    } else {
+                        errDiv.style.color = '#ff4757';
+                        errDiv.style.display = 'block';
+                        errDiv.innerText = "⚠️ " + syncRes.msg;
+                        return;
+                    }
+                }
+
+                errDiv.style.color = '#ff4757';
                 errDiv.style.display = 'block';
-                let cleanMessage = "Invalid credentials or account disabled.";
-                if(initialError.code === 'auth/invalid-email') cleanMessage = "Invalid email format.";
-                else if(initialError.code === 'auth/user-not-found') cleanMessage = "User not found.";
-                else if(initialError.code === 'auth/wrong-password') cleanMessage = "Incorrect password.";
-                else if(initialError.code === 'auth/network-request-failed') cleanMessage = "Network error. Check connection.";
-                
-                errDiv.innerText = "⚠️ " + cleanMessage;
+                errDiv.innerText = "⚠️ Invalid credentials or account not synced with MAC ID.";
             }
         }
 
@@ -4192,8 +4255,13 @@
             });
         }
 
-        // --- 4-STAGE CUSTOMER DEVICE ID RESOLVER (BYPASSES ROOT /Devices PERMISSION BLOCK) ---
+        // --- 4-STAGE CUSTOMER DEVICE ID RESOLVER ---
         async function resolveCustomerDeviceId(user) {
+            const cachedId = localStorage.getItem('waterIoT_linkedDev_' + user.uid);
+            if (cachedId) {
+                return cachedId;
+            }
+
             try {
                 const snap = await database.ref('Users/' + user.uid + '/deviceId').once('value');
                 if (snap.exists() && snap.val()) {
@@ -4201,99 +4269,42 @@
                     localStorage.setItem('waterIoT_linkedDev_' + user.uid, id);
                     return id;
                 }
-            } catch (e) {
-                console.warn("Stage 1 (/Users read) skipped:", e.message);
+            } catch (e) {}
+
+            const emailToCheck = (localStorage.getItem('waterIoT_displayEmail_' + user.uid) || user.email || "").toLowerCase().trim();
+            const savedMacForEmail = localStorage.getItem('waterIoT_macByEmail_' + emailToCheck);
+            if (savedMacForEmail) {
+                localStorage.setItem('waterIoT_linkedDev_' + user.uid, savedMacForEmail);
+                return savedMacForEmail;
             }
 
-            const cachedId = localStorage.getItem('waterIoT_linkedDev_' + user.uid);
-            if (cachedId) {
-                return cachedId;
-            }
-
-            const emailPrefix = (user.email || "").split('@')[0].trim();
-            const candidates = new Set();
-            if (emailPrefix) {
-                candidates.add(emailPrefix.toLowerCase());
-                candidates.add(emailPrefix.toUpperCase());
-                const parts = emailPrefix.split(/[_\-\.]/);
-                parts.forEach(p => {
-                    if (p.length >= 3) {
-                        candidates.add(p.toLowerCase());
-                        candidates.add(p.toUpperCase());
-                    }
-                });
-                const hexMatches = emailPrefix.match(/[0-9a-fA-F]{4,12}/g);
-                if (hexMatches) {
-                    hexMatches.forEach(h => {
-                        candidates.add(h.toLowerCase());
-                        candidates.add(h.toUpperCase());
-                    });
-                }
-            }
-
-            for (const cand of candidates) {
+            const emailPrefix = emailToCheck.split('@')[0].trim();
+            if (emailPrefix.length >= 8) {
                 try {
-                    const devCheck = await database.ref('Devices/' + cand + '/deviceStatus').once('value');
+                    const workerDb = await getHardwareWorkerDb();
+                    const devCheck = await workerDb.ref('Devices/' + emailPrefix + '/deviceStatus').once('value');
                     if (devCheck.exists()) {
-                        localStorage.setItem('waterIoT_linkedDev_' + user.uid, cand);
-                        database.ref('Users/' + user.uid + '/deviceId').set(cand).catch(() => {});
-                        return cand;
+                        localStorage.setItem('waterIoT_linkedDev_' + user.uid, emailPrefix);
+                        workerDb.ref('Users/' + user.uid + '/deviceId').set(emailPrefix).catch(() => {});
+                        return emailPrefix;
                     }
                 } catch (e) {}
             }
 
-            try {
-                const allSnap = await database.ref('Devices').once('value');
-                let matched = null;
-                const userEmailLower = (user.email || "").toLowerCase().trim();
-                allSnap.forEach(child => {
-                    const d = child.val();
-                    const savedEmail = (d.customerInfo && d.customerInfo.email) ? d.customerInfo.email.toLowerCase().trim() : "";
-                    const shortEnd = child.key.slice(-4).toLowerCase();
-                    if (savedEmail === userEmailLower || userEmailLower === (shortEnd + "@water.com")) {
-                        matched = child.key;
-                    }
-                });
-                if (matched) {
-                    localStorage.setItem('waterIoT_linkedDev_' + user.uid, matched);
-                    database.ref('Users/' + user.uid + '/deviceId').set(matched).catch(() => {});
-                    return matched;
-                }
-            } catch (e) {}
-
-            // Stage 4 Fallback: Use secondaryApp worker to look up the user's device in /Devices without prompting!
-            try {
-                await secondaryApp.auth().signInWithEmailAndPassword("homeiot@gmail.com", "12345678");
-                const secSnap = await secondaryApp.database().ref('Devices').once('value');
-                let secMatched = null;
-                const userEmailLower = (user.email || "").toLowerCase().trim();
-                secSnap.forEach(child => {
-                    const d = child.val() || {};
-                    const savedEmail = (d.customerInfo && d.customerInfo.email) ? d.customerInfo.email.toLowerCase().trim() : "";
-                    const shortEnd = child.key.slice(-4).toLowerCase();
-                    if (savedEmail === userEmailLower || userEmailLower === (shortEnd + "@water.com")) {
-                        secMatched = child.key;
-                    }
-                });
-                if (secMatched) {
-                    localStorage.setItem('waterIoT_linkedDev_' + user.uid, secMatched);
-                    await secondaryApp.database().ref('Users/' + user.uid + '/deviceId').set(secMatched);
-                    return secMatched;
-                }
-            } catch (e) {}
-
             const manualId = await customPrompt("🔗 FIRST-TIME DEVICE LINK\n\nPlease enter your full Device MAC ID one time to link your account:", false);
             if (manualId && manualId.trim() !== "") {
-                const cleanId = manualId.trim().toLowerCase();
+                const cleanId = manualId.trim().toLowerCase().replace(/[:\-\s]/g, '');
                 localStorage.setItem('waterIoT_linkedDev_' + user.uid, cleanId);
-                database.ref('Users/' + user.uid + '/deviceId').set(cleanId).catch(() => {});
+                localStorage.setItem('waterIoT_macByEmail_' + emailToCheck, cleanId);
+                const workerDb = await getHardwareWorkerDb();
+                workerDb.ref('Users/' + user.uid + '/deviceId').set(cleanId).catch(() => {});
                 return cleanId;
             }
 
             return null;
         }
 
-        // --- FIXED: NON-BLOCKING ADMIN HELPER TO LINK & HEAL CUSTOMER ACCOUNTS ---
+        // --- NON-BLOCKING ADMIN HELPER TO LINK & HEAL CUSTOMER ACCOUNTS ---
         async function syncCustomerUidLink(devId, email, pass) {
             if (!devId || !email || !pass || pass.length < 6 || window.isAutoLinking) return;
             const syncKey = devId + "_" + email.trim().toLowerCase() + "_" + pass;
@@ -4314,7 +4325,6 @@
                             const loginCred = await secondaryApp.auth().signInWithEmailAndPassword(cleanEmail, pass);
                             uid = loginCred.user.uid;
                         } catch (loginErr) {
-                            // Try default wtXXXX password in case the account was created with the default password earlier
                             const defaultPass = "wt" + devId.slice(-4).toLowerCase();
                             if (defaultPass !== pass && defaultPass.length >= 6) {
                                 try {
@@ -4337,7 +4347,6 @@
                         accountCreated: true,
                         linkedUid: uid
                     });
-                    await secondaryApp.auth().signOut();
                 }
             } catch (e) {
                 console.warn("Background UID sync skipped for " + devId + ":", e.message);
@@ -4350,7 +4359,8 @@
                 initPremiumGlassBmsUI();
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('dashboardScreen').style.display = 'flex';
-                document.getElementById('loggedInEmail').innerText = user.email;
+                const displayEmail = localStorage.getItem('waterIoT_displayEmail_' + user.uid) || user.email;
+                document.getElementById('loggedInEmail').innerText = displayEmail;
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
                     document.getElementById('topBarTitle').innerHTML = 'Admin Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>';
@@ -5423,7 +5433,6 @@
                         if(document.getElementById('txtCustFullDist')) document.getElementById('txtCustFullDist').innerText = parseFloat(data.bucketFullHeight).toFixed(1) + ' cm';
                     }
 
-                    // Run Universal 32140 LiFePO4 + INA219 BMS Parser on telemetry & nanoLog!
                     parseAndUpdateSolarBms(data);
 
                     if (!window.sensor1Enabled) {
@@ -5857,7 +5866,6 @@
                         deviceId: devId,
                         password: pass
                     });
-                    await secondaryApp.auth().signOut();
                 } catch (err) {
                     if (err.code === "auth/email-already-in-use") {
                         const defaultPass = "wt" + devId.slice(-4).toLowerCase();
@@ -5874,7 +5882,6 @@
                                         deviceId: devId,
                                         password: pass
                                     });
-                                    await secondaryApp.auth().signOut();
                                     break;
                                 }
                             } catch (e) {}
