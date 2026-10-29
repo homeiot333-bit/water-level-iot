@@ -3721,6 +3721,7 @@
             }
         }
 
+        // --- FIXED: DUAL-PATH CUSTOMER WIFI & SETTINGS SAVE (/networkSlots + /control/setWifiSlotX) ---
         async function saveCustomerSettings() {
             if(!currentDeviceId) {
                 await customAlert("Error: No device connected.");
@@ -3728,19 +3729,43 @@
             }
 
             const updates = {};
+            let wifiUpdated = false;
             
             const emptyCm = document.getElementById('custEmptyInput').value;
             const fullCm = document.getElementById('custFullInput').value;
             
-            if (emptyCm !== "") updates['/control/setEmptyCm'] = parseFloat(emptyCm);
-            if (fullCm !== "") updates['/control/setFullCm'] = parseFloat(fullCm);
+            if (emptyCm !== "") {
+                updates['/control/setEmptyCm'] = parseFloat(emptyCm);
+                updates['/control/setEmptyDepth'] = parseFloat(emptyCm);
+            }
+            if (fullCm !== "") {
+                updates['/control/setFullCm'] = parseFloat(fullCm);
+                updates['/control/setFullDepth'] = parseFloat(fullCm);
+            }
 
             for(let i=1; i<=4; i++) {
-                const ssid = document.getElementById('custWifiSSID_' + i).value.trim();
-                const pass = document.getElementById('custWifiPass_' + i).value;
+                const ssidInput = document.getElementById('custWifiSSID_' + i);
+                const passInput = document.getElementById('custWifiPass_' + i);
+                const ssid = ssidInput ? ssidInput.value.trim() : "";
+                const pass = passInput ? passInput.value.trim() : "";
+
+                const existingSlotEl = document.getElementById('cust_slot' + i + '_name');
+                const existingSsid = existingSlotEl ? existingSlotEl.innerText.trim() : "";
+
                 if (ssid !== "") {
+                    // Push to both /networkSlots (for instant Admin & Customer Portal UI) AND /control (for ESP32 Flash & Captive Portal + Reboot)
                     updates['/networkSlots/slot' + i] = ssid;
                     updates['/networkSlots/pass' + i] = pass;
+                    updates['/control/setWifiSlot' + i + '_SSID'] = ssid;
+                    updates['/control/setWifiSlot' + i + '_Pass'] = pass;
+                    wifiUpdated = true;
+                } else if (pass !== "" && existingSsid !== "" && existingSsid !== "Empty" && existingSsid !== "--") {
+                    // Allow updating the password of an existing WiFi slot without retyping the SSID
+                    updates['/networkSlots/slot' + i] = existingSsid;
+                    updates['/networkSlots/pass' + i] = pass;
+                    updates['/control/setWifiSlot' + i + '_SSID'] = existingSsid;
+                    updates['/control/setWifiSlot' + i + '_Pass'] = pass;
+                    wifiUpdated = true;
                 }
             }
 
@@ -3749,16 +3774,32 @@
                 return;
             }
 
-            if(await customConfirm("Save these settings? They will be pushed to your machine immediately.")) {
+            const confirmMsg = wifiUpdated
+                ? "Save these settings? Your machine will update its WiFi memory, sync with the Admin & Captive Portals, and reboot to connect."
+                : "Save these settings? They will be pushed to your machine immediately.";
+
+            if(await customConfirm(confirmMsg)) {
                 database.ref('Devices/' + currentDeviceId).update(updates)
                 .then(async () => {
-                    await customAlert("✅ Settings successfully sent to the device!");
+                    // Update UI labels immediately for instant feedback
+                    for(let i=1; i<=4; i++) {
+                        const newSsid = updates['/networkSlots/slot' + i];
+                        if (newSsid) {
+                            if (document.getElementById('cust_slot' + i + '_name')) document.getElementById('cust_slot' + i + '_name').innerText = newSsid;
+                            if (document.getElementById('admin_slot' + i + '_name')) document.getElementById('admin_slot' + i + '_name').innerText = newSsid;
+                        }
+                    }
+
+                    await customAlert(wifiUpdated
+                        ? "✅ WiFi & Settings sent! Your machine is now saving them to Flash and rebooting to connect to the updated hotspot."
+                        : "✅ Settings successfully sent to the device!");
+
                     document.getElementById('customerSettingsBox').style.display = 'none';
                     document.getElementById('custEmptyInput').value = '';
                     document.getElementById('custFullInput').value = '';
                     for(let i=1; i<=4; i++) {
-                        document.getElementById('custWifiSSID_'+i).value = '';
-                        document.getElementById('custWifiPass_'+i).value = '';
+                        if(document.getElementById('custWifiSSID_'+i)) document.getElementById('custWifiSSID_'+i).value = '';
+                        if(document.getElementById('custWifiPass_'+i)) document.getElementById('custWifiPass_'+i).value = '';
                     }
                     
                     const chk = document.getElementById('showCustWifiPass');
@@ -3770,15 +3811,21 @@
             }
         }
 
-        // --- SENSOR TOGGLES IN MANUAL SAVE ---
+        // --- FIXED: DUAL-PATH ADMIN MANUAL WIFI & SENSOR OVERRIDE SAVE ---
         async function saveAdminManualSettings() {
             if(!currentDeviceId) return;
             const updates = {};
             
             const emptyCm = document.getElementById('adminEmptyInput').value;
             const fullCm = document.getElementById('adminFullInput').value;
-            if (emptyCm !== "") updates['/control/setEmptyCm'] = parseFloat(emptyCm);
-            if (fullCm !== "") updates['/control/setFullCm'] = parseFloat(fullCm);
+            if (emptyCm !== "") {
+                updates['/control/setEmptyCm'] = parseFloat(emptyCm);
+                updates['/control/setEmptyDepth'] = parseFloat(emptyCm);
+            }
+            if (fullCm !== "") {
+                updates['/control/setFullCm'] = parseFloat(fullCm);
+                updates['/control/setFullDepth'] = parseFloat(fullCm);
+            }
 
             const s1Enabled = document.getElementById('adminEnableS1').checked;
             const s2Enabled = document.getElementById('adminEnableS2').checked;
@@ -3786,11 +3833,24 @@
             updates['/control/sensor2Enabled'] = s2Enabled;
 
             for(let i=1; i<=4; i++) {
-                const ssid = document.getElementById('adminWifiSSID_' + i).value.trim();
-                const pass = document.getElementById('adminWifiPass_' + i).value;
+                const ssidInput = document.getElementById('adminWifiSSID_' + i);
+                const passInput = document.getElementById('adminWifiPass_' + i);
+                const ssid = ssidInput ? ssidInput.value.trim() : "";
+                const pass = passInput ? passInput.value.trim() : "";
+
+                const existingSlotEl = document.getElementById('admin_slot' + i + '_name');
+                const existingSsid = existingSlotEl ? existingSlotEl.innerText.trim() : "";
+
                 if (ssid !== "") {
                     updates['/networkSlots/slot' + i] = ssid;
                     updates['/networkSlots/pass' + i] = pass;
+                    updates['/control/setWifiSlot' + i + '_SSID'] = ssid;
+                    updates['/control/setWifiSlot' + i + '_Pass'] = pass;
+                } else if (pass !== "" && existingSsid !== "" && existingSsid !== "Empty" && existingSsid !== "--") {
+                    updates['/networkSlots/slot' + i] = existingSsid;
+                    updates['/networkSlots/pass' + i] = pass;
+                    updates['/control/setWifiSlot' + i + '_SSID'] = existingSsid;
+                    updates['/control/setWifiSlot' + i + '_Pass'] = pass;
                 }
             }
 
@@ -3801,7 +3861,17 @@
             }
 
             database.ref('Devices/' + currentDeviceId).update(updates).then(async () => {
-                await customAlert("✅ Config successfully pushed!");
+                for(let i=1; i<=4; i++) {
+                    const newSsid = updates['/networkSlots/slot' + i];
+                    if (newSsid) {
+                        if (document.getElementById('cust_slot' + i + '_name')) document.getElementById('cust_slot' + i + '_name').innerText = newSsid;
+                        if (document.getElementById('admin_slot' + i + '_name')) document.getElementById('admin_slot' + i + '_name').innerText = newSsid;
+                    }
+                    if(document.getElementById('adminWifiSSID_'+i)) document.getElementById('adminWifiSSID_'+i).value = '';
+                    if(document.getElementById('adminWifiPass_'+i)) document.getElementById('adminWifiPass_'+i).value = '';
+                }
+
+                await customAlert("✅ Config successfully pushed to Cloud and ESP32 Hardware!");
                 document.getElementById('adminOverrideBox').style.display = 'none';
                 
                 const chk = document.getElementById('showAdminWifiPass');
@@ -3869,40 +3939,68 @@
             });
         }
 
-        // --- MULTI-PATH CUSTOMER PASSWORD SYNC (SHOWS IMMEDIATELY IN ADMIN PORTAL) ---
+        // --- FIXED: MULTI-PATH CUSTOMER PASSWORD SYNC (WRITES BEFORE & AFTER TOKEN REFRESH) ---
         async function changeCustomerPassword() {
             document.getElementById('customerTopMenuDropdown').style.display = 'none';
             let currentPass = await customPrompt("🔒 SECURITY VERIFICATION\n\nEnter your CURRENT password to authorize changes:", true);
             if(!currentPass) return;
             
             let newPass = await customPrompt("🔑 NEW PASSWORD\n\nEnter your NEW password (must be at least 6 characters):", true);
-            if(!newPass || newPass.length < 6) {
+            if(!newPass || newPass.trim().length < 6) {
                 await customAlert("❌ Password change failed. The new password must be at least 6 characters.");
                 return;
             }
+            newPass = newPass.trim();
             
             let user = firebase.auth().currentUser;
+            if (!user) {
+                await customAlert("❌ Error: Not logged in.");
+                return;
+            }
             let cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
             
             try {
+                // Step 1: Reauthenticate so the current Firebase Auth token is 100% fresh and valid
                 await user.reauthenticateWithCredential(cred);
+
+                // Step 2: Resolve Device ID and write the new password to Firebase Realtime Database FIRST
+                // (Before user.updatePassword() invalidates the active session token!)
+                let targetDevId = currentDeviceId || localStorage.getItem('waterIoT_linkedDev_' + user.uid);
+                if (!targetDevId) {
+                    targetDevId = await resolveCustomerDeviceId(user);
+                }
+
+                const pushPasswordToDb = async () => {
+                    const tasks = [];
+                    if (targetDevId) {
+                        const devUpdates = {};
+                        devUpdates['/control/updatePortalPass'] = newPass;
+                        devUpdates['/customerInfo/password'] = newPass;
+                        devUpdates['/customerInfo/customerChangedPass'] = newPass;
+                        tasks.push(database.ref('/Devices/' + targetDevId).update(devUpdates));
+                    }
+                    tasks.push(database.ref('/Users/' + user.uid + '/password').set(newPass));
+                    await Promise.all(tasks);
+                };
+
+                await pushPasswordToDb();
+
+                // Step 3: Now update the Firebase Auth login password
                 await user.updatePassword(newPass);
 
-                const targetDevId = currentDeviceId || localStorage.getItem('waterIoT_linkedDev_' + user.uid);
-                const syncTasks = [];
+                // Step 4: Force token refresh and re-verify DB sync so Admin Portal and ESP32 Captive Portal are guaranteed to have it
+                try {
+                    await user.getIdToken(true);
+                    await pushPasswordToDb();
+                } catch (e) {}
 
-                if (targetDevId) {
-                    syncTasks.push(database.ref('/Devices/' + targetDevId + '/control/updatePortalPass').set(newPass).catch(() => {}));
-                    syncTasks.push(database.ref('/Devices/' + targetDevId + '/customerInfo/password').set(newPass).catch(() => {}));
-                    syncTasks.push(database.ref('/Devices/' + targetDevId + '/customerInfo/customerChangedPass').set(newPass).catch(() => {}));
-                }
-                syncTasks.push(database.ref('/Users/' + user.uid + '/password').set(newPass).catch(() => {}));
+                window.latestCustomerPass = newPass;
+                window.latestPortalPassOverride = newPass;
+                refreshDisplayedAdminPassword();
 
-                await Promise.all(syncTasks);
-
-                await customAlert("✅ Password changed successfully!\nYour new login password is: " + newPass + "\n\nThis has been synced to the Admin Portal and device setup portal.");
+                await customAlert("✅ Password changed successfully!\nYour new login password is: " + newPass + "\n\nThis has been synced to the Admin Portal and WiFi Captive Portal.");
             } catch (err) {
-                if (err.code === 'auth/wrong-password') {
+                if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-login-credentials') {
                     await customAlert("❌ Verification failed. Incorrect current password.");
                 } else {
                     await customAlert("❌ Error updating password: " + err.message);
@@ -4577,6 +4675,12 @@
 
             resetSolarBmsUI();
 
+            // Reset WiFi slot display labels before loading new device slots
+            for (let i = 1; i <= 4; i++) {
+                if (document.getElementById('cust_slot' + i + '_name')) document.getElementById('cust_slot' + i + '_name').innerText = 'Empty';
+                if (document.getElementById('admin_slot' + i + '_name')) document.getElementById('admin_slot' + i + '_name').innerText = 'Empty';
+            }
+
             database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
                     window.activeHotspotName = snap.val();
@@ -4733,29 +4837,23 @@
                 if(document.getElementById('adminMobileLoginsList')) document.getElementById('adminMobileLoginsList').innerHTML = finalHtml;
             });
 
+            // --- REAL-TIME 4-SLOT WIFI LISTENER (SYNCS BOTH CUSTOMER & ADMIN PORTALS) ---
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
                 const slots = snapshot.val();
                 window.knownNetworkSlots = []; 
-                if(slots) {
-                    if(slots.slot1 && slots.slot1 !== "Empty") {
-                        document.getElementById('cust_slot1_name').innerText = slots.slot1;
-                        document.getElementById('admin_slot1_name').innerText = slots.slot1;
-                        window.knownNetworkSlots.push(slots.slot1.trim());
+                for (let i = 1; i <= 4; i++) {
+                    const sName = (slots && slots['slot' + i] && String(slots['slot' + i]).trim() !== "" && slots['slot' + i] !== "Empty")
+                        ? String(slots['slot' + i]).trim()
+                        : "Empty";
+
+                    if (document.getElementById('cust_slot' + i + '_name')) {
+                        document.getElementById('cust_slot' + i + '_name').innerText = sName;
                     }
-                    if(slots.slot2 && slots.slot2 !== "Empty") {
-                        document.getElementById('cust_slot2_name').innerText = slots.slot2;
-                        document.getElementById('admin_slot2_name').innerText = slots.slot2;
-                        window.knownNetworkSlots.push(slots.slot2.trim());
+                    if (document.getElementById('admin_slot' + i + '_name')) {
+                        document.getElementById('admin_slot' + i + '_name').innerText = sName;
                     }
-                    if(slots.slot3 && slots.slot3 !== "Empty") {
-                        document.getElementById('cust_slot3_name').innerText = slots.slot3;
-                        document.getElementById('admin_slot3_name').innerText = slots.slot3;
-                        window.knownNetworkSlots.push(slots.slot3.trim());
-                    }
-                    if(slots.slot4 && slots.slot4 !== "Empty") {
-                        document.getElementById('cust_slot4_name').innerText = slots.slot4;
-                        document.getElementById('admin_slot4_name').innerText = slots.slot4;
-                        window.knownNetworkSlots.push(slots.slot4.trim());
+                    if (sName !== "Empty") {
+                        window.knownNetworkSlots.push(sName);
                     }
                 }
             });
