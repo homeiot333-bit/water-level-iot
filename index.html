@@ -2114,6 +2114,12 @@
         window.isAutoLinking = false;
         window.attemptedUidSync = {};
 
+        // --- DYNAMIC ADMIN SUPPORT CONTACT (EDITABLE FROM ADMIN PORTAL) ---
+        window.adminSupportPhone = "+916290169557";
+        window.adminSupportEmail = "";
+        window.selectedSupportType = "problem";
+        window.selectedSupportStars = 5;
+
         // --- GLOBAL OVERRIDE SENSOR STATES ---
         window.sensor1Enabled = true;
         window.sensor2Enabled = true;
@@ -2192,12 +2198,76 @@
             }
         }
 
-        // --- NEXUS SOLAR NODE UI WITH SUNLIGHT -> SOLAR PANEL -> BATTERY ANIMATION ---
+        // --- SMARTPHONE 4-BAR SIGNAL STRENGTH RENDERER ---
+        function renderSignalBars(signalText, targetElementId) {
+            const el = document.getElementById(targetElementId);
+            if (!el) return;
+
+            const raw = String(signalText || "N/A").trim();
+            const lower = raw.toLowerCase();
+
+            let activeBars = 0;
+            let barColor = "#64748b";
+            let isCritical = false;
+
+            if (lower.includes("excellent")) {
+                activeBars = 4;
+                barColor = "#2ed573";
+            } else if (lower.includes("good")) {
+                activeBars = 3;
+                barColor = "#00d2ff";
+            } else if (lower.includes("weak")) {
+                activeBars = 2;
+                barColor = "#feca57";
+            } else if (lower.includes("critical")) {
+                activeBars = 1;
+                barColor = "#ff4757";
+                isCritical = true;
+            } else {
+                activeBars = 0;
+                barColor = "#ff4757";
+            }
+
+            const heights = [5, 9, 13, 17];
+            let barsHtml = `<span class="phone-sig-bars ${isCritical ? 'sig-critical-pulse' : ''}" title="Signal: ${raw}">`;
+            for (let i = 0; i < 4; i++) {
+                const lit = i < activeBars;
+                const bg = lit ? barColor : "rgba(255, 255, 255, 0.18)";
+                const shadow = lit ? `0 0 6px ${barColor}` : "none";
+                barsHtml += `<span class="phone-sig-bar" style="height:${heights[i]}px; background:${bg}; box-shadow:${shadow};"></span>`;
+            }
+            barsHtml += `</span><span style="color:${activeBars > 0 ? barColor : '#aaa'}; font-weight:700; margin-left:6px;">${raw}</span>`;
+            el.innerHTML = barsHtml;
+        }
+
+        // --- NEXUS SOLAR NODE UI, SIGNAL BARS & CUSTOMER SUPPORT CARD INITIALIZER ---
         function initPremiumGlassBmsUI() {
             if (!document.getElementById('premiumGlassBmsStyles')) {
                 const style = document.createElement('style');
                 style.id = 'premiumGlassBmsStyles';
                 style.innerHTML = `
+                    /* Smartphone Signal Bars */
+                    .phone-sig-bars {
+                        display: inline-flex;
+                        align-items: flex-end;
+                        gap: 2.5px;
+                        height: 18px;
+                        vertical-align: middle;
+                        padding-bottom: 1px;
+                    }
+                    .phone-sig-bar {
+                        width: 3.5px;
+                        border-radius: 1.5px;
+                        transition: background 0.3s ease, box-shadow 0.3s ease;
+                    }
+                    .sig-critical-pulse {
+                        animation: sigCritBlink 1s ease-in-out infinite alternate;
+                    }
+                    @keyframes sigCritBlink {
+                        0% { opacity: 0.45; }
+                        100% { opacity: 1; }
+                    }
+                    /* Glassmorphism BMS Card */
                     .bms-glass-card {
                         background: linear-gradient(160deg, rgba(11, 20, 36, 0.94) 0%, rgba(7, 13, 24, 0.97) 100%) !important;
                         backdrop-filter: blur(22px) saturate(180%) !important;
@@ -2234,7 +2304,6 @@
                         0% { transform: scale(0.95); opacity: 0.75; }
                         100% { transform: scale(1.05); opacity: 1; }
                     }
-                    /* NEXUS SOLAR NODE Header Banner */
                     .nexus-brand-banner {
                         position: relative;
                         z-index: 1;
@@ -2326,7 +2395,6 @@
                         background: linear-gradient(180deg, rgba(22, 32, 28, 0.72) 0%, rgba(10, 24, 36, 0.82) 100%);
                         box-shadow: inset 0 0 25px rgba(254, 202, 87, 0.08);
                     }
-                    /* Sun & Sunlight Rays */
                     .bms-sun-box {
                         position: relative;
                         display: flex;
@@ -2359,7 +2427,6 @@
                         0% { transform: scale(0.98) rotate(0deg); box-shadow: 0 0 16px #feca57, 0 0 30px rgba(255, 159, 67, 0.6); }
                         100% { transform: scale(1.10) rotate(12deg); box-shadow: 0 0 28px #fff2a3, 0 0 50px rgba(254, 202, 87, 0.95); }
                     }
-                    /* Animated Sunlight Beams Hitting the Solar Panel */
                     .bms-sunlight-Zone {
                         flex: 1;
                         height: 44px;
@@ -2400,7 +2467,6 @@
                         80% { opacity: 1; }
                         100% { transform: translateX(100%) rotate(8deg); opacity: 0; }
                     }
-                    /* 3D Tilted Solar PV Panel */
                     .bms-pv-panel-box {
                         display: flex;
                         flex-direction: column;
@@ -2452,7 +2518,6 @@
                         0% { left: -120%; }
                         100% { left: 160%; }
                     }
-                    /* Energy Flow Conduit from Solar Panel to Battery */
                     .bms-energy-pipe {
                         flex: 1;
                         height: 6px;
@@ -2480,7 +2545,6 @@
                         0% { left: -100%; }
                         100% { left: 100%; }
                     }
-                    /* Target Battery Node in Animation Stage */
                     .bms-anim-batt-box {
                         display: flex;
                         flex-direction: column;
@@ -2537,7 +2601,6 @@
                         margin-top: 5px;
                         white-space: nowrap;
                     }
-                    /* 3D Battery Percentage Capsule */
                     .bms-3d-capsule-wrap {
                         display: flex;
                         align-items: center;
@@ -2669,6 +2732,89 @@
                         position: relative;
                         z-index: 1;
                     }
+                    /* Customer Experience & Support Card */
+                    .cust-support-card {
+                        background: linear-gradient(160deg, rgba(12, 22, 38, 0.94) 0%, rgba(8, 14, 26, 0.97) 100%);
+                        border: 1px solid rgba(0, 210, 255, 0.28);
+                        border-radius: 18px;
+                        padding: 18px;
+                        width: 100%;
+                        max-width: 420px;
+                        margin-top: 16px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.65);
+                        text-align: left;
+                        box-sizing: border-box;
+                    }
+                    .support-mode-tabs {
+                        display: flex;
+                        gap: 8px;
+                        margin: 12px 0;
+                    }
+                    .support-mode-tab {
+                        flex: 1;
+                        padding: 9px 8px;
+                        border-radius: 10px;
+                        border: 1px solid rgba(255,255,255,0.12);
+                        background: rgba(255,255,255,0.04);
+                        color: #ccc;
+                        font-size: 12px;
+                        font-weight: 700;
+                        text-align: center;
+                        cursor: pointer;
+                        transition: all 0.25s ease;
+                    }
+                    .support-mode-tab.active-exp {
+                        background: rgba(254, 202, 87, 0.16);
+                        border-color: #feca57;
+                        color: #feca57;
+                        box-shadow: 0 0 12px rgba(254, 202, 87, 0.2);
+                    }
+                    .support-mode-tab.active-prob {
+                        background: rgba(255, 71, 87, 0.16);
+                        border-color: #ff4757;
+                        color: #ff6b81;
+                        box-shadow: 0 0 12px rgba(255, 71, 87, 0.2);
+                    }
+                    .support-star-row {
+                        display: flex;
+                        justify-content: center;
+                        gap: 10px;
+                        margin: 8px 0 12px 0;
+                        font-size: 24px;
+                        cursor: pointer;
+                        user-select: none;
+                    }
+                    .support-input-field {
+                        width: 100%;
+                        padding: 10px 12px;
+                        margin-bottom: 10px;
+                        border-radius: 10px;
+                        border: 1px solid rgba(255,255,255,0.15);
+                        background: rgba(0,0,0,0.45);
+                        color: #fff;
+                        font-size: 13px;
+                        box-sizing: border-box;
+                        outline: none;
+                    }
+                    .support-input-field:focus {
+                        border-color: #00d2ff;
+                    }
+                    .support-wa-btn {
+                        width: 100%;
+                        padding: 12px;
+                        border-radius: 12px;
+                        border: none;
+                        background: linear-gradient(90deg, #10ac84, #2ed573);
+                        color: #000;
+                        font-weight: 800;
+                        font-size: 14px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        box-shadow: 0 4px 15px rgba(46, 213, 115, 0.35);
+                    }
                 `;
                 document.head.appendChild(style);
             }
@@ -2781,6 +2927,267 @@
                     </div>
                 `;
             }
+
+            initCustomerSupportCard();
+        }
+
+        // --- METHOD C: CUSTOMER EXPERIENCE & SUPPORT CARD + DYNAMIC ADMIN CONTACT ---
+        function initCustomerSupportCard() {
+            // 1. Inject Dynamic "📞 Support Info" Config Button into Admin Command Center
+            const adminCenter = document.getElementById('adminCommandCenter');
+            if (adminCenter && !document.getElementById('adminSupportCfgBtn')) {
+                const cfgBtn = document.createElement('button');
+                cfgBtn.id = 'adminSupportCfgBtn';
+                cfgBtn.innerHTML = '📞 Support WhatsApp / Gmail';
+                cfgBtn.style.cssText = 'background: rgba(0, 210, 255, 0.15); border: 1px solid #00d2ff; color: #00d2ff; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 6px;';
+                cfgBtn.onclick = configureAdminSupportContact;
+                adminCenter.appendChild(cfgBtn);
+            }
+
+            // 2. Inject Customer Experience & Problem Report Card into Main Dashboard View
+            const mainView = document.getElementById('mainDashboardView');
+            if (mainView && !document.getElementById('customerSupportCard')) {
+                const savedPhone = localStorage.getItem('waterIoT_custPhone') || '';
+                const savedGmail = localStorage.getItem('waterIoT_custGmail') || '';
+
+                const supCard = document.createElement('div');
+                supCard.id = 'customerSupportCard';
+                supCard.className = 'cust-support-card';
+                supCard.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
+                        <div>
+                            <div style="font-size:15px; font-weight:800; color:#fff;">💬 Experience & Support</div>
+                            <div style="font-size:11px; color:#89a;">Share your review or report a device issue</div>
+                        </div>
+                        <span style="font-size:20px;">🛠️</span>
+                    </div>
+
+                    <div class="support-mode-tabs">
+                        <div id="tabSupportExp" class="support-mode-tab" onclick="setCustomerSupportMode('experience')">⭐ Share Experience</div>
+                        <div id="tabSupportProb" class="support-mode-tab active-prob" onclick="setCustomerSupportMode('problem')">🛠️ Report Problem</div>
+                    </div>
+
+                    <div id="supportStarContainer" style="display:none; text-align:center;">
+                        <div style="font-size:11px; color:#feca57; font-weight:bold;">Tap to Rate Your Experience:</div>
+                        <div id="supportStarRow" class="support-star-row">
+                            <span onclick="setCustomerSupportStars(1)">⭐</span>
+                            <span onclick="setCustomerSupportStars(2)">⭐</span>
+                            <span onclick="setCustomerSupportStars(3)">⭐</span>
+                            <span onclick="setCustomerSupportStars(4)">⭐</span>
+                            <span onclick="setCustomerSupportStars(5)">⭐</span>
+                        </div>
+                    </div>
+
+                    <input type="tel" id="custSupportPhone" class="support-input-field" placeholder="📞 Your Phone / WhatsApp Number (Required)" value="${savedPhone}">
+                    <input type="email" id="custSupportGmail" class="support-input-field" placeholder="📧 Your Personal Gmail ID (Required)" value="${savedGmail}">
+                    <textarea id="custSupportMsg" class="support-input-field" rows="3" placeholder="Describe the device problem or share your experience using this system..."></textarea>
+
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="support-wa-btn" onclick="submitCustomerSupportTicket('whatsapp')">
+                            <span>📲 Send via WhatsApp</span>
+                        </button>
+                        <button type="button" id="custSupportEmailBtn" class="support-wa-btn" style="display:none; background:linear-gradient(90deg, #00b4ff, #00d2ff);" onclick="submitCustomerSupportTicket('email')">
+                            <span>✉️ Email</span>
+                        </button>
+                    </div>
+
+                    <div id="custLocalHistoryBox" style="margin-top:12px; display:none; border-top:1px dashed rgba(255,255,255,0.1); padding-top:8px;">
+                        <div style="font-size:10px; color:#888; text-transform:uppercase; margin-bottom:4px;">Your Recent Submissions (Saved on Phone):</div>
+                        <div id="custLocalHistoryList" style="font-size:11px; color:#ccc;"></div>
+                    </div>
+                `;
+                mainView.appendChild(supCard);
+                renderLocalSupportHistory();
+            }
+
+            // Show Customer Support Card only for Customers (hide in Admin view)
+            const cardEl = document.getElementById('customerSupportCard');
+            if (cardEl) {
+                cardEl.style.display = isUserAdmin() ? 'none' : 'block';
+            }
+            const emailBtn = document.getElementById('custSupportEmailBtn');
+            if (emailBtn) {
+                emailBtn.style.display = (window.adminSupportEmail && window.adminSupportEmail.includes('@')) ? 'flex' : 'none';
+            }
+        }
+
+        function setCustomerSupportMode(mode) {
+            window.selectedSupportType = mode;
+            const expTab = document.getElementById('tabSupportExp');
+            const probTab = document.getElementById('tabSupportProb');
+            const starBox = document.getElementById('supportStarContainer');
+            const msgBox = document.getElementById('custSupportMsg');
+
+            if (mode === 'experience') {
+                if (expTab) expTab.className = 'support-mode-tab active-exp';
+                if (probTab) probTab.className = 'support-mode-tab';
+                if (starBox) starBox.style.display = 'block';
+                if (msgBox) msgBox.placeholder = "Share your experience using ASK IoT Solutions Water & Solar system...";
+            } else {
+                if (expTab) expTab.className = 'support-mode-tab';
+                if (probTab) probTab.className = 'support-mode-tab active-prob';
+                if (starBox) starBox.style.display = 'none';
+                if (msgBox) msgBox.placeholder = "Describe the problem occurring on your device (e.g., sensor, pump, WiFi)...";
+            }
+        }
+
+        function setCustomerSupportStars(stars) {
+            window.selectedSupportStars = stars;
+            const row = document.getElementById('supportStarRow');
+            if (!row) return;
+            const spans = row.querySelectorAll('span');
+            spans.forEach((s, idx) => {
+                s.innerText = (idx < stars) ? '⭐' : '☆';
+                s.style.opacity = (idx < stars) ? '1' : '0.4';
+            });
+        }
+
+        function renderLocalSupportHistory() {
+            const box = document.getElementById('custLocalHistoryBox');
+            const list = document.getElementById('custLocalHistoryList');
+            if (!box || !list) return;
+            try {
+                const items = JSON.parse(localStorage.getItem('waterIoT_supportHistory') || '[]');
+                if (items.length === 0) {
+                    box.style.display = 'none';
+                    return;
+                }
+                box.style.display = 'block';
+                list.innerHTML = items.slice(0, 2).map(it => `
+                    <div style="background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:6px; margin-bottom:4px; border-left:2px solid ${it.type === 'problem' ? '#ff4757' : '#feca57'};">
+                        <div style="font-size:10px; color:#9ab;">${it.type === 'problem' ? '🛠️ Problem Report' : '⭐ Experience (' + it.stars + '/5)'} • ${it.time}</div>
+                        <div style="color:#fff; margin-top:2px;">${it.msg}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                box.style.display = 'none';
+            }
+        }
+
+        async function submitCustomerSupportTicket(channel) {
+            const phoneEl = document.getElementById('custSupportPhone');
+            const gmailEl = document.getElementById('custSupportGmail');
+            const msgEl = document.getElementById('custSupportMsg');
+
+            const custPhone = phoneEl ? phoneEl.value.trim() : "";
+            const custGmail = gmailEl ? gmailEl.value.trim() : "";
+            const custMsg = msgEl ? msgEl.value.trim() : "";
+
+            if (custPhone.replace(/\D/g, '').length < 10) {
+                await customAlert("⚠️ Please enter your valid 10-digit Phone / WhatsApp number so we can contact you.");
+                return;
+            }
+            if (!custGmail || !custGmail.includes('@')) {
+                await customAlert("⚠️ Please enter your valid personal Gmail ID so we can contact you.");
+                return;
+            }
+            if (!custMsg || custMsg.length < 3) {
+                await customAlert("⚠️ Please write your message or describe the problem before sending.");
+                return;
+            }
+
+            // Save customer contact info locally on their phone so they never have to retype it
+            localStorage.setItem('waterIoT_custPhone', custPhone);
+            localStorage.setItem('waterIoT_custGmail', custGmail);
+
+            const isProblem = (window.selectedSupportType === 'problem');
+            const starStr = "⭐".repeat(window.selectedSupportStars || 5);
+            const headerTitle = isProblem
+                ? "🛠️ *ASK IoT Solutions - DEVICE PROBLEM REPORT*"
+                : `🌟 *ASK IoT Solutions - CUSTOMER EXPERIENCE (${window.selectedSupportStars}/5 ${starStr})*`;
+
+            const custNameRaw = document.getElementById('assignedNameDisplay') ? document.getElementById('assignedNameDisplay').innerText.replace(/^- /, '').trim() : "Customer";
+            const loginId = document.getElementById('loggedInEmail') ? document.getElementById('loggedInEmail').innerText.trim() : "Unknown";
+            const waterLvl = document.getElementById('waterLevelText') ? document.getElementById('waterLevelText').innerText.trim() : "--%";
+            const sigQual = document.getElementById('txtSignalCustomer') ? document.getElementById('txtSignalCustomer').innerText.trim() : "N/A";
+            const battLvl = document.getElementById('bmsBatteryPercentText') ? document.getElementById('bmsBatteryPercentText').innerText.trim() : "--%";
+
+            const reportLines = [
+                headerTitle,
+                "--------------------------------",
+                `👤 *Client:* ${custNameRaw || "Valued Customer"}`,
+                `📞 *Client Phone:* ${custPhone}`,
+                `📧 *Client Gmail:* ${custGmail}`,
+                `🔑 *Portal Login:* ${loginId}`,
+                `📟 *Device MAC ID:* ${currentDeviceId || "N/A"}`,
+                `📡 *Live Status:* Signal: ${sigQual} | Water: ${waterLvl} | Batt: ${battLvl} | WiFi: ${window.activeHotspotName || "--"}`,
+                "--------------------------------",
+                `💬 *Customer Message:*`,
+                custMsg
+            ];
+            const fullTicketText = reportLines.join("\n");
+
+            // Save a local copy in customer's phone browser memory (0 bytes of Firebase storage used)
+            try {
+                const hist = JSON.parse(localStorage.getItem('waterIoT_supportHistory') || '[]');
+                hist.unshift({
+                    type: window.selectedSupportType,
+                    stars: window.selectedSupportStars,
+                    msg: custMsg,
+                    time: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+                });
+                localStorage.setItem('waterIoT_supportHistory', JSON.stringify(hist.slice(0, 5)));
+                renderLocalSupportHistory();
+            } catch (e) {}
+
+            if (msgEl) msgEl.value = "";
+
+            if (channel === 'email' && window.adminSupportEmail && window.adminSupportEmail.includes('@')) {
+                const subject = isProblem
+                    ? `Device Problem Report - [${currentDeviceId || loginId}]`
+                    : `Customer Experience (${window.selectedSupportStars}/5 Stars) - [${currentDeviceId || loginId}]`;
+                window.open(`mailto:${window.adminSupportEmail.trim()}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullTicketText)}`, '_blank');
+                return;
+            }
+
+            // Default Method C: Direct WhatsApp Dispatch to Dynamic Admin Number (+916290169557)
+            let cleanAdminPhone = String(window.adminSupportPhone || "+916290169557").replace(/\D/g, '');
+            if (cleanAdminPhone.length === 10) cleanAdminPhone = "91" + cleanAdminPhone;
+
+            const waUrl = `https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(fullTicketText)}`;
+            window.open(waUrl, '_blank');
+        }
+
+        // --- DYNAMIC ADMIN SUPPORT CONTACT CONFIGURER (CHANGE WHATSAPP OR GMAIL ANYTIME) ---
+        async function configureAdminSupportContact() {
+            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to update Support WhatsApp / Gmail:", true);
+            if (pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+
+            const newPhone = await customPrompt(
+                `📱 ADMIN WHATSAPP NUMBER\nCurrent: ${window.adminSupportPhone}\n\nEnter new Admin WhatsApp Number (with country code, e.g., +916290169557):`,
+                false
+            );
+            if (newPhone !== null && newPhone.trim() !== "") {
+                window.adminSupportPhone = newPhone.trim();
+            }
+
+            const newEmail = await customPrompt(
+                `📧 ADMIN SUPPORT GMAIL (Optional)\nCurrent: ${window.adminSupportEmail || "Not Set"}\n\nEnter Admin Gmail ID (or leave blank to use WhatsApp only):`,
+                false
+            );
+            if (newEmail !== null) {
+                window.adminSupportEmail = newEmail.trim();
+            }
+
+            try {
+                await database.ref('/AdminConfig/SupportContact').set({
+                    whatsapp: window.adminSupportPhone,
+                    email: window.adminSupportEmail
+                });
+            } catch (e) {}
+
+            localStorage.setItem('waterIoT_adminPhone', window.adminSupportPhone);
+            localStorage.setItem('waterIoT_adminEmail', window.adminSupportEmail);
+
+            const emailBtn = document.getElementById('custSupportEmailBtn');
+            if (emailBtn) {
+                emailBtn.style.display = (window.adminSupportEmail && window.adminSupportEmail.includes('@')) ? 'flex' : 'none';
+            }
+
+            await customAlert(`✅ Support Contact Updated!\n\n📲 WhatsApp: ${window.adminSupportPhone}\n📧 Gmail: ${window.adminSupportEmail || "WhatsApp Only"}`);
         }
 
         // True Resting/Discharging Voltage-to-SOC (%) Curve
@@ -3153,7 +3560,9 @@
             if (card) card.style.display = 'block';
             if (adminRow) adminRow.style.display = isAdmin ? 'flex' : 'none';
 
-            // Show/Hide Admin-Exclusive Hardware Tiles & Footer
+            const supCard = document.getElementById('customerSupportCard');
+            if (supCard) supCard.style.display = isAdmin ? 'none' : 'block';
+
             const adminTile1 = document.getElementById('bmsAdminTileVoltCurr');
             const adminTile2 = document.getElementById('bmsAdminTileSolar');
             const streamFooter = document.getElementById('bmsStreamFooter');
@@ -3190,7 +3599,6 @@
                 ? (c.bPowerMw / 1000.0).toFixed(2)
                 : ((effectiveVolt * bCurrAmps).toFixed(2));
 
-            // Calculate Backup Time (when on battery) & Time Required to Full Charge (when charging)
             let timeDisplayStr = c.backupStr;
             if (isCharging) {
                 const effectiveChgMa = bCurrMa > 15 ? bCurrMa : 350;
@@ -3220,7 +3628,6 @@
                 else card.classList.remove('is-charging');
             }
 
-            // Update Chemistry Badge (Customer: Clean non-hardware badge | Admin: Full Hardware Spec Badge)
             const chemBadgeEl = document.getElementById('bmsChemBadge');
             if (chemBadgeEl) {
                 chemBadgeEl.innerText = isAdmin
@@ -3228,7 +3635,6 @@
                     : '✨ SMART SOLAR BACKUP';
             }
 
-            // Update Animation Stage Labels (Sun -> Solar Panel -> Battery)
             const sunOrbEl = document.getElementById('bmsAnimSunOrb');
             const sunLblEl = document.getElementById('bmsAnimSunLabel');
             const panelLblEl = document.getElementById('bmsAnimPanelLabel');
@@ -3254,7 +3660,6 @@
                 battLblEl.innerText = isCharging ? `Charging ${soc.toFixed(0)}%` : `Backup ${soc.toFixed(0)}%`;
             }
 
-            // Update 3D Battery Capsule Bar
             const fillEl = document.getElementById('bmsBatteryFill');
             const pctTextEl = document.getElementById('bmsBatteryPercentText');
             const badgeEl = document.getElementById('bmsStatusBadge');
@@ -3276,14 +3681,12 @@
                 }
             }
 
-            // Customer sees ONLY Percentage (e.g., "85%"); Admin sees Percentage + Voltage ("85% (3.32V)")
             if (pctTextEl) {
                 pctTextEl.innerText = isAdmin
                     ? `${soc.toFixed(0)}% (${bVolt.toFixed(2)}V)`
                     : `${soc.toFixed(0)}%`;
             }
 
-            // Status Pill (Customer sees clean status; Admin sees live Amps/I2C status)
             if (badgeEl) {
                 if (isAdmin && !c.ina219Detected && bVolt < 0.5) {
                     badgeEl.className = 'bms-status-pill';
@@ -3308,7 +3711,6 @@
                 }
             }
 
-            // Shared Tile 3: Backup Time / Time Required to Full Charge
             if (document.getElementById('bmsBackupTileTitle')) {
                 document.getElementById('bmsBackupTileTitle').innerText = isCharging
                     ? 'Time to Full Charge'
@@ -3318,13 +3720,11 @@
                 document.getElementById('bmsBackupTimeText').innerText = timeDisplayStr;
             }
             if (document.getElementById('bmsCapMahSub')) {
-                // Customer sees clean status subtitle; Admin sees exact Ah and 15000 mAh capacity
                 document.getElementById('bmsCapMahSub').innerText = isAdmin
                     ? `Rem: ${remAh} Ah (${remMah} / 15000 mAh)`
                     : (isCharging ? 'Solar Charging in Progress' : 'Available System Backup');
             }
 
-            // Shared Tile 4: Battery Health
             const health = c.health || 100;
             if (document.getElementById('bmsHealthTileTitle')) {
                 document.getElementById('bmsHealthTileTitle').innerText = isAdmin
@@ -3344,7 +3744,6 @@
                     : (health >= 80 ? 'Condition: Excellent' : 'Condition: Good');
             }
 
-            // Admin-Exclusive Hardware Updates
             if (isAdmin) {
                 if (document.getElementById('bmsVoltCurrText')) {
                     const sign = isCharging ? '+' : (bCurrMa > 0 ? '-' : '');
@@ -3805,6 +4204,14 @@
         let globalScannerTimer = null; 
         let linkedDevicesRef = null;
 
+        // Restore cached dynamic Admin Support Contact if available
+        if (localStorage.getItem('waterIoT_adminPhone')) {
+            window.adminSupportPhone = localStorage.getItem('waterIoT_adminPhone');
+        }
+        if (localStorage.getItem('waterIoT_adminEmail')) {
+            window.adminSupportEmail = localStorage.getItem('waterIoT_adminEmail');
+        }
+
         // Helper: Get authenticated Secondary Worker DB (has ESP32 hardware privileges on /Devices/{macId})
         async function getHardwareWorkerDb() {
             try {
@@ -3815,6 +4222,30 @@
             } catch (e) {
                 return database;
             }
+        }
+
+        // Helper: Sync Dynamic Admin Support Phone & Gmail from Cloud
+        async function syncDynamicSupportContact() {
+            try {
+                const workerDb = await getHardwareWorkerDb();
+                workerDb.ref('/AdminConfig/SupportContact').on('value', (snap) => {
+                    if (snap.exists() && snap.val()) {
+                        const val = snap.val();
+                        if (val.whatsapp && String(val.whatsapp).trim() !== "") {
+                            window.adminSupportPhone = String(val.whatsapp).trim();
+                            localStorage.setItem('waterIoT_adminPhone', window.adminSupportPhone);
+                        }
+                        if (val.email !== undefined) {
+                            window.adminSupportEmail = String(val.email || "").trim();
+                            localStorage.setItem('waterIoT_adminEmail', window.adminSupportEmail);
+                        }
+                        const emailBtn = document.getElementById('custSupportEmailBtn');
+                        if (emailBtn) {
+                            emailBtn.style.display = (window.adminSupportEmail && window.adminSupportEmail.includes('@')) ? 'flex' : 'none';
+                        }
+                    }
+                });
+            } catch (e) {}
         }
 
         function showModal({ title, text, type, showInput }) {
@@ -4366,7 +4797,6 @@
 
             const inputEmailLower = email.trim().toLowerCase();
 
-            // 1. Verify Email belongs to this MAC ID
             const emailMatches = (inputEmailLower === savedEmail) || (inputEmailLower === defaultEmail);
             if (!emailMatches) {
                 return {
@@ -4375,7 +4805,6 @@
                 };
             }
 
-            // 2. Verify Password matches this MAC ID's valid password (or default wtXXXX password)
             const validPasses = [savedPass, changedPass, portalPass, defaultPass].filter(Boolean);
             const passMatches = validPasses.includes(pass);
             if (!passMatches) {
@@ -4385,7 +4814,6 @@
                 };
             }
 
-            // 3. All 3 are valid (MAC ID + Email + Password)! Auto-Sync Firebase Auth & Database:
             localStorage.setItem('waterIoT_macByEmail_' + inputEmailLower, cleanMac);
             localStorage.setItem('waterIoT_sessionPass', pass);
 
@@ -4625,11 +5053,19 @@
         firebase.auth().onAuthStateChanged(async (user) => {
             if(user) {
                 initPremiumGlassBmsUI();
-                renderSolarBmsUI(); // Apply Admin vs. Customer BMS visibility immediately on login
+                renderSolarBmsUI();
+                syncDynamicSupportContact();
+
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('dashboardScreen').style.display = 'flex';
                 const displayEmail = localStorage.getItem('waterIoT_displayEmail_' + user.uid) || user.email;
                 document.getElementById('loggedInEmail').innerText = displayEmail;
+
+                // Pre-fill customer Gmail in support card if they logged in with a real Gmail address
+                const gmailField = document.getElementById('custSupportGmail');
+                if (gmailField && !gmailField.value && displayEmail && !displayEmail.toLowerCase().endsWith('@water.com')) {
+                    gmailField.value = displayEmail;
+                }
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
                     document.getElementById('topBarTitle').innerHTML = 'Admin Dashboard <span id="assignedNameDisplay" style="color:#feca57; font-size:15px; font-weight:bold; margin-left:10px;"></span>';
@@ -5209,9 +5645,10 @@
             if(document.getElementById('adminLiveRawDist')) document.getElementById('adminLiveRawDist').innerText = '-- cm';
             
             document.getElementById('adminTxtDist').innerText = '-- m';
-            document.getElementById('adminTxtSignal').innerText = 'N/A';
             document.getElementById('txtDistanceCustomer').innerText = '-- m';
-            document.getElementById('txtSignalCustomer').innerText = 'N/A';
+            renderSignalBars('N/A', 'adminTxtSignal');
+            renderSignalBars('N/A', 'txtSignalCustomer');
+
             document.getElementById('credEmail').innerText = "Not saved in DB";
             document.getElementById('credPass').innerText = "Not saved in DB";
             document.getElementById('credentialsBox').style.display = "none"; 
@@ -5676,7 +6113,7 @@
                 }
             });
 
-            // --- TELEMETRY & NANOLOG AUTO-BMS LISTENER ---
+            // --- TELEMETRY, SMARTPHONE SIGNAL BARS & NANOLOG AUTO-BMS LISTENER ---
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
@@ -5720,13 +6157,10 @@
                         document.getElementById('txtS2').innerText = 'FAULT';
                     }
 
-                    if(data.signalStrength !== undefined) {
-                        document.getElementById('txtSignalCustomer').innerText = data.signalStrength;
-                        if(document.getElementById('adminTxtSignal')) document.getElementById('adminTxtSignal').innerText = data.signalStrength;
-                    } else {
-                        document.getElementById('txtSignalCustomer').innerText = 'N/A';
-                        if(document.getElementById('adminTxtSignal')) document.getElementById('adminTxtSignal').innerText = 'N/A';
-                    }
+                    // Render 4-Bar Smartphone Signal Meter in Both Customer & Admin Portals
+                    const sigVal = (data.signalStrength !== undefined && data.signalStrength !== null) ? data.signalStrength : 'N/A';
+                    renderSignalBars(sigVal, 'txtSignalCustomer');
+                    renderSignalBars(sigVal, 'adminTxtSignal');
 
                     if(data.estDistance !== undefined) {
                         document.getElementById('txtDistanceCustomer').innerText = data.estDistance + ' m';
