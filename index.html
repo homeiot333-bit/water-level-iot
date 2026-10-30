@@ -2114,11 +2114,28 @@
         window.isAutoLinking = false;
         window.attemptedUidSync = {};
 
-        // --- DYNAMIC ADMIN SUPPORT CONTACT (EDITABLE FROM ADMIN PORTAL) ---
+        // --- DYNAMIC ADMIN SUPPORT CONTACT & LOGO (EDITABLE FROM ADMIN PORTAL) ---
         window.adminSupportPhone = "+916290169557";
         window.adminSupportEmail = "";
+        window.adminCompanyLogoUrl = "https://homeiot333-bit.github.io/water-level-iot/ASKIoTOgo.png";
         window.selectedSupportType = "problem";
         window.selectedSupportStars = 5;
+
+        // --- DYNAMIC APP UPDATE CONFIG (EDITABLE FROM ADMIN PORTAL) ---
+        window.appUpdateConfig = {
+            version: "v2.0",
+            apkUrl: "",
+            notes: "Latest ASK IoT Smart Water & Solar App with live alerts.",
+            enabled: true
+        };
+
+        // --- DYNAMIC TANK STUDIO CONFIG (EDITABLE FROM ADMIN PORTAL) ---
+        window.tankStyleConfig = {
+            waveMode: "dual_sine",   // dual_sine | fast_hydro | gentle_ripple | flat_still
+            glowMode: "none",        // none | soft_cyan | neon_emerald | solar_gold
+            waterTheme: "ocean_cyan",// ocean_cyan | aqua_mint | royal_blue | emerald_bio
+            pctStyle: "clean"        // clean | outline | frosted_pill
+        };
 
         // --- GLOBAL OVERRIDE SENSOR STATES ---
         window.sensor1Enabled = true;
@@ -2253,7 +2270,105 @@
             }
         }
 
-        // --- MOUNT FLOATING SIGNAL PILL ABOVE WATER TANK (TOP-RIGHT) & UPGRADE 3D WAVE TANK ---
+        // --- APPLY DYNAMIC TANK STUDIO MODIFICATIONS LIVE ---
+        function applyDynamicTankStyle(cfg) {
+            if (cfg && typeof cfg === 'object') {
+                window.tankStyleConfig = Object.assign({}, window.tankStyleConfig, cfg);
+            }
+            const s = window.tankStyleConfig;
+            const tankEl = document.getElementById('waterTankModel');
+            const fillEl = document.getElementById('waterLevelFill');
+            const pctEl = document.getElementById('waterLevelText');
+            if (!tankEl || !fillEl) return;
+
+            const waveWrap = fillEl.querySelector('.seamless-wave-crest-wrap');
+            const frontWave = fillEl.querySelector('.wave-layer-front');
+            const backWave = fillEl.querySelector('.wave-layer-back');
+            const frontPath = frontWave ? frontWave.querySelector('path') : null;
+            const backPath = backWave ? backWave.querySelector('path') : null;
+
+            // 1. Apply Tank Border & Glow Mode (Default: 'none' -> Clean border, zero glow box)
+            if (s.glowMode === 'soft_cyan') {
+                tankEl.style.setProperty('border', '2px solid rgba(0, 210, 255, 0.55)', 'important');
+                tankEl.style.setProperty('box-shadow', '0 0 22px rgba(0, 210, 255, 0.28), inset 0 0 18px rgba(0, 210, 255, 0.14)', 'important');
+            } else if (s.glowMode === 'neon_emerald') {
+                tankEl.style.setProperty('border', '2px solid rgba(46, 213, 115, 0.65)', 'important');
+                tankEl.style.setProperty('box-shadow', '0 0 26px rgba(46, 213, 115, 0.35), inset 0 0 20px rgba(46, 213, 115, 0.16)', 'important');
+            } else if (s.glowMode === 'solar_gold') {
+                tankEl.style.setProperty('border', '2px solid rgba(254, 202, 87, 0.65)', 'important');
+                tankEl.style.setProperty('box-shadow', '0 0 26px rgba(254, 202, 87, 0.32), inset 0 0 20px rgba(254, 202, 87, 0.14)', 'important');
+            } else {
+                // Default 'none': Clean border, zero outer glow box
+                tankEl.style.setProperty('border', '1.5px solid rgba(255, 255, 255, 0.22)', 'important');
+                tankEl.style.setProperty('box-shadow', 'none', 'important');
+            }
+
+            // 2. Apply Water Liquid Color Theme
+            let grad = 'linear-gradient(180deg, rgba(0, 225, 255, 0.88) 0%, rgba(0, 140, 255, 0.92) 55%, rgba(0, 82, 212, 0.98) 100%)';
+            let wFrontCol = 'rgba(0, 225, 255, 0.88)';
+            let wBackCol = 'rgba(0, 180, 255, 0.45)';
+
+            if (s.waterTheme === 'aqua_mint') {
+                grad = 'linear-gradient(180deg, rgba(85, 239, 196, 0.88) 0%, rgba(0, 184, 148, 0.92) 55%, rgba(0, 98, 102, 0.98) 100%)';
+                wFrontCol = 'rgba(85, 239, 196, 0.88)';
+                wBackCol = 'rgba(0, 184, 148, 0.45)';
+            } else if (s.waterTheme === 'royal_blue') {
+                grad = 'linear-gradient(180deg, rgba(116, 185, 255, 0.88) 0%, rgba(9, 132, 227, 0.94) 55%, rgba(6, 82, 221, 0.98) 100%)';
+                wFrontCol = 'rgba(116, 185, 255, 0.88)';
+                wBackCol = 'rgba(9, 132, 227, 0.45)';
+            } else if (s.waterTheme === 'emerald_bio') {
+                grad = 'linear-gradient(180deg, rgba(123, 237, 159, 0.88) 0%, rgba(46, 213, 115, 0.92) 55%, rgba(16, 172, 132, 0.98) 100%)';
+                wFrontCol = 'rgba(123, 237, 159, 0.88)';
+                wBackCol = 'rgba(46, 213, 115, 0.45)';
+            }
+            fillEl.style.setProperty('background', grad, 'important');
+            if (frontPath) frontPath.setAttribute('fill', wFrontCol);
+            if (backPath) backPath.setAttribute('fill', wBackCol);
+
+            // 3. Apply Wave Animation Mode
+            if (waveWrap && frontWave && backWave) {
+                if (s.waveMode === 'flat_still') {
+                    waveWrap.style.display = 'none';
+                } else {
+                    waveWrap.style.display = 'block';
+                    if (s.waveMode === 'fast_hydro') {
+                        frontWave.style.animationDuration = '1.6s';
+                        backWave.style.animationDuration = '2.4s';
+                    } else if (s.waveMode === 'gentle_ripple') {
+                        frontWave.style.animationDuration = '6.0s';
+                        backWave.style.animationDuration = '8.5s';
+                    } else {
+                        frontWave.style.animationDuration = '3.4s';
+                        backWave.style.animationDuration = '5.2s';
+                    }
+                }
+            }
+
+            // 4. Apply Percentage Text Style (Default: 'clean' -> No black shadow or dark box)
+            if (pctEl) {
+                if (s.pctStyle === 'frosted_pill') {
+                    pctEl.style.setProperty('background', 'rgba(10, 20, 36, 0.45)', 'important');
+                    pctEl.style.setProperty('padding', '4px 12px', 'important');
+                    pctEl.style.setProperty('border-radius', '999px', 'important');
+                    pctEl.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.2)', 'important');
+                    pctEl.style.setProperty('text-shadow', 'none', 'important');
+                } else if (s.pctStyle === 'outline') {
+                    pctEl.style.setProperty('background', 'transparent', 'important');
+                    pctEl.style.setProperty('border', 'none', 'important');
+                    pctEl.style.setProperty('text-shadow', '0 0 8px rgba(0, 210, 255, 0.7)', 'important');
+                } else {
+                    // Default 'clean': Zero black shadow, zero dark box
+                    pctEl.style.setProperty('background', 'transparent', 'important');
+                    pctEl.style.setProperty('padding', '0', 'important');
+                    pctEl.style.setProperty('border', 'none', 'important');
+                    pctEl.style.setProperty('box-shadow', 'none', 'important');
+                    pctEl.style.setProperty('backdrop-filter', 'none', 'important');
+                    pctEl.style.setProperty('text-shadow', 'none', 'important');
+                }
+            }
+        }
+
+        // --- MOUNT FLOATING SIGNAL PILL ABOVE WATER TANK (TOP-RIGHT) & CLEAN WAVE TANK ---
         function ensureTankSignalBadgeMounted() {
             const tankEl = document.getElementById('waterTankModel');
             if (!tankEl) return;
@@ -2308,18 +2423,21 @@
                 scaleMarks.innerHTML = `<span>100%</span><span>75%</span><span>50%</span><span>25%</span>`;
                 tankEl.appendChild(scaleMarks);
             }
+
+            applyDynamicTankStyle();
         }
 
-        // --- ORGANIZE PORTAL LAYOUT: PUMP -> SOLAR -> USAGE+WIFI ROW -> SUPPORT -> LOGINS ---
+        // --- ORGANIZE PORTAL LAYOUT: PUMP -> SOLAR -> USAGE+WIFI ROW -> SUPPORT -> APP UPDATE -> LOGINS ---
         function organizeCustomerPortalLayout() {
             ensureTankSignalBadgeMounted();
 
             const mainView = document.getElementById('mainDashboardView');
             if (!mainView) return;
 
-            // 1. Build Single-Row "Daily Usage Tracker" (38%) + "Active Wi-Fi" (62%)
+            const advSection = document.getElementById('advancedSection');
+
+            // 1. Build Single-Row "Daily Usage Tracker" (36%) + Rich Non-Empty "Active Wi-Fi" (64%)
             const usageValEl = document.getElementById('dailyUsageText');
-            const wifiValEl = document.getElementById('txtActiveWifiCustomer');
 
             if (usageValEl && !document.getElementById('usageWifiCombinedRow')) {
                 const usageCard = usageValEl.closest('.card') || usageValEl.parentElement;
@@ -2332,26 +2450,22 @@
                     usageCard.classList.add('compact-usage-mini-card');
                     combinedRow.appendChild(usageCard);
 
+                    const initialWifiName = (window.activeHotspotName && window.activeHotspotName !== "--")
+                        ? window.activeHotspotName
+                        : ((window.knownNetworkSlots && window.knownNetworkSlots[0]) ? window.knownNetworkSlots[0] : "Active Router");
+
                     const wifiMiniCard = document.createElement('div');
                     wifiMiniCard.id = 'customerActiveWifiMiniCard';
                     wifiMiniCard.className = 'card compact-wifi-mini-card';
-
-                    if (wifiValEl) {
-                        const oldWifiContainer = wifiValEl.closest('.card');
-                        if (oldWifiContainer && oldWifiContainer !== usageCard && oldWifiContainer.parentElement === mainView) {
-                            oldWifiContainer.classList.add('compact-wifi-mini-card');
-                            combinedRow.appendChild(oldWifiContainer);
-                        } else {
-                            wifiMiniCard.innerHTML = `
-                                <div class="mini-row-card-label">📡 ACTIVE WI-FI</div>
-                                <div class="mini-row-wifi-val-wrap">
-                                    <span class="wifi-live-dot"></span>
-                                    <span id="txtActiveWifiCustomerTopMirror" class="mini-row-wifi-val">${window.activeHotspotName || '--'}</span>
-                                </div>
-                            `;
-                            combinedRow.appendChild(wifiMiniCard);
-                        }
-                    }
+                    wifiMiniCard.innerHTML = `
+                        <div class="mini-row-card-label">📡 ACTIVE WI-FI</div>
+                        <div class="mini-row-wifi-val-wrap">
+                            <span class="wifi-live-dot"></span>
+                            <span id="txtActiveWifiCustomerTopMirror" class="mini-row-wifi-val">${initialWifiName}</span>
+                        </div>
+                        <div id="txtActiveWifiSubStatus" class="mini-row-wifi-sub">🟢 Cloud Hotspot Connected</div>
+                    `;
+                    combinedRow.appendChild(wifiMiniCard);
                 }
             }
 
@@ -2359,6 +2473,7 @@
             const solarCard = document.getElementById('solarBatteryCard');
             const combinedRow = document.getElementById('usageWifiCombinedRow');
             const supCard = document.getElementById('customerSupportCard');
+            const appUpdCard = document.getElementById('customerAppUpdateCard');
 
             // 2. Apply 7% Smaller Premium Pump Card Styling & Place NEXUS SOLAR NODE directly below Pump
             if (pumpCard && pumpCard.parentElement === mainView) {
@@ -2371,7 +2486,7 @@
                 }
             }
 
-            // 3. Place Daily Usage + Active Wi-Fi Row directly ABOVE Experience & Support Card (under Solar Card)
+            // 3. Place Daily Usage + Active Wi-Fi Row directly ABOVE Experience & Support Card
             if (combinedRow && supCard && supCard.parentElement === mainView) {
                 if (solarCard && solarCard.parentElement === mainView) {
                     mainView.insertBefore(combinedRow, solarCard.nextElementSibling);
@@ -2381,18 +2496,21 @@
                 }
             }
 
-            // 4. Move "Active Device Logins" block to the very end (bottom) of the portal
+            // 4. Place Dynamic App Update Card right below Support Card
+            if (appUpdCard && supCard && supCard.parentElement === mainView) {
+                mainView.insertBefore(appUpdCard, supCard.nextElementSibling);
+            }
+
+            // 5. Move "Active Device Logins" block to the very end (bottom) of the portal
             const custLoginsEl = document.getElementById('customerMobileLoginsList');
             if (custLoginsEl) {
                 const loginsCard = custLoginsEl.closest('.card') || custLoginsEl.parentElement;
-                if (loginsCard && loginsCard.parentElement === advSection) {
-                    mainView.appendChild(loginsCard);
-                } else if (loginsCard && loginsCard.parentElement === mainView) {
+                if (loginsCard && (loginsCard.parentElement === advSection || loginsCard.parentElement === mainView)) {
                     mainView.appendChild(loginsCard);
                 }
             }
 
-            // 5. Upgrade Engineer Data (#advancedSection) into a Top-Down Animated Slide Drawer
+            // 6. Upgrade Engineer Data (#advancedSection) into a Top-Down Animated Slide Drawer
             setupTopDownEngineerDrawer();
         }
 
@@ -2414,7 +2532,6 @@
                 adv.classList.add('eng-top-down-drawer');
                 adv.style.display = 'flex';
 
-                // Move Active Device Logins out of the hidden drawer if it was inside #advancedSection so it stays at the bottom of the main portal
                 const mainView = document.getElementById('mainDashboardView');
                 const custLoginsEl = document.getElementById('customerMobileLoginsList');
                 if (mainView && custLoginsEl) {
@@ -2439,7 +2556,6 @@
                 adv.insertBefore(headerBar, adv.firstChild);
             }
 
-            // Also add an "🛠️ Engineer Data" quick trigger inside the 3-dots dropdown menu if not present
             const menuDropdown = document.getElementById('customerTopMenuDropdown');
             if (menuDropdown && !document.getElementById('menuEngDataItem')) {
                 menuDropdown.classList.add('premium-top-menu-pop');
@@ -2475,13 +2591,13 @@
             if (backdrop) backdrop.classList.remove('active');
         }
 
-        // --- NEXUS SOLAR NODE UI, 3D WAVE TANK, SIGNAL BARS & CUSTOMER SUPPORT CARD INITIALIZER ---
+        // --- NEXUS SOLAR NODE UI, CLEAN WAVE TANK, APP UPDATE & SUPPORT INITIALIZER ---
         function initPremiumGlassBmsUI() {
             if (!document.getElementById('premiumGlassBmsStyles')) {
                 const style = document.createElement('style');
                 style.id = 'premiumGlassBmsStyles';
                 style.innerHTML = `
-                    /* Smartphone Signal Bars (Bar Size Preserved, Text Small & Premium) */
+                    /* Smartphone Signal Bars */
                     .phone-sig-bars {
                         display: inline-flex;
                         align-items: flex-end;
@@ -2538,7 +2654,7 @@
                         100% { opacity: 1; }
                     }
 
-                    /* Centered 3D Glass Water Tank & Seamless Unclipped Dual Wave */
+                    /* Centered Water Tank: Clean Border (No Glow Box) & Clean Percentage (No Black Shadow) */
                     .premium-tank-parent-card {
                         display: flex !important;
                         flex-direction: column !important;
@@ -2551,10 +2667,10 @@
                         align-self: center !important;
                         position: relative !important;
                         overflow: hidden !important;
-                        border-radius: 22px 22px 28px 28px !important;
-                        border: 2.5px solid rgba(0, 210, 255, 0.55) !important;
-                        background: linear-gradient(90deg, rgba(255, 255, 255, 0.09) 0%, rgba(7, 16, 32, 0.88) 24%, rgba(5, 12, 24, 0.94) 76%, rgba(0, 210, 255, 0.14) 100%) !important;
-                        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.78), inset 0 0 28px rgba(0, 180, 255, 0.22), inset 10px 0 18px rgba(255, 255, 255, 0.12) !important;
+                        border-radius: 20px 20px 26px 26px !important;
+                        border: 1.5px solid rgba(255, 255, 255, 0.22) !important;
+                        background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(8, 16, 30, 0.78) 24%, rgba(6, 12, 24, 0.85) 76%, rgba(255, 255, 255, 0.06) 100%) !important;
+                        box-shadow: none !important;
                     }
                     #waterLevelFill {
                         position: absolute !important;
@@ -2563,12 +2679,11 @@
                         right: 0 !important;
                         width: 100% !important;
                         background: linear-gradient(180deg, rgba(0, 225, 255, 0.88) 0%, rgba(0, 140, 255, 0.92) 55%, rgba(0, 82, 212, 0.98) 100%) !important;
-                        box-shadow: 0 -4px 18px rgba(0, 210, 255, 0.45), inset 0 4px 12px rgba(255, 255, 255, 0.28) !important;
+                        box-shadow: none !important;
                         transition: height 0.8s cubic-bezier(0.22, 1, 0.36, 1) !important;
                         border-radius: 0 !important;
                         overflow: visible !important;
                     }
-                    /* Disable any old clipped pseudo-waves so only the seamless SVG wave renders */
                     #waterLevelFill::before,
                     #waterLevelFill::after {
                         display: none !important;
@@ -2608,11 +2723,11 @@
                     }
                     .tank-3d-glass-shine {
                         position: absolute;
-                        top: 8px;
-                        bottom: 12px;
+                        top: 10px;
+                        bottom: 14px;
                         left: 10px;
-                        width: 10px;
-                        background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.06) 65%, transparent 100%);
+                        width: 7px;
+                        background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 65%, transparent 100%);
                         border-radius: 999px;
                         pointer-events: none;
                         z-index: 4;
@@ -2628,22 +2743,26 @@
                         align-items: flex-end;
                         font-size: 8.5px;
                         font-weight: 700;
-                        color: rgba(255, 255, 255, 0.38);
+                        color: rgba(255, 255, 255, 0.35);
                         pointer-events: none;
                         z-index: 4;
                     }
+                    /* Clean Water Percentage in Middle of Tank (Zero Black Shadow or Box) */
                     #waterLevelText {
                         position: absolute !important;
                         top: 50% !important;
                         left: 50% !important;
                         transform: translate(-50%, -50%) !important;
                         z-index: 6 !important;
-                        background: rgba(6, 14, 26, 0.58) !important;
-                        padding: 4px 12px !important;
-                        border-radius: 999px !important;
-                        border: 1px solid rgba(255, 255, 255, 0.16) !important;
-                        backdrop-filter: blur(6px) !important;
-                        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85) !important;
+                        background: transparent !important;
+                        padding: 0 !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        backdrop-filter: none !important;
+                        -webkit-backdrop-filter: none !important;
+                        text-shadow: none !important;
+                        color: #ffffff !important;
+                        font-weight: 900 !important;
                     }
 
                     /* Compact Mobile Notification Banner */
@@ -2667,7 +2786,7 @@
                         z-index: 9999 !important;
                     }
 
-                    /* Single-Row Daily Usage (37%) + Active Wi-Fi (63%) Placed Above Support Card */
+                    /* Single-Row Daily Usage (36%) + Filled Active Wi-Fi (64%) */
                     .usage-wifi-one-row {
                         display: flex !important;
                         align-items: stretch !important;
@@ -2681,6 +2800,7 @@
                     .compact-usage-mini-card {
                         flex: 0 0 36% !important;
                         max-width: 36% !important;
+                        min-height: 78px !important;
                         margin: 0 !important;
                         padding: 12px 10px !important;
                         background: linear-gradient(145deg, rgba(13, 24, 42, 0.94), rgba(8, 15, 28, 0.98)) !important;
@@ -2704,19 +2824,20 @@
                         margin: 0 0 5px 0 !important;
                     }
                     .compact-usage-mini-card #dailyUsageText {
-                        font-size: 19px !important;
+                        font-size: 20px !important;
                         font-weight: 900 !important;
                         margin: 0 !important;
                     }
                     .compact-wifi-mini-card {
                         flex: 1 1 61% !important;
                         max-width: 64% !important;
+                        min-height: 78px !important;
                         margin: 0 !important;
-                        padding: 12px 15px !important;
-                        background: linear-gradient(145deg, rgba(13, 24, 42, 0.94), rgba(8, 15, 28, 0.98)) !important;
-                        border: 1px solid rgba(46, 213, 115, 0.34) !important;
+                        padding: 11px 15px !important;
+                        background: linear-gradient(145deg, rgba(14, 28, 48, 0.96), rgba(8, 16, 30, 0.99)) !important;
+                        border: 1px solid rgba(46, 213, 115, 0.38) !important;
                         border-radius: 16px !important;
-                        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.12) !important;
+                        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.14) !important;
                         display: flex !important;
                         flex-direction: column !important;
                         justify-content: center !important;
@@ -2725,40 +2846,47 @@
                         box-sizing: border-box !important;
                         overflow: hidden !important;
                     }
-                    /* Enlarged "ACTIVE WI-FI" Label & Enlarged Hotspot Name */
                     .mini-row-card-label {
-                        font-size: 12.5px !important;
+                        font-size: 12px !important;
                         font-weight: 900 !important;
                         color: #00d2ff !important;
                         letter-spacing: 0.9px !important;
                         text-transform: uppercase !important;
-                        margin-bottom: 6px !important;
-                        text-shadow: 0 0 10px rgba(0, 210, 255, 0.25);
+                        margin-bottom: 4px !important;
+                        display: block !important;
                     }
                     .mini-row-wifi-val-wrap {
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        width: 100%;
-                        overflow: hidden;
+                        display: flex !important;
+                        align-items: center !important;
+                        gap: 8px !important;
+                        width: 100% !important;
+                        overflow: hidden !important;
                     }
                     .wifi-live-dot {
-                        width: 9px;
-                        height: 9px;
-                        border-radius: 50%;
-                        background: #2ed573;
-                        box-shadow: 0 0 10px #2ed573;
-                        flex-shrink: 0;
+                        width: 9px !important;
+                        height: 9px !important;
+                        border-radius: 50% !important;
+                        background: #2ed573 !important;
+                        box-shadow: 0 0 10px #2ed573 !important;
+                        flex-shrink: 0 !important;
+                        display: inline-block !important;
                     }
                     .mini-row-wifi-val {
                         font-size: 17.5px !important;
                         font-weight: 900 !important;
                         color: #ffffff !important;
-                        letter-spacing: 0.3px;
-                        white-space: nowrap;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+                        letter-spacing: 0.3px !important;
+                        white-space: nowrap !important;
+                        overflow: hidden !important;
+                        text-overflow: ellipsis !important;
+                        display: inline-block !important;
+                    }
+                    .mini-row-wifi-sub {
+                        font-size: 10px !important;
+                        color: #7bed9f !important;
+                        font-weight: 700 !important;
+                        margin-top: 3px !important;
+                        display: block !important;
                     }
 
                     /* Pump Control Square Block Decreased by 7% */
@@ -3426,7 +3554,7 @@
                         box-shadow: 0 4px 15px rgba(46, 213, 115, 0.35);
                     }
 
-                    /* Interactive Admin Sound Studio Modal (Play Preview Before Setup) */
+                    /* Interactive Admin Sound Studio & Tank Studio Modals */
                     .sound-studio-overlay {
                         position: fixed;
                         inset: 0;
@@ -3596,16 +3724,113 @@
             }
 
             initCustomerSupportCard();
+            initCustomerAppUpdateCard();
             organizeCustomerPortalLayout();
         }
 
-        // --- METHOD C: CUSTOMER EXPERIENCE & SUPPORT CARD + DYNAMIC ADMIN CONTACT ---
+        // --- DYNAMIC APP UPDATE SECTION FOR CUSTOMER PORTAL (DOWNLOAD LINK + QR SCAN) ---
+        function initCustomerAppUpdateCard() {
+            const mainView = document.getElementById('mainDashboardView');
+            if (mainView && !document.getElementById('customerAppUpdateCard')) {
+                const updCard = document.createElement('div');
+                updCard.id = 'customerAppUpdateCard';
+                updCard.className = 'cust-support-card';
+                updCard.style.marginTop = '12px';
+                updCard.style.borderColor = 'rgba(254, 202, 87, 0.35)';
+                updCard.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:38px; height:38px; border-radius:10px; background:rgba(254,202,87,0.14); border:1px solid rgba(254,202,87,0.4); display:flex; align-items:center; justify-content:center; font-size:20px;">📲</div>
+                            <div>
+                                <div style="font-size:14.5px; font-weight:900; color:#fff;">App Update Center <span id="custAppVerBadge" style="background:#feca57; color:#000; font-size:10px; font-weight:900; padding:2px 7px; border-radius:999px; margin-left:4px;">v2.0</span></div>
+                                <div id="custAppUpdateNotes" style="font-size:11px; color:#94a3b8; margin-top:2px;">Download latest mobile app or scan QR</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button type="button" class="support-wa-btn" style="flex:1; background:linear-gradient(90deg, #feca57, #ff9f43); color:#000; padding:10px;" onclick="downloadLatestAppApk()">
+                            <span>⬇️ Download App</span>
+                        </button>
+                        <button type="button" class="sound-play-preview-btn" style="padding:10px 14px;" onclick="toggleCustomerAppQrBox()">
+                            <span>📷 QR Scan</span>
+                        </button>
+                    </div>
+
+                    <div id="custAppQrBox" style="display:none; flex-direction:column; align-items:center; justify-content:center; margin-top:12px; padding:12px; background:rgba(0,0,0,0.45); border:1px dashed rgba(254,202,87,0.4); border-radius:12px; text-align:center;">
+                        <div style="font-size:11px; color:#feca57; font-weight:800; margin-bottom:8px;">Scan QR with Phone Camera to Download Latest App:</div>
+                        <img id="custAppQrImg" src="" alt="App Update QR" style="width:145px; height:145px; border-radius:10px; background:#fff; padding:6px;">
+                        <div id="custAppRawLinkText" style="font-size:10px; color:#94a3b8; margin-top:6px; word-break:break-all;"></div>
+                    </div>
+                `;
+                mainView.appendChild(updCard);
+            }
+            refreshCustomerAppUpdateUI();
+        }
+
+        function refreshCustomerAppUpdateUI() {
+            const card = document.getElementById('customerAppUpdateCard');
+            if (!card) return;
+
+            const cfg = window.appUpdateConfig || {};
+            const isAdmin = isUserAdmin();
+
+            if (isAdmin || cfg.enabled === false) {
+                card.style.display = 'none';
+                return;
+            }
+            card.style.display = 'block';
+
+            const verBadge = document.getElementById('custAppVerBadge');
+            const notesEl = document.getElementById('custAppUpdateNotes');
+            const qrImg = document.getElementById('custAppQrImg');
+            const rawTxt = document.getElementById('custAppRawLinkText');
+
+            if (verBadge) verBadge.innerText = cfg.version || "v2.0";
+            if (notesEl) notesEl.innerText = cfg.notes || "Get the latest ASK IoT Solutions Android App.";
+
+            const targetUrl = (cfg.apkUrl && cfg.apkUrl.trim() !== "")
+                ? cfg.apkUrl.trim()
+                : window.location.href;
+
+            if (qrImg) {
+                qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=8&data=" + encodeURIComponent(targetUrl);
+            }
+            if (rawTxt) {
+                rawTxt.innerText = (cfg.apkUrl && cfg.apkUrl.trim() !== "") ? targetUrl : "Link will be active once Admin publishes an update.";
+            }
+        }
+
+        function toggleCustomerAppQrBox() {
+            const box = document.getElementById('custAppQrBox');
+            if (!box) return;
+            refreshCustomerAppUpdateUI();
+            box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'flex' : 'none';
+        }
+
+        async function downloadLatestAppApk() {
+            const cfg = window.appUpdateConfig || {};
+            if (!cfg.apkUrl || !cfg.apkUrl.trim().startsWith("http")) {
+                await customAlert("ℹ️ You are already using the latest version! When a new APK update link is published by Admin, you can download it right here.");
+                return;
+            }
+            const cleanUrl = cfg.apkUrl.trim();
+            // Append #wa.me so MIT App Inventor's existing ActivityStarter1 block opens the external browser to download the APK!
+            const bridgeUrl = cleanUrl.includes('#') ? cleanUrl : (cleanUrl + "#wa.me");
+            if (window.AppInventor && window.AppInventor.setWebViewString) {
+                window.AppInventor.setWebViewString(bridgeUrl);
+            } else {
+                window.open(cleanUrl, '_blank');
+            }
+        }
+
+        // --- METHOD C: CUSTOMER EXPERIENCE & SUPPORT CARD WITH COMPANY LOGO ---
         function initCustomerSupportCard() {
             const adminCenter = document.getElementById('adminCommandCenter');
             if (adminCenter && !document.getElementById('adminSupportCfgBtn')) {
                 const cfgBtn = document.createElement('button');
                 cfgBtn.id = 'adminSupportCfgBtn';
-                cfgBtn.innerHTML = '📞 Support WhatsApp / Gmail';
+                cfgBtn.innerHTML = '📞 Support / Logo';
                 cfgBtn.style.cssText = 'background: rgba(0, 210, 255, 0.15); border: 1px solid #00d2ff; color: #00d2ff; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 6px;';
                 cfgBtn.onclick = configureAdminSupportContact;
                 adminCenter.appendChild(cfgBtn);
@@ -3621,9 +3846,12 @@
                 supCard.className = 'cust-support-card';
                 supCard.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
-                        <div>
-                            <div style="font-size:15px; font-weight:800; color:#fff;">💬 Experience & Support</div>
-                            <div style="font-size:11px; color:#89a;">Share your review or report a device issue</div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <img id="custSupportLogoImg" src="${window.adminCompanyLogoUrl}" onerror="this.style.display='none'" alt="ASK IoT Logo" style="width:36px; height:36px; border-radius:8px; object-fit:contain; background:rgba(255,255,255,0.06); padding:2px; border:1px solid rgba(0,210,255,0.3);">
+                            <div>
+                                <div style="font-size:15px; font-weight:800; color:#fff;">💬 Experience & Support</div>
+                                <div style="font-size:11px; color:#89a;">ASK IoT Solutions • Direct WhatsApp Desk</div>
+                            </div>
                         </div>
                         <span style="font-size:20px;">🛠️</span>
                     </div>
@@ -3650,7 +3878,7 @@
 
                     <div style="display:flex; gap:8px;">
                         <button type="button" class="support-wa-btn" onclick="submitCustomerSupportTicket('whatsapp')">
-                            <span>📲 Send via WhatsApp</span>
+                            <span>📲 Send via WhatsApp (with Logo)</span>
                         </button>
                         <button type="button" id="custSupportEmailBtn" class="support-wa-btn" style="display:none; background:linear-gradient(90deg, #00b4ff, #00d2ff);" onclick="submitCustomerSupportTicket('email')">
                             <span>✉️ Email</span>
@@ -3756,9 +3984,11 @@
 
             const isProblem = (window.selectedSupportType === 'problem');
             const starStr = "⭐".repeat(window.selectedSupportStars || 5);
+            const logoUrl = (window.adminCompanyLogoUrl || "https://homeiot333-bit.github.io/water-level-iot/ASKIoTOgo.png").trim();
+
             const headerTitle = isProblem
-                ? "🛠️ *ASK IoT Solutions - DEVICE PROBLEM REPORT*"
-                : `🌟 *ASK IoT Solutions - CUSTOMER EXPERIENCE (${window.selectedSupportStars}/5 ${starStr})*`;
+                ? "🛠️ *DEVICE PROBLEM REPORT*"
+                : `🌟 *CUSTOMER EXPERIENCE (${window.selectedSupportStars}/5 ${starStr})*`;
 
             const custNameRaw = document.getElementById('assignedNameDisplay') ? document.getElementById('assignedNameDisplay').innerText.replace(/^- /, '').trim() : "Customer";
             const loginId = document.getElementById('loggedInEmail') ? document.getElementById('loggedInEmail').innerText.trim() : "Unknown";
@@ -3766,16 +3996,19 @@
             const sigQual = document.getElementById('txtSignalCustomer') ? document.getElementById('txtSignalCustomer').innerText.trim() : "N/A";
             const battLvl = document.getElementById('bmsBatteryPercentText') ? document.getElementById('bmsBatteryPercentText').innerText.trim() : "--%";
 
+            // Placing the Company Logo URL on Line 1 triggers WhatsApp's Rich Image Preview Banner at the top of the message bubble
             const reportLines = [
+                logoUrl,
+                "🟦⚡ *ASK IoT SOLUTIONS®* ⚡🟦",
                 headerTitle,
-                "--------------------------------",
+                "━━━━━━━━━━━━━━━━━━━━",
                 `👤 *Client:* ${custNameRaw || "Valued Customer"}`,
-                `📞 *Client Phone:* ${custPhone}`,
-                `📧 *Client Gmail:* ${custGmail}`,
-                `🔑 *Portal Login:* ${loginId}`,
-                `📟 *Device MAC ID:* ${currentDeviceId || "N/A"}`,
-                `📡 *Live Status:* Signal: ${sigQual} | Water: ${waterLvl} | Batt: ${battLvl} | WiFi: ${window.activeHotspotName || "--"}`,
-                "--------------------------------",
+                `📞 *Phone:* ${custPhone}`,
+                `📧 *Gmail:* ${custGmail}`,
+                `🔑 *Portal ID:* ${loginId}`,
+                `📟 *Device MAC:* ${currentDeviceId || "N/A"}`,
+                `📡 *Status:* Signal: ${sigQual} | Water: ${waterLvl} | Batt: ${battLvl} | WiFi: ${window.activeHotspotName || "--"}`,
+                "━━━━━━━━━━━━━━━━━━━━",
                 `💬 *Customer Message:*`,
                 custMsg
             ];
@@ -3808,7 +4041,6 @@
 
             const waUrl = `https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(fullTicketText)}`;
 
-            // Bridge to MIT App Inventor WebViewString so the app opens WhatsApp natively
             if (window.AppInventor && window.AppInventor.setWebViewString) {
                 window.AppInventor.setWebViewString(waUrl);
             } else {
@@ -3817,7 +4049,7 @@
         }
 
         async function configureAdminSupportContact() {
-            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to update Support WhatsApp / Gmail:", true);
+            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to update Support WhatsApp / Gmail / Logo:", true);
             if (pin !== window.adminPin) {
                 await customAlert("❌ Access Denied: Incorrect Security PIN.");
                 return;
@@ -3839,23 +4071,39 @@
                 window.adminSupportEmail = newEmail.trim();
             }
 
+            const newLogo = await customPrompt(
+                `🖼️ COMPANY LOGO IMAGE URL (Attached to WhatsApp Messages)\nCurrent: ${window.adminCompanyLogoUrl}\n\nPaste direct https:// link to your company logo image (or leave blank to keep current):`,
+                false
+            );
+            if (newLogo !== null && newLogo.trim().startsWith("http")) {
+                window.adminCompanyLogoUrl = newLogo.trim();
+            }
+
             try {
                 const workerDb = await getHardwareWorkerDb();
                 await workerDb.ref('/AdminConfig/SupportContact').set({
                     whatsapp: window.adminSupportPhone,
-                    email: window.adminSupportEmail
+                    email: window.adminSupportEmail,
+                    logoUrl: window.adminCompanyLogoUrl
                 });
             } catch (e) {}
 
             localStorage.setItem('waterIoT_adminPhone', window.adminSupportPhone);
             localStorage.setItem('waterIoT_adminEmail', window.adminSupportEmail);
+            localStorage.setItem('waterIoT_adminLogo', window.adminCompanyLogoUrl);
+
+            const logoImg = document.getElementById('custSupportLogoImg');
+            if (logoImg) {
+                logoImg.src = window.adminCompanyLogoUrl;
+                logoImg.style.display = 'block';
+            }
 
             const emailBtn = document.getElementById('custSupportEmailBtn');
             if (emailBtn) {
                 emailBtn.style.display = (window.adminSupportEmail && window.adminSupportEmail.includes('@')) ? 'flex' : 'none';
             }
 
-            await customAlert(`✅ Support Contact Updated!\n\n📲 WhatsApp: ${window.adminSupportPhone}\n📧 Gmail: ${window.adminSupportEmail || "WhatsApp Only"}`);
+            await customAlert(`✅ Support & Logo Updated!\n\n📲 WhatsApp: ${window.adminSupportPhone}\n📧 Gmail: ${window.adminSupportEmail || "WhatsApp Only"}\n🖼️ Logo attached to WhatsApp tickets.`);
         }
 
         // True Resting/Discharging Voltage-to-SOC (%) Curve
@@ -4243,6 +4491,8 @@
 
             const supCard = document.getElementById('customerSupportCard');
             if (supCard) supCard.style.display = isAdmin ? 'none' : 'block';
+
+            refreshCustomerAppUpdateUI();
 
             const adminTile1 = document.getElementById('bmsAdminTileVoltCurr');
             const adminTile2 = document.getElementById('bmsAdminTileSolar');
@@ -4679,11 +4929,16 @@
             }, 200); 
         }
 
-        // Global function to securely lock in Active WiFi (Updates both original and top-row mirror)
+        // Global function to securely lock in Active WiFi (Ensures Active Wi-Fi Card is NEVER empty)
         function updateActiveWifiDisplay(ssid) {
-            if (!ssid || typeof ssid !== 'string') return;
-            let cleanSsid = ssid.trim();
-            if (cleanSsid === "" || cleanSsid === "--" || cleanSsid.toLowerCase() === "null" || cleanSsid.toLowerCase() === "empty") return;
+            let cleanSsid = (ssid && typeof ssid === 'string') ? ssid.trim() : "";
+            if (cleanSsid === "" || cleanSsid === "--" || cleanSsid.toLowerCase() === "null" || cleanSsid.toLowerCase() === "empty") {
+                if (window.knownNetworkSlots && window.knownNetworkSlots.length > 0) {
+                    cleanSsid = window.knownNetworkSlots[0];
+                } else {
+                    return;
+                }
+            }
             
             if (window.activeHotspotName !== cleanSsid && currentDeviceId) {
                 window.activeHotspotName = cleanSsid;
@@ -4855,92 +5110,6 @@
         // === END OF SUBPART ALPHA (PASTE SUBPART BETA IMMEDIATELY BELOW THIS LINE) ===
     // === START OF SUBPART BETA (PASTE IMMEDIATELY BELOW SUBPART ALPHA) ===
 
-        // Safe layout organizer override (ensures zero reference errors and exact card sequence)
-        function organizeCustomerPortalLayout() {
-            ensureTankSignalBadgeMounted();
-
-            const mainView = document.getElementById('mainDashboardView');
-            if (!mainView) return;
-
-            const advSection = document.getElementById('advancedSection');
-
-            // 1. Build Single-Row "Daily Usage Tracker" (36%) + "Active Wi-Fi" (64%)
-            const usageValEl = document.getElementById('dailyUsageText');
-            const wifiValEl = document.getElementById('txtActiveWifiCustomer');
-
-            if (usageValEl && !document.getElementById('usageWifiCombinedRow')) {
-                const usageCard = usageValEl.closest('.card') || usageValEl.parentElement;
-                if (usageCard && usageCard.parentElement === mainView) {
-                    const combinedRow = document.createElement('div');
-                    combinedRow.id = 'usageWifiCombinedRow';
-                    combinedRow.className = 'usage-wifi-one-row';
-
-                    usageCard.parentElement.insertBefore(combinedRow, usageCard);
-                    usageCard.classList.add('compact-usage-mini-card');
-                    combinedRow.appendChild(usageCard);
-
-                    const wifiMiniCard = document.createElement('div');
-                    wifiMiniCard.id = 'customerActiveWifiMiniCard';
-                    wifiMiniCard.className = 'card compact-wifi-mini-card';
-
-                    if (wifiValEl) {
-                        const oldWifiContainer = wifiValEl.closest('.card');
-                        if (oldWifiContainer && oldWifiContainer !== usageCard && oldWifiContainer.parentElement === mainView) {
-                            oldWifiContainer.classList.add('compact-wifi-mini-card');
-                            combinedRow.appendChild(oldWifiContainer);
-                        } else {
-                            wifiMiniCard.innerHTML = `
-                                <div class="mini-row-card-label">📡 ACTIVE WI-FI</div>
-                                <div class="mini-row-wifi-val-wrap">
-                                    <span class="wifi-live-dot"></span>
-                                    <span id="txtActiveWifiCustomerTopMirror" class="mini-row-wifi-val">${window.activeHotspotName || '--'}</span>
-                                </div>
-                            `;
-                            combinedRow.appendChild(wifiMiniCard);
-                        }
-                    }
-                }
-            }
-
-            const pumpCard = document.getElementById('pumpControlCard');
-            const solarCard = document.getElementById('solarBatteryCard');
-            const combinedRow = document.getElementById('usageWifiCombinedRow');
-            const supCard = document.getElementById('customerSupportCard');
-
-            // 2. Apply 7% Smaller Premium Pump Card Styling & Place NEXUS SOLAR NODE directly below Pump
-            if (pumpCard && pumpCard.parentElement === mainView) {
-                pumpCard.classList.add('premium-pump-card-box');
-                const pumpBtn = document.getElementById('pumpToggleBtn');
-                if (pumpBtn) pumpBtn.classList.add('premium-3d-pump-btn');
-
-                if (solarCard && solarCard.parentElement === mainView && pumpCard.nextElementSibling !== solarCard) {
-                    mainView.insertBefore(solarCard, pumpCard.nextElementSibling);
-                }
-            }
-
-            // 3. Place Daily Usage + Active Wi-Fi Row directly ABOVE Experience & Support Card
-            if (combinedRow && supCard && supCard.parentElement === mainView) {
-                if (solarCard && solarCard.parentElement === mainView) {
-                    mainView.insertBefore(combinedRow, solarCard.nextElementSibling);
-                    mainView.insertBefore(supCard, combinedRow.nextElementSibling);
-                } else {
-                    mainView.insertBefore(combinedRow, supCard);
-                }
-            }
-
-            // 4. Move "Active Device Logins" block to the very end (bottom) of the portal
-            const custLoginsEl = document.getElementById('customerMobileLoginsList');
-            if (custLoginsEl) {
-                const loginsCard = custLoginsEl.closest('.card') || custLoginsEl.parentElement;
-                if (loginsCard && (loginsCard.parentElement === advSection || loginsCard.parentElement === mainView)) {
-                    mainView.appendChild(loginsCard);
-                }
-            }
-
-            // 5. Upgrade Engineer Data (#advancedSection) into a Top-Down Animated Slide Drawer
-            setupTopDownEngineerDrawer();
-        }
-
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
             authDomain: "home-water-level.firebaseapp.com",
@@ -5029,6 +5198,20 @@
             }
         } catch (e) {}
 
+        try {
+            const savedTankCfg = JSON.parse(localStorage.getItem('waterIoT_tankStyleCfg') || 'null');
+            if (savedTankCfg && typeof savedTankCfg === 'object') {
+                window.tankStyleConfig = Object.assign({}, window.tankStyleConfig, savedTankCfg);
+            }
+        } catch (e) {}
+
+        try {
+            const savedAppCfg = JSON.parse(localStorage.getItem('waterIoT_appUpdateCfg') || 'null');
+            if (savedAppCfg && typeof savedAppCfg === 'object') {
+                window.appUpdateConfig = Object.assign({}, window.appUpdateConfig, savedAppCfg);
+            }
+        } catch (e) {}
+
         window.activeAudioInstance = null;
         window.activeAudioCutoffTimer = null;
 
@@ -5042,6 +5225,9 @@
         }
         if (localStorage.getItem('waterIoT_adminEmail')) {
             window.adminSupportEmail = localStorage.getItem('waterIoT_adminEmail');
+        }
+        if (localStorage.getItem('waterIoT_adminLogo')) {
+            window.adminCompanyLogoUrl = localStorage.getItem('waterIoT_adminLogo');
         }
 
         // --- SYNTHESIZE CRISP WEB-AUDIO TONE (7 DISTINCT EVENT MELODIES) ---
@@ -5345,6 +5531,175 @@
             if (modal) modal.style.display = 'flex';
         }
 
+        // --- INTERACTIVE ADMIN TANK STUDIO MODAL (DYNAMIC WAVE, GLOW, COLOR & TEXT STYLE) ---
+        function ensureTankStudioModalCreated() {
+            if (document.getElementById('adminTankStudioModal')) return;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'adminTankStudioModal';
+            overlay.className = 'sound-studio-overlay';
+            overlay.innerHTML = `
+                <div class="sound-studio-box" style="border-color: rgba(0, 210, 255, 0.45);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:12px;">
+                        <div>
+                            <div style="font-size:16px; font-weight:900; color:#00d2ff;">🎨 Dynamic Tank Studio</div>
+                            <div style="font-size:11px; color:#94a3b8;">Customize tank wave, glow, liquid color & text</div>
+                        </div>
+                        <button type="button" class="eng-drawer-close-btn" onclick="closeAdminTankStudio()">✕</button>
+                    </div>
+
+                    <label style="font-size:11px; font-weight:800; color:#00d2ff; text-transform:uppercase; display:block; margin-bottom:5px;">1. Tank Wave Animation Mode:</label>
+                    <select id="tankStudioWaveSelect" class="support-input-field" onchange="previewTankStudioChanges()">
+                        <option value="dual_sine">🌊 Dual-Layer Sine Wave (Recommended)</option>
+                        <option value="fast_hydro">⚡ Fast Hydro Surge Wave</option>
+                        <option value="gentle_ripple">🍃 Gentle Slow Ripple</option>
+                        <option value="flat_still">💧 Flat Still Liquid (No Wave)</option>
+                    </select>
+
+                    <label style="font-size:11px; font-weight:800; color:#feca57; text-transform:uppercase; display:block; margin-bottom:5px;">2. Tank Border & Glow Style:</label>
+                    <select id="tankStudioGlowSelect" class="support-input-field" onchange="previewTankStudioChanges()">
+                        <option value="none">✨ Clean Glass Border (No Glow Box - Default)</option>
+                        <option value="soft_cyan">💎 Soft Cyan Halo Glow</option>
+                        <option value="neon_emerald">🟢 Neon Emerald Bio Glow</option>
+                        <option value="solar_gold">☀️ Solar Gold Ambient Glow</option>
+                    </select>
+
+                    <label style="font-size:11px; font-weight:800; color:#2ed573; text-transform:uppercase; display:block; margin-bottom:5px;">3. Water Liquid Color Theme:</label>
+                    <select id="tankStudioColorSelect" class="support-input-field" onchange="previewTankStudioChanges()">
+                        <option value="ocean_cyan">🌊 Crystal Ocean Cyan (Default)</option>
+                        <option value="aqua_mint">🧪 Aqua Mint Turquoise</option>
+                        <option value="royal_blue">🔷 Deep Royal Sapphire</option>
+                        <option value="emerald_bio">🌿 Emerald Hydro Green</option>
+                    </select>
+
+                    <label style="font-size:11px; font-weight:800; color:#cbd5e1; text-transform:uppercase; display:block; margin-bottom:5px;">4. Center Percentage Text Style:</label>
+                    <select id="tankStudioPctSelect" class="support-input-field" onchange="previewTankStudioChanges()">
+                        <option value="clean">🔤 Clean Pure White Text (No Black Shadow - Default)</option>
+                        <option value="outline">💠 Cyan Neon Text Glow</option>
+                        <option value="frosted_pill">💊 Frosted Glass Pill Badge</option>
+                    </select>
+
+                    <div style="display:flex; gap:8px; margin-top:14px;">
+                        <button type="button" class="sound-play-preview-btn" style="flex:1; padding:10px;" onclick="resetTankStudioDefaults()">🔄 Reset Clean Default</button>
+                        <button type="button" class="sound-apply-btn" style="flex:1; padding:10px;" onclick="saveTankStudioChanges()">✓ Save to All Portals</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function syncTankStudioSelectInputs() {
+            const s = window.tankStyleConfig || {};
+            if (document.getElementById('tankStudioWaveSelect')) document.getElementById('tankStudioWaveSelect').value = s.waveMode || "dual_sine";
+            if (document.getElementById('tankStudioGlowSelect')) document.getElementById('tankStudioGlowSelect').value = s.glowMode || "none";
+            if (document.getElementById('tankStudioColorSelect')) document.getElementById('tankStudioColorSelect').value = s.waterTheme || "ocean_cyan";
+            if (document.getElementById('tankStudioPctSelect')) document.getElementById('tankStudioPctSelect').value = s.pctStyle || "clean";
+        }
+
+        function previewTankStudioChanges() {
+            const draft = {
+                waveMode: document.getElementById('tankStudioWaveSelect') ? document.getElementById('tankStudioWaveSelect').value : "dual_sine",
+                glowMode: document.getElementById('tankStudioGlowSelect') ? document.getElementById('tankStudioGlowSelect').value : "none",
+                waterTheme: document.getElementById('tankStudioColorSelect') ? document.getElementById('tankStudioColorSelect').value : "ocean_cyan",
+                pctStyle: document.getElementById('tankStudioPctSelect') ? document.getElementById('tankStudioPctSelect').value : "clean"
+            };
+            applyDynamicTankStyle(draft);
+        }
+
+        async function saveTankStudioChanges() {
+            previewTankStudioChanges();
+            localStorage.setItem('waterIoT_tankStyleCfg', JSON.stringify(window.tankStyleConfig));
+            try {
+                const workerDb = await getHardwareWorkerDb();
+                await workerDb.ref('/AdminConfig/TankStyle').set(window.tankStyleConfig);
+            } catch (e) {}
+            closeAdminTankStudio();
+            showSmartEventBanner("✅ Tank Style Updated Across All Portals!", "#00d2ff");
+        }
+
+        async function resetTankStudioDefaults() {
+            const def = {
+                waveMode: "dual_sine",
+                glowMode: "none",
+                waterTheme: "ocean_cyan",
+                pctStyle: "clean"
+            };
+            applyDynamicTankStyle(def);
+            syncTankStudioSelectInputs();
+            localStorage.setItem('waterIoT_tankStyleCfg', JSON.stringify(def));
+            try {
+                const workerDb = await getHardwareWorkerDb();
+                await workerDb.ref('/AdminConfig/TankStyle').set(def);
+            } catch (e) {}
+            showSmartEventBanner("🔄 Tank Reset to Clean Default (No Glow / No Shadow)", "#2ed573");
+        }
+
+        function closeAdminTankStudio() {
+            const modal = document.getElementById('adminTankStudioModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function openAdminTankStudio() {
+            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to open the Dynamic Tank Studio:", true);
+            if (pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+            ensureTankStudioModalCreated();
+            syncTankStudioSelectInputs();
+            const modal = document.getElementById('adminTankStudioModal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        // --- ADMIN DYNAMIC APP UPDATE LINK & QR CONFIGURER ---
+        async function configureAdminAppUpdate() {
+            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to publish an App Update Link / QR:", true);
+            if (pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+
+            const curVer = (window.appUpdateConfig && window.appUpdateConfig.version) || "v2.0";
+            const newVer = await customPrompt(`📲 APP VERSION NUMBER\nCurrent: ${curVer}\n\nEnter new App Version (e.g., v2.1 or v3.0):`, false);
+            if (newVer !== null && newVer.trim() !== "") {
+                window.appUpdateConfig.version = newVer.trim();
+            }
+
+            const curUrl = (window.appUpdateConfig && window.appUpdateConfig.apkUrl) || "";
+            const newUrl = await customPrompt(
+                `🔗 APK DOWNLOAD LINK (Google Drive / GitHub / Direct URL)\nCurrent: ${curUrl || "Not Set"}\n\nPaste the https:// download link for your new MIT App Inventor APK:`,
+                false
+            );
+            if (newUrl !== null) {
+                window.appUpdateConfig.apkUrl = newUrl.trim();
+            }
+
+            const curNotes = (window.appUpdateConfig && window.appUpdateConfig.notes) || "Latest ASK IoT Smart Water & Solar App.";
+            const newNotes = await customPrompt(
+                `📝 UPDATE MESSAGE FOR CUSTOMERS\nCurrent: ${curNotes}\n\nEnter short note shown on Customer App Update Card:`,
+                false
+            );
+            if (newNotes !== null && newNotes.trim() !== "") {
+                window.appUpdateConfig.notes = newNotes.trim();
+            }
+
+            window.appUpdateConfig.enabled = true;
+            localStorage.setItem('waterIoT_appUpdateCfg', JSON.stringify(window.appUpdateConfig));
+
+            try {
+                const workerDb = await getHardwareWorkerDb();
+                await workerDb.ref('/AdminConfig/AppUpdate').set(window.appUpdateConfig);
+            } catch (e) {}
+
+            refreshCustomerAppUpdateUI();
+            await customAlert(
+                `✅ App Update Published to Customer Portals!\n\n` +
+                `📌 Version: ${window.appUpdateConfig.version}\n` +
+                `🔗 Link: ${window.appUpdateConfig.apkUrl || "QR Active"}\n` +
+                `📷 Customers can now download the new APK or scan the QR code directly from their portal.`
+            );
+        }
+
         // Helper: Get authenticated Secondary Worker DB (has ESP32 hardware privileges on /Devices/{macId})
         async function getHardwareWorkerDb() {
             try {
@@ -5357,20 +5712,39 @@
             }
         }
 
-        // Helper: Sync Dynamic Admin Support Contact & Per-Event Sounds from Cloud
+        // Helper: Sync Dynamic Support Contact, Per-Event Sounds, Tank Studio & App Update from Cloud
         async function syncDynamicSupportContact() {
             const adminCenter = document.getElementById('adminCommandCenter');
-            if (adminCenter && !document.getElementById('adminSoundCfgBtn')) {
-                const sndBtn = document.createElement('button');
-                sndBtn.id = 'adminSoundCfgBtn';
-                sndBtn.innerHTML = '🔔 Ringtone / Sound';
-                sndBtn.style.cssText = 'background: rgba(254, 202, 87, 0.15); border: 1px solid #feca57; color: #feca57; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 6px; margin-left: 6px;';
-                sndBtn.onclick = configureDynamicAppSound;
-                adminCenter.appendChild(sndBtn);
+            if (adminCenter) {
+                if (!document.getElementById('adminSoundCfgBtn')) {
+                    const sndBtn = document.createElement('button');
+                    sndBtn.id = 'adminSoundCfgBtn';
+                    sndBtn.innerHTML = '🔔 Ringtone / Sound';
+                    sndBtn.style.cssText = 'background: rgba(254, 202, 87, 0.15); border: 1px solid #feca57; color: #feca57; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 6px; margin-left: 6px;';
+                    sndBtn.onclick = configureDynamicAppSound;
+                    adminCenter.appendChild(sndBtn);
+                }
+                if (!document.getElementById('adminTankStudioBtn')) {
+                    const tnkBtn = document.createElement('button');
+                    tnkBtn.id = 'adminTankStudioBtn';
+                    tnkBtn.innerHTML = '🎨 Tank Studio';
+                    tnkBtn.style.cssText = 'background: rgba(46, 213, 115, 0.15); border: 1px solid #2ed573; color: #2ed573; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 6px; margin-left: 6px;';
+                    tnkBtn.onclick = openAdminTankStudio;
+                    adminCenter.appendChild(tnkBtn);
+                }
+                if (!document.getElementById('adminAppUpdateCfgBtn')) {
+                    const appBtn = document.createElement('button');
+                    appBtn.id = 'adminAppUpdateCfgBtn';
+                    appBtn.innerHTML = '📲 App Update Link';
+                    appBtn.style.cssText = 'background: rgba(255, 159, 67, 0.16); border: 1px solid #ff9f43; color: #ff9f43; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 6px; margin-left: 6px;';
+                    appBtn.onclick = configureAdminAppUpdate;
+                    adminCenter.appendChild(appBtn);
+                }
             }
 
             try {
                 const workerDb = await getHardwareWorkerDb();
+
                 workerDb.ref('/AdminConfig/SupportContact').on('value', (snap) => {
                     if (snap.exists() && snap.val()) {
                         const val = snap.val();
@@ -5381,6 +5755,15 @@
                         if (val.email !== undefined) {
                             window.adminSupportEmail = String(val.email || "").trim();
                             localStorage.setItem('waterIoT_adminEmail', window.adminSupportEmail);
+                        }
+                        if (val.logoUrl && String(val.logoUrl).startsWith("http")) {
+                            window.adminCompanyLogoUrl = String(val.logoUrl).trim();
+                            localStorage.setItem('waterIoT_adminLogo', window.adminCompanyLogoUrl);
+                            const logoImg = document.getElementById('custSupportLogoImg');
+                            if (logoImg) {
+                                logoImg.src = window.adminCompanyLogoUrl;
+                                logoImg.style.display = 'block';
+                            }
                         }
                         const emailBtn = document.getElementById('custSupportEmailBtn');
                         if (emailBtn) {
@@ -5393,6 +5776,21 @@
                     if (snap.exists() && snap.val() && typeof snap.val() === 'object') {
                         window.customEventSounds = snap.val();
                         localStorage.setItem('waterIoT_customEventSounds', JSON.stringify(window.customEventSounds));
+                    }
+                });
+
+                workerDb.ref('/AdminConfig/TankStyle').on('value', (snap) => {
+                    if (snap.exists() && snap.val() && typeof snap.val() === 'object') {
+                        applyDynamicTankStyle(snap.val());
+                        localStorage.setItem('waterIoT_tankStyleCfg', JSON.stringify(window.tankStyleConfig));
+                    }
+                });
+
+                workerDb.ref('/AdminConfig/AppUpdate').on('value', (snap) => {
+                    if (snap.exists() && snap.val() && typeof snap.val() === 'object') {
+                        window.appUpdateConfig = Object.assign({}, window.appUpdateConfig, snap.val());
+                        localStorage.setItem('waterIoT_appUpdateCfg', JSON.stringify(window.appUpdateConfig));
+                        refreshCustomerAppUpdateUI();
                     }
                 });
             } catch (e) {}
@@ -6763,16 +7161,13 @@
 
             database.ref('/Devices/' + currentDeviceId + '/deviceStatus/activeWiFi').once('value').then(snap => {
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
-                    window.activeHotspotName = snap.val();
-                    if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
-                    if(document.getElementById('txtActiveWifiCustomerTopMirror')) document.getElementById('txtActiveWifiCustomerTopMirror').innerText = window.activeHotspotName;
-                    if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
+                    updateActiveWifiDisplay(snap.val());
                 } else {
                     setTimeout(() => {
                         if (window.activeHotspotName === "--" && window.knownNetworkSlots && window.knownNetworkSlots.length > 0) {
                             updateActiveWifiDisplay(window.knownNetworkSlots[0]); 
                         }
-                    }, 3000);
+                    }, 2000);
                 }
             });
 
@@ -6792,8 +7187,8 @@
             
             updateConnectionUI(false); 
             
-            if (document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = '--';
-            if (document.getElementById('txtActiveWifiCustomerTopMirror')) document.getElementById('txtActiveWifiCustomerTopMirror').innerText = '--';
+            if (document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = 'Scanning...';
+            if (document.getElementById('txtActiveWifiCustomerTopMirror')) document.getElementById('txtActiveWifiCustomerTopMirror').innerText = 'Scanning...';
             if (document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = '--';
 
             if (document.getElementById('dailyUsageText')) {
@@ -6920,7 +7315,7 @@
                 if(document.getElementById('adminMobileLoginsList')) document.getElementById('adminMobileLoginsList').innerHTML = finalHtml;
             });
 
-            // --- REAL-TIME 4-SLOT WIFI LISTENER (SYNCS BOTH CUSTOMER & ADMIN PORTALS) ---
+            // --- REAL-TIME 4-SLOT WIFI LISTENER (POPULATES ACTIVE WI-FI CARD IMMEDIATELY IF NEEDED) ---
             database.ref(basePath + '/networkSlots').on('value', (snapshot) => {
                 const slots = snapshot.val();
                 window.knownNetworkSlots = []; 
@@ -6938,6 +7333,9 @@
                     if (sName !== "Empty") {
                         window.knownNetworkSlots.push(sName);
                     }
+                }
+                if ((window.activeHotspotName === "--" || window.activeHotspotName === "Scanning...") && window.knownNetworkSlots.length > 0) {
+                    updateActiveWifiDisplay(window.knownNetworkSlots[0]);
                 }
             });
 
@@ -7491,7 +7889,6 @@
 
                     const rawPumpActive = Boolean(state.pumpActive);
 
-                    // Record initial pump state silently on first Firebase sync; ring ONLY on real transitions
                     if (window.lastKnownPumpState === null) {
                         window.lastKnownPumpState = rawPumpActive;
                     } else if (rawPumpActive !== window.lastKnownPumpState) {
