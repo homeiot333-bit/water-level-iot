@@ -4162,7 +4162,7 @@
             return model;
         }
         // === END OF SUBPART ALPHA ===
-    // === START OF SUBPART BETA (PASTE IMMEDIATELY BELOW SUBPART ALPHA) ===
+// === START OF SUBPART BETA (PASTE IMMEDIATELY BELOW SUBPART ALPHA) ===
 
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
@@ -4195,17 +4195,53 @@
         let globalScannerTimer = null; 
         let linkedDevicesRef = null;
 
-        // --- DYNAMIC APP NOTIFICATION SOUND PRESETS & STATE ---
-        window.SOUND_PRESETS = {
-            "1": { name: "Classic Digital Ring", url: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" },
-            "2": { name: "Urgent Beep Alert", url: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg" },
-            "3": { name: "Mechanical Bell Ring", url: "https://actions.google.com/sounds/v1/alarms/mechanical_clock_ring.ogg" },
-            "4": { name: "Bugle Call Chime", url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" },
-            "5": { name: "Spaceship Alarm Siren", url: "https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg" }
+        // --- EVENT-MATCHED NOTIFICATION SOUNDS (SHORT 1-2 SECOND CHIMES ONLY) ---
+        window.EVENT_SOUND_MAP = {
+            "welcome": {
+                name: "Welcome Chime",
+                url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg",
+                maxDurationMs: 1500
+            },
+            "usage": {
+                name: "Water Usage Alert",
+                url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg",
+                maxDurationMs: 1500
+            },
+            "pump_on": {
+                name: "Pump ON Alert",
+                url: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
+                maxDurationMs: 1600
+            },
+            "pump_off": {
+                name: "Pump OFF Alert",
+                url: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
+                maxDurationMs: 1600
+            },
+            "tank_full": {
+                name: "100% Tank Full Success",
+                url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg",
+                maxDurationMs: 2500
+            }
         };
-        window.dynamicSoundUrl = localStorage.getItem('waterIoT_dynamicSoundUrl') || window.SOUND_PRESETS["1"].url;
-        window.dynamicSoundName = localStorage.getItem('waterIoT_dynamicSoundName') || window.SOUND_PRESETS["1"].name;
-        window.lastAlertSoundTime = 0;
+
+        // Optional Admin Custom Override Presets (All Short Sounds)
+        window.SOUND_PRESETS = {
+            "1": { name: "Smart Event-Matched Tones (Default)", url: "AUTO_EVENT" },
+            "2": { name: "Crisp Short Beep", url: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg" },
+            "3": { name: "Success Bugle Chime", url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" },
+            "4": { name: "Soft Wood Chime", url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" },
+            "5": { name: "Quick Bell Pop", url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg" }
+        };
+
+        window.dynamicSoundUrl = localStorage.getItem('waterIoT_dynamicSoundUrl') || "AUTO_EVENT";
+        window.dynamicSoundName = localStorage.getItem('waterIoT_dynamicSoundName') || "Smart Event-Matched Tones (Default)";
+        window.activeAudioInstance = null;
+        window.activeAudioCutoffTimer = null;
+
+        // State latches to prevent unwanted or repeated ringing
+        window.lastKnownPumpState = null;
+        window.hasNotifiedTankFull = false;
+        window.hasPlayedWelcomeSession = (sessionStorage.getItem('waterIoT_welcomed') === 'true');
 
         // Restore cached dynamic Admin Support Contact if available
         if (localStorage.getItem('waterIoT_adminPhone')) {
@@ -4215,29 +4251,96 @@
             window.adminSupportEmail = localStorage.getItem('waterIoT_adminEmail');
         }
 
-        // --- TRIGGER DYNAMIC NOTIFICATION SOUND IN APP (Player1) & WEB ---
-        function triggerAppNotificationSound(forcePlay = false) {
-            const now = Date.now();
-            if (!forcePlay && (now - window.lastAlertSoundTime < 4000)) return;
-            window.lastAlertSoundTime = now;
+        // --- SYNTHESIZE CRISP WEB-AUDIO TONE (EXACT DURATION, ZERO BUFFER DELAY) ---
+        function playCrispWebTone(eventType) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
 
-            const baseSoundUrl = window.dynamicSoundUrl || window.SOUND_PRESETS["1"].url;
-            const sep = baseSoundUrl.includes('?') ? '&' : '?';
-            // Append timestamp so MIT App Inventor WebViewStringChanged triggers every single time
-            const uniqueSoundUrl = `${baseSoundUrl}${sep}ring=${now}`;
+                const notes = {
+                    "welcome":   [{ f: 523.25, t: 0.0, d: 0.16 }, { f: 659.25, t: 0.16, d: 0.16 }, { f: 783.99, t: 0.32, d: 0.30 }],
+                    "usage":     [{ f: 587.33, t: 0.0, d: 0.14 }, { f: 880.00, t: 0.15, d: 0.25 }],
+                    "pump_on":   [{ f: 440.00, t: 0.0, d: 0.15 }, { f: 554.37, t: 0.16, d: 0.15 }, { f: 659.25, t: 0.32, d: 0.28 }],
+                    "pump_off":  [{ f: 659.25, t: 0.0, d: 0.18 }, { f: 440.00, t: 0.20, d: 0.30 }],
+                    "tank_full": [{ f: 523.25, t: 0.0, d: 0.14 }, { f: 659.25, t: 0.15, d: 0.14 }, { f: 783.99, t: 0.30, d: 0.14 }, { f: 1046.50, t: 0.46, d: 0.40 }]
+                }[eventType] || [{ f: 659.25, t: 0.0, d: 0.20 }];
 
-            // 1. Send https:// sound link to MIT App Inventor Player1 via WebViewStringChanged
+                notes.forEach(n => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(n.f, now + n.t);
+                    gain.gain.setValueAtTime(0.22, now + n.t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + n.t);
+                    osc.stop(now + n.t + n.d);
+                });
+
+                setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1500);
+            } catch (e) {}
+        }
+
+        // --- SHOW VISUAL NOTIFICATION BANNER WITH MATCHING SOUND ---
+        function showSmartEventBanner(message, borderColor) {
+            const popup = document.getElementById('usageSmsPopup');
+            if (!popup) return;
+            popup.style.borderColor = borderColor || "#00d2ff";
+            popup.innerHTML = message;
+            popup.classList.add('show');
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 5000);
+        }
+
+        // --- STRICT EVENT-BASED SOUND TRIGGER (WITH HARD TIME CUTOFF) ---
+        function triggerAppNotificationSound(eventType = "usage") {
+            const evConfig = window.EVENT_SOUND_MAP[eventType] || window.EVENT_SOUND_MAP["usage"];
+            const maxMs = evConfig.maxDurationMs || 2200;
+
+            const chosenUrl = (window.dynamicSoundUrl && window.dynamicSoundUrl !== "AUTO_EVENT" && window.dynamicSoundUrl.startsWith("http"))
+                ? window.dynamicSoundUrl
+                : evConfig.url;
+
+            const sep = chosenUrl.includes('?') ? '&' : '?';
+            const uniqueSoundUrl = `${chosenUrl}${sep}ev=${eventType}_${Date.now()}`;
+
+            // 1. Play crisp musical chime locally with exact sub-second duration
+            playCrispWebTone(eventType);
+
+            // 2. Send short sound URL to MIT App Inventor Player1 and clear WebViewString after maxMs
             try {
                 if (window.AppInventor && window.AppInventor.setWebViewString) {
                     window.AppInventor.setWebViewString(uniqueSoundUrl);
+                    setTimeout(() => {
+                        try { window.AppInventor.setWebViewString("IDLE"); } catch (e) {}
+                    }, maxMs);
                 }
             } catch (e) {}
 
-            // 2. Also play via HTML5 Audio for mobile/desktop browsers
+            // 3. Play HTML5 Audio with a strict time-limit cutoff so it NEVER rings longer than maxMs
             try {
-                const audio = new Audio(baseSoundUrl);
-                audio.volume = 1.0;
+                if (window.activeAudioInstance) {
+                    window.activeAudioInstance.pause();
+                    window.activeAudioInstance.currentTime = 0;
+                }
+                if (window.activeAudioCutoffTimer) {
+                    clearTimeout(window.activeAudioCutoffTimer);
+                }
+                const audio = new Audio(chosenUrl);
+                audio.volume = 0.9;
+                window.activeAudioInstance = audio;
                 audio.play().catch(() => {});
+
+                window.activeAudioCutoffTimer = setTimeout(() => {
+                    try {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    } catch (e) {}
+                }, maxMs);
             } catch (e) {}
         }
 
@@ -4251,12 +4354,12 @@
 
             const choice = await customPrompt(
                 `🔔 DYNAMIC APP RINGTONE SELECTOR\nCurrent: ${window.dynamicSoundName}\n\n` +
-                `Type 1 to 5 for a built-in ringtone, OR paste any direct https:// .mp3 / .ogg link:\n` +
-                `1 = Classic Digital Ring\n` +
-                `2 = Urgent Beep Alert\n` +
-                `3 = Mechanical Bell Ring\n` +
-                `4 = Bugle Call Chime\n` +
-                `5 = Spaceship Alarm Siren`,
+                `Type 1 to 5, OR paste a short https:// .mp3 / .ogg notification link:\n` +
+                `1 = Smart Event-Matched Tones (Recommended)\n` +
+                `2 = Crisp Short Beep\n` +
+                `3 = Success Bugle Chime\n` +
+                `4 = Soft Wood Chime\n` +
+                `5 = Quick Bell Pop`,
                 false
             );
 
@@ -4268,7 +4371,7 @@
                 window.dynamicSoundName = window.SOUND_PRESETS[cleanChoice].name;
             } else if (cleanChoice.startsWith("http://") || cleanChoice.startsWith("https://")) {
                 window.dynamicSoundUrl = cleanChoice;
-                window.dynamicSoundName = "Custom Sound URL";
+                window.dynamicSoundName = "Custom Short Sound URL";
             } else {
                 await customAlert("⚠️ Invalid selection. Enter 1–5 or a valid https:// audio link.");
                 return;
@@ -4286,9 +4389,9 @@
                 });
             } catch (e) {}
 
-            // Test-ring the newly selected sound immediately inside the app!
-            triggerAppNotificationSound(true);
-            await customAlert(`✅ App Notification Sound Updated & Tested!\n\n🔔 Active Tone: ${window.dynamicSoundName}`);
+            // Test-ring the 100% Full Success Chime once
+            triggerAppNotificationSound("tank_full");
+            await customAlert(`✅ App Notification Sound Updated!\n\n🔔 Active Mode: ${window.dynamicSoundName}`);
         }
 
         // Helper: Get authenticated Secondary Worker DB (has ESP32 hardware privileges on /Devices/{macId})
@@ -4305,7 +4408,6 @@
 
         // Helper: Sync Dynamic Admin Support Contact & Dynamic Notification Sound from Cloud
         async function syncDynamicSupportContact() {
-            // Inject "🔔 Ringtone / Sound" button into Admin Command Center next to Support button
             const adminCenter = document.getElementById('adminCommandCenter');
             if (adminCenter && !document.getElementById('adminSoundCfgBtn')) {
                 const sndBtn = document.createElement('button');
@@ -4339,9 +4441,15 @@
                 workerDb.ref('/AdminConfig/NotificationSound').on('value', (snap) => {
                     if (snap.exists() && snap.val()) {
                         const sVal = snap.val();
-                        if (sVal.url && String(sVal.url).startsWith('http')) {
-                            window.dynamicSoundUrl = String(sVal.url).trim();
-                            window.dynamicSoundName = String(sVal.name || "Custom Sound").trim();
+                        if (sVal.url) {
+                            // Auto-upgrade old 15-second alarm URL if it was saved in Firebase previously
+                            if (String(sVal.url).includes("digital_watch_alarm_long")) {
+                                window.dynamicSoundUrl = "AUTO_EVENT";
+                                window.dynamicSoundName = "Smart Event-Matched Tones (Default)";
+                            } else {
+                                window.dynamicSoundUrl = String(sVal.url).trim();
+                                window.dynamicSoundName = String(sVal.name || "Custom Sound").trim();
+                            }
                             localStorage.setItem('waterIoT_dynamicSoundUrl', window.dynamicSoundUrl);
                             localStorage.setItem('waterIoT_dynamicSoundName', window.dynamicSoundName);
                         }
@@ -5048,6 +5156,7 @@
         }
 
         function logoutUser() {
+            sessionStorage.removeItem('waterIoT_welcomed');
             firebase.auth().signOut().then(() => {
                 window.location.reload();
             });
@@ -5166,6 +5275,16 @@
                 const gmailField = document.getElementById('custSupportGmail');
                 if (gmailField && !gmailField.value && displayEmail && !displayEmail.toLowerCase().endsWith('@water.com')) {
                     gmailField.value = displayEmail;
+                }
+
+                // EVENT 1: FIRST-TIME APP OPEN WELCOME NOTIFICATION (ONCE PER SESSION)
+                if (!window.hasPlayedWelcomeSession) {
+                    window.hasPlayedWelcomeSession = true;
+                    sessionStorage.setItem('waterIoT_welcomed', 'true');
+                    setTimeout(() => {
+                        showSmartEventBanner("👋 Welcome to ASK IoT Solutions Smart Water & Solar Portal!", "#00d2ff");
+                        triggerAppNotificationSound("welcome");
+                    }, 900);
                 }
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
@@ -5395,14 +5514,12 @@
                     let msg = adminInboxData[pendingOtaDevice].message || "";
                     
                     if (status.includes("OTA SUCCESS")) {
-                        triggerAppNotificationSound(true);
                         await customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
                         pendingOtaDevice = null; 
                         isOtaMode = false;
                         document.getElementById('offlineOverlay').style.display = 'none';
                         document.getElementById('connStatus').innerText = "ONLINE";
                     } else if (status.includes("ERROR") || status.includes("Failed")) {
-                        triggerAppNotificationSound(true);
                         await customAlert("❌❌ OTA UPLOAD FAILED! ❌❌\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
                         pendingOtaDevice = null; 
                         isOtaMode = false;
@@ -5535,9 +5652,6 @@
 
             const errorBanner = document.getElementById('criticalErrorBanner');
             if(currentConnectedDeviceFaultMessage) {
-                if (errorBanner.style.display === "none") {
-                    triggerAppNotificationSound();
-                }
                 errorBanner.style.display = "block";
                 errorBanner.innerHTML = `⚠️ <strong>CRITICAL LIVE ALERT:</strong><br>• ${currentConnectedDeviceFaultMessage}`;
             } else {
@@ -5676,6 +5790,8 @@
             window.lastSavedRuntime = 0;
             window.lastSavedRunDate = "Waiting for data...";
             window.isFirstStateLoad = true;
+            window.lastKnownPumpState = null;
+            window.hasNotifiedTankFull = false;
             
             window.lastKnownHeartbeat = -1; 
             window.liveHeartbeatReceived = false;
@@ -5983,6 +6099,7 @@
                 }
             });
 
+            // EVENT 2: DAILY WATER USAGE PERCENTAGE POPUP NOTIFICATION
             database.ref(basePath + '/usageStats/today').on('value', snap => {
                 let val = snap.val();
                 let todayDate = new Date().toDateString();
@@ -6017,10 +6134,10 @@
                             popup.style.borderColor = usageColor;
                             popup.innerHTML = popupMsg;
                             popup.classList.add('show');
-                            // Ring the dynamic notification sound in the app when usage popup appears
-                            triggerAppNotificationSound();
+                            // Ring short Water Usage Notification Chime
+                            triggerAppNotificationSound("usage");
                             setTimeout(() => popup.classList.remove('show'), 6000);
-                        }, 3000);
+                        }, 3500);
                     }
                 }
             });
@@ -6221,13 +6338,29 @@
                 }
             });
 
-            // --- TELEMETRY, SMARTPHONE SIGNAL BARS & NANOLOG AUTO-BMS LISTENER ---
+            // --- TELEMETRY, SMARTPHONE SIGNAL BARS & 100% TANK FULL SUCCESS NOTIFICATION ---
             database.ref(basePath + '/telemetry').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
                     if (data.waterPercent !== undefined) {
-                        document.getElementById('waterLevelFill').style.height = data.waterPercent + '%';
-                        document.getElementById('waterLevelText').innerText = parseFloat(data.waterPercent).toFixed(1) + '%';
+                        const pctVal = parseFloat(data.waterPercent);
+                        document.getElementById('waterLevelFill').style.height = pctVal + '%';
+                        document.getElementById('waterLevelText').innerText = pctVal.toFixed(1) + '%';
+
+                        // EVENT 5: 100% WATER TANK FULL SUCCESS NOTIFICATION (LATCHED ONCE PER FILL)
+                        if (!isNaN(pctVal)) {
+                            if (pctVal >= 99.5 && !window.hasNotifiedTankFull) {
+                                window.hasNotifiedTankFull = true;
+                                // Only ring if water rose up to 100% or if pump was running
+                                if (lastWaterPercent !== -1 || currentPumpState) {
+                                    showSmartEventBanner("🎉 Tank 100% Full! Water level has reached maximum capacity.", "#2ed573");
+                                    triggerAppNotificationSound("tank_full");
+                                }
+                            } else if (pctVal < 95.0) {
+                                // Reset latch when water level drops below 95%
+                                window.hasNotifiedTankFull = false;
+                            }
+                        }
                     }
                     if (data.waterCm !== undefined) {
                         document.getElementById('txtFinalCm').innerText = parseFloat(data.waterCm).toFixed(1) + ' cm';
@@ -6352,7 +6485,6 @@
                         
                         if(data.log.includes("[OTA SUCCESS]")) {
                             if (pendingOtaDevice === currentDeviceId || isOtaMode) {
-                                triggerAppNotificationSound(true);
                                 customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + currentDeviceId + "\n\nNew firmware downloaded and installed. Rebooting!");
                                 pendingOtaDevice = null;
                                 isOtaMode = false;
@@ -6387,6 +6519,7 @@
                 }
             });
 
+            // EVENTS 3 & 4: PUMP ON / OFF NOTIFICATION (MANUAL OR AUTOMATIC — NO FALSE LOAD RINGS)
             database.ref(basePath + '/state').on('value', (snapshot) => {
                 const state = snapshot.val();
                 if(state) {
@@ -6404,15 +6537,27 @@
 
                     parseAndUpdateSolarBms(state);
 
-                    const wasFirstLoad = window.isFirstStateLoad;
                     if (window.isFirstStateLoad) {
                         window.isFirstStateLoad = false;
                     }
 
-                    if (state.pumpActive && isCurrentlyOnline) {
-                        if (!wasFirstLoad && currentPumpState === false) {
-                            triggerAppNotificationSound();
+                    const rawPumpActive = Boolean(state.pumpActive);
+
+                    // Record initial pump state silently on first Firebase sync; ring ONLY on real transitions
+                    if (window.lastKnownPumpState === null) {
+                        window.lastKnownPumpState = rawPumpActive;
+                    } else if (rawPumpActive !== window.lastKnownPumpState) {
+                        window.lastKnownPumpState = rawPumpActive;
+                        if (rawPumpActive) {
+                            showSmartEventBanner("⚡ Pump Turned ON", "#2ed573");
+                            triggerAppNotificationSound("pump_on");
+                        } else {
+                            showSmartEventBanner("🛑 Pump Turned OFF", "#feca57");
+                            triggerAppNotificationSound("pump_off");
                         }
+                    }
+
+                    if (state.pumpActive && isCurrentlyOnline) {
                         let espRunSecs = state.pumpRuntimeSecs || 0;
                         if (espRunSecs >= window.maxRunSecs) {
                             window.maxRunSecs = espRunSecs;
@@ -6433,7 +6578,6 @@
                         }
                         
                         if (currentPumpState === true) {
-                            triggerAppNotificationSound();
                             window.lastSavedRuntime = window.maxRunSecs;
                             let instantTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
                             window.lastSavedRunDate = "Ended: " + instantTime;
@@ -6453,9 +6597,6 @@
                             
                             if(isCustomer) {
                                 const errBanner = document.getElementById('criticalErrorBanner');
-                                if (errBanner.style.display === "none") {
-                                    triggerAppNotificationSound();
-                                }
                                 errBanner.style.display = "block";
                                 errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
                             }
