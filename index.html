@@ -2243,7 +2243,6 @@
                 el.innerHTML = `${barsOnlyHtml}<span class="sig-status-small-txt" style="color:${textColor};">${raw}</span>`;
             }
 
-            // Also update the floating Signal Quality pill above the Water Tank (Right Side)
             if (targetElementId === 'txtSignalCustomer' || targetElementId === 'adminTxtSignal') {
                 ensureTankSignalBadgeMounted();
                 const tankBadge = document.getElementById('tankTopRightSignalBadge');
@@ -2254,12 +2253,15 @@
             }
         }
 
-        // --- MOUNT FLOATING SIGNAL PILL ABOVE WATER TANK (TOP-RIGHT) ---
+        // --- MOUNT FLOATING SIGNAL PILL ABOVE WATER TANK (TOP-RIGHT) & UPGRADE 3D WAVE TANK ---
         function ensureTankSignalBadgeMounted() {
             const tankEl = document.getElementById('waterTankModel');
             if (!tankEl) return;
             const tankCard = tankEl.closest('.card') || tankEl.parentElement;
             if (!tankCard) return;
+
+            tankCard.classList.add('premium-tank-parent-card');
+            tankEl.classList.add('centered-3d-water-tank');
 
             if (!document.getElementById('tankTopRightSignalRow')) {
                 const headerRow = document.createElement('div');
@@ -2278,16 +2280,44 @@
                 `;
                 tankCard.insertBefore(headerRow, tankEl);
             }
+
+            // Inject Seamless Dual-Layer SVG Sine Wave inside #waterLevelFill (Zero Wave Cutting)
+            const fillEl = document.getElementById('waterLevelFill');
+            if (fillEl && !fillEl.dataset.waveUpgraded) {
+                fillEl.dataset.waveUpgraded = "true";
+                const waveContainer = document.createElement('div');
+                waveContainer.className = 'seamless-wave-crest-wrap';
+                waveContainer.innerHTML = `
+                    <svg class="seamless-wave-svg wave-layer-back" viewBox="0 0 800 28" preserveAspectRatio="none">
+                        <path d="M 0 14 Q 100 0 200 14 T 400 14 T 600 14 T 800 14 L 800 28 L 0 28 Z" fill="rgba(0, 180, 255, 0.45)"></path>
+                    </svg>
+                    <svg class="seamless-wave-svg wave-layer-front" viewBox="0 0 800 28" preserveAspectRatio="none">
+                        <path d="M 0 14 Q 100 28 200 14 T 400 14 T 600 14 T 800 14 L 800 28 L 0 28 Z" fill="rgba(0, 225, 255, 0.88)"></path>
+                    </svg>
+                `;
+                fillEl.appendChild(waveContainer);
+            }
+
+            if (!tankEl.querySelector('.tank-3d-glass-shine')) {
+                const shine = document.createElement('div');
+                shine.className = 'tank-3d-glass-shine';
+                tankEl.appendChild(shine);
+
+                const scaleMarks = document.createElement('div');
+                scaleMarks.className = 'tank-scale-ticks';
+                scaleMarks.innerHTML = `<span>100%</span><span>75%</span><span>50%</span><span>25%</span>`;
+                tankEl.appendChild(scaleMarks);
+            }
         }
 
-        // --- ORGANIZE PORTAL LAYOUT: 1-ROW USAGE+WIFI, SOLAR UNDER PUMP, LOGINS AT END ---
+        // --- ORGANIZE PORTAL LAYOUT: PUMP -> SOLAR -> USAGE+WIFI ROW -> SUPPORT -> LOGINS ---
         function organizeCustomerPortalLayout() {
             ensureTankSignalBadgeMounted();
 
             const mainView = document.getElementById('mainDashboardView');
             if (!mainView) return;
 
-            // 1. Pair "Daily Usage Tracker" (compact 38%) and "Active Wi-Fi" (62%) into One Premium Row
+            // 1. Build Single-Row "Daily Usage Tracker" (38%) + "Active Wi-Fi" (62%)
             const usageValEl = document.getElementById('dailyUsageText');
             const wifiValEl = document.getElementById('txtActiveWifiCustomer');
 
@@ -2302,12 +2332,10 @@
                     usageCard.classList.add('compact-usage-mini-card');
                     combinedRow.appendChild(usageCard);
 
-                    // Create a dedicated visible Active Wi-Fi card in the same row while keeping #txtActiveWifiCustomer synced
                     const wifiMiniCard = document.createElement('div');
                     wifiMiniCard.id = 'customerActiveWifiMiniCard';
                     wifiMiniCard.className = 'card compact-wifi-mini-card';
 
-                    // If #txtActiveWifiCustomer was inside Advanced Section, move or mirror it cleanly into this top row
                     if (wifiValEl) {
                         const oldWifiContainer = wifiValEl.closest('.card');
                         if (oldWifiContainer && oldWifiContainer !== usageCard && oldWifiContainer.parentElement === mainView) {
@@ -2327,24 +2355,29 @@
                 }
             }
 
-            // 2. Place NEXUS SOLAR NODE (#solarBatteryCard) directly underneath Pump Control Card (#pumpControlCard)
             const pumpCard = document.getElementById('pumpControlCard');
             const solarCard = document.getElementById('solarBatteryCard');
-            if (pumpCard && solarCard && pumpCard.parentElement === mainView) {
+            const combinedRow = document.getElementById('usageWifiCombinedRow');
+            const supCard = document.getElementById('customerSupportCard');
+
+            // 2. Apply 7% Smaller Premium Pump Card Styling & Place NEXUS SOLAR NODE directly below Pump
+            if (pumpCard && pumpCard.parentElement === mainView) {
                 pumpCard.classList.add('premium-pump-card-box');
                 const pumpBtn = document.getElementById('pumpToggleBtn');
                 if (pumpBtn) pumpBtn.classList.add('premium-3d-pump-btn');
 
-                if (pumpCard.nextElementSibling !== solarCard) {
+                if (solarCard && solarCard.parentElement === mainView && pumpCard.nextElementSibling !== solarCard) {
                     mainView.insertBefore(solarCard, pumpCard.nextElementSibling);
                 }
             }
 
-            // 3. Place Customer Experience & Support Card underneath NEXUS SOLAR NODE
-            const supCard = document.getElementById('customerSupportCard');
-            if (solarCard && supCard && solarCard.parentElement === mainView) {
-                if (solarCard.nextElementSibling !== supCard) {
-                    mainView.insertBefore(supCard, solarCard.nextElementSibling);
+            // 3. Place Daily Usage + Active Wi-Fi Row directly ABOVE Experience & Support Card (under Solar Card)
+            if (combinedRow && supCard && supCard.parentElement === mainView) {
+                if (solarCard && solarCard.parentElement === mainView) {
+                    mainView.insertBefore(combinedRow, solarCard.nextElementSibling);
+                    mainView.insertBefore(supCard, combinedRow.nextElementSibling);
+                } else {
+                    mainView.insertBefore(combinedRow, supCard);
                 }
             }
 
@@ -2352,23 +2385,97 @@
             const custLoginsEl = document.getElementById('customerMobileLoginsList');
             if (custLoginsEl) {
                 const loginsCard = custLoginsEl.closest('.card') || custLoginsEl.parentElement;
-                if (loginsCard && loginsCard.parentElement) {
-                    loginsCard.parentElement.appendChild(loginsCard);
+                if (loginsCard && loginsCard.parentElement === advSection) {
+                    mainView.appendChild(loginsCard);
+                } else if (loginsCard && loginsCard.parentElement === mainView) {
+                    mainView.appendChild(loginsCard);
                 }
             }
-            const advSection = document.getElementById('advancedSection');
-            if (advSection && advSection.parentElement === mainView) {
-                mainView.appendChild(advSection);
-                if (custLoginsEl) {
-                    const loginsCardInAdv = custLoginsEl.closest('.card') || custLoginsEl.parentElement;
-                    if (loginsCardInAdv && loginsCardInAdv.parentElement === advSection) {
-                        advSection.appendChild(loginsCardInAdv);
+
+            // 5. Upgrade Engineer Data (#advancedSection) into a Top-Down Animated Slide Drawer
+            setupTopDownEngineerDrawer();
+        }
+
+        // --- TOP-DOWN ANIMATED ENGINEER DATA DRAWER ---
+        function setupTopDownEngineerDrawer() {
+            const adv = document.getElementById('advancedSection');
+            if (!adv) return;
+
+            if (!document.getElementById('engineerDrawerBackdrop')) {
+                const backdrop = document.createElement('div');
+                backdrop.id = 'engineerDrawerBackdrop';
+                backdrop.className = 'eng-drawer-backdrop';
+                backdrop.onclick = () => closeTopDownEngineerDrawer();
+                document.body.appendChild(backdrop);
+            }
+
+            if (!adv.dataset.drawerUpgraded) {
+                adv.dataset.drawerUpgraded = "true";
+                adv.classList.add('eng-top-down-drawer');
+                adv.style.display = 'flex';
+
+                // Move Active Device Logins out of the hidden drawer if it was inside #advancedSection so it stays at the bottom of the main portal
+                const mainView = document.getElementById('mainDashboardView');
+                const custLoginsEl = document.getElementById('customerMobileLoginsList');
+                if (mainView && custLoginsEl) {
+                    const loginsCard = custLoginsEl.closest('.card');
+                    if (loginsCard && adv.contains(loginsCard)) {
+                        mainView.appendChild(loginsCard);
                     }
                 }
+
+                const headerBar = document.createElement('div');
+                headerBar.className = 'eng-drawer-header-bar';
+                headerBar.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:16px;">🛠️</span>
+                        <div>
+                            <div style="font-size:13px; font-weight:800; color:#00d2ff; letter-spacing:0.8px; text-transform:uppercase;">Engineer Telemetry & Diagnostics</div>
+                            <div style="font-size:10px; color:#94a3b8;">Live Sensor & Hardware Link Parameters</div>
+                        </div>
+                    </div>
+                    <button type="button" class="eng-drawer-close-btn" onclick="closeTopDownEngineerDrawer()">✕ Close</button>
+                `;
+                adv.insertBefore(headerBar, adv.firstChild);
+            }
+
+            // Also add an "🛠️ Engineer Data" quick trigger inside the 3-dots dropdown menu if not present
+            const menuDropdown = document.getElementById('customerTopMenuDropdown');
+            if (menuDropdown && !document.getElementById('menuEngDataItem')) {
+                menuDropdown.classList.add('premium-top-menu-pop');
+                const engItem = document.createElement('div');
+                engItem.id = 'menuEngDataItem';
+                engItem.style.cssText = 'padding: 10px 14px; color: #00d2ff; font-size: 13px; font-weight: bold; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 8px;';
+                engItem.innerHTML = '<span>📡</span><span>Engineer Data</span>';
+                engItem.onclick = () => {
+                    menuDropdown.style.display = 'none';
+                    openTopDownEngineerDrawer();
+                };
+                menuDropdown.insertBefore(engItem, menuDropdown.firstChild);
             }
         }
 
-        // --- NEXUS SOLAR NODE UI, SIGNAL BARS & CUSTOMER SUPPORT CARD INITIALIZER ---
+        function openTopDownEngineerDrawer() {
+            setupTopDownEngineerDrawer();
+            const adv = document.getElementById('advancedSection');
+            const backdrop = document.getElementById('engineerDrawerBackdrop');
+            if (adv) {
+                adv.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    adv.classList.add('eng-drawer-open');
+                });
+            }
+            if (backdrop) backdrop.classList.add('active');
+        }
+
+        function closeTopDownEngineerDrawer() {
+            const adv = document.getElementById('advancedSection');
+            const backdrop = document.getElementById('engineerDrawerBackdrop');
+            if (adv) adv.classList.remove('eng-drawer-open');
+            if (backdrop) backdrop.classList.remove('active');
+        }
+
+        // --- NEXUS SOLAR NODE UI, 3D WAVE TANK, SIGNAL BARS & CUSTOMER SUPPORT CARD INITIALIZER ---
         function initPremiumGlassBmsUI() {
             if (!document.getElementById('premiumGlassBmsStyles')) {
                 const style = document.createElement('style');
@@ -2401,7 +2508,7 @@
                         display: flex;
                         justify-content: flex-end;
                         align-items: center;
-                        margin-bottom: 6px;
+                        margin-bottom: 4px;
                         padding-right: 2px;
                         box-sizing: border-box;
                     }
@@ -2431,7 +2538,115 @@
                         100% { opacity: 1; }
                     }
 
-                    /* Compact Mobile Notification Banner (Never Cuts Phone Screen) */
+                    /* Centered 3D Glass Water Tank & Seamless Unclipped Dual Wave */
+                    .premium-tank-parent-card {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        text-align: center !important;
+                    }
+                    #waterTankModel.centered-3d-water-tank {
+                        margin: 10px auto 14px auto !important;
+                        align-self: center !important;
+                        position: relative !important;
+                        overflow: hidden !important;
+                        border-radius: 22px 22px 28px 28px !important;
+                        border: 2.5px solid rgba(0, 210, 255, 0.55) !important;
+                        background: linear-gradient(90deg, rgba(255, 255, 255, 0.09) 0%, rgba(7, 16, 32, 0.88) 24%, rgba(5, 12, 24, 0.94) 76%, rgba(0, 210, 255, 0.14) 100%) !important;
+                        box-shadow: 0 16px 38px rgba(0, 0, 0, 0.78), inset 0 0 28px rgba(0, 180, 255, 0.22), inset 10px 0 18px rgba(255, 255, 255, 0.12) !important;
+                    }
+                    #waterLevelFill {
+                        position: absolute !important;
+                        bottom: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        width: 100% !important;
+                        background: linear-gradient(180deg, rgba(0, 225, 255, 0.88) 0%, rgba(0, 140, 255, 0.92) 55%, rgba(0, 82, 212, 0.98) 100%) !important;
+                        box-shadow: 0 -4px 18px rgba(0, 210, 255, 0.45), inset 0 4px 12px rgba(255, 255, 255, 0.28) !important;
+                        transition: height 0.8s cubic-bezier(0.22, 1, 0.36, 1) !important;
+                        border-radius: 0 !important;
+                        overflow: visible !important;
+                    }
+                    /* Disable any old clipped pseudo-waves so only the seamless SVG wave renders */
+                    #waterLevelFill::before,
+                    #waterLevelFill::after {
+                        display: none !important;
+                        content: none !important;
+                    }
+                    .seamless-wave-crest-wrap {
+                        position: absolute;
+                        top: -17px;
+                        left: 0;
+                        width: 100%;
+                        height: 18px;
+                        overflow: hidden;
+                        pointer-events: none;
+                        z-index: 2;
+                    }
+                    .seamless-wave-svg {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 200%;
+                        height: 100%;
+                    }
+                    .seamless-wave-svg.wave-layer-front {
+                        animation: tankWaveGlideFront 3.4s linear infinite;
+                    }
+                    .seamless-wave-svg.wave-layer-back {
+                        top: -2px;
+                        animation: tankWaveGlideBack 5.2s linear infinite reverse;
+                    }
+                    @keyframes tankWaveGlideFront {
+                        0% { transform: translateX(0); }
+                        100% { transform: translateX(-50%); }
+                    }
+                    @keyframes tankWaveGlideBack {
+                        0% { transform: translateX(0); }
+                        100% { transform: translateX(-50%); }
+                    }
+                    .tank-3d-glass-shine {
+                        position: absolute;
+                        top: 8px;
+                        bottom: 12px;
+                        left: 10px;
+                        width: 10px;
+                        background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.06) 65%, transparent 100%);
+                        border-radius: 999px;
+                        pointer-events: none;
+                        z-index: 4;
+                    }
+                    .tank-scale-ticks {
+                        position: absolute;
+                        right: 7px;
+                        top: 12%;
+                        bottom: 12%;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        align-items: flex-end;
+                        font-size: 8.5px;
+                        font-weight: 700;
+                        color: rgba(255, 255, 255, 0.38);
+                        pointer-events: none;
+                        z-index: 4;
+                    }
+                    #waterLevelText {
+                        position: absolute !important;
+                        top: 50% !important;
+                        left: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        z-index: 6 !important;
+                        background: rgba(6, 14, 26, 0.58) !important;
+                        padding: 4px 12px !important;
+                        border-radius: 999px !important;
+                        border: 1px solid rgba(255, 255, 255, 0.16) !important;
+                        backdrop-filter: blur(6px) !important;
+                        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85) !important;
+                    }
+
+                    /* Compact Mobile Notification Banner */
                     #usageSmsPopup {
                         max-width: 88vw !important;
                         width: max-content !important;
@@ -2452,7 +2667,7 @@
                         z-index: 9999 !important;
                     }
 
-                    /* Single-Row Daily Usage (Tiny 38%) + Active Wi-Fi (62%) */
+                    /* Single-Row Daily Usage (37%) + Active Wi-Fi (63%) Placed Above Support Card */
                     .usage-wifi-one-row {
                         display: flex !important;
                         align-items: stretch !important;
@@ -2460,18 +2675,18 @@
                         gap: 10px !important;
                         width: 100% !important;
                         max-width: 420px !important;
-                        margin: 8px 0 !important;
+                        margin: 12px 0 4px 0 !important;
                         box-sizing: border-box !important;
                     }
                     .compact-usage-mini-card {
-                        flex: 0 0 37% !important;
-                        max-width: 37% !important;
+                        flex: 0 0 36% !important;
+                        max-width: 36% !important;
                         margin: 0 !important;
-                        padding: 10px 10px !important;
-                        background: linear-gradient(145deg, rgba(13, 24, 42, 0.92), rgba(8, 15, 28, 0.96)) !important;
-                        border: 1px solid rgba(0, 210, 255, 0.25) !important;
-                        border-radius: 14px !important;
-                        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+                        padding: 12px 10px !important;
+                        background: linear-gradient(145deg, rgba(13, 24, 42, 0.94), rgba(8, 15, 28, 0.98)) !important;
+                        border: 1px solid rgba(0, 210, 255, 0.28) !important;
+                        border-radius: 16px !important;
+                        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.12) !important;
                         display: flex !important;
                         flex-direction: column !important;
                         justify-content: center !important;
@@ -2481,26 +2696,27 @@
                     }
                     .compact-usage-mini-card h3,
                     .compact-usage-mini-card div:first-child {
-                        font-size: 9.5px !important;
+                        font-size: 10px !important;
+                        font-weight: 800 !important;
                         letter-spacing: 0.5px !important;
                         text-transform: uppercase !important;
                         color: #94a3b8 !important;
-                        margin: 0 0 4px 0 !important;
+                        margin: 0 0 5px 0 !important;
                     }
                     .compact-usage-mini-card #dailyUsageText {
-                        font-size: 18px !important;
-                        font-weight: 800 !important;
+                        font-size: 19px !important;
+                        font-weight: 900 !important;
                         margin: 0 !important;
                     }
                     .compact-wifi-mini-card {
-                        flex: 1 1 60% !important;
-                        max-width: 63% !important;
+                        flex: 1 1 61% !important;
+                        max-width: 64% !important;
                         margin: 0 !important;
-                        padding: 10px 14px !important;
-                        background: linear-gradient(145deg, rgba(13, 24, 42, 0.92), rgba(8, 15, 28, 0.96)) !important;
-                        border: 1px solid rgba(46, 213, 115, 0.28) !important;
-                        border-radius: 14px !important;
-                        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+                        padding: 12px 15px !important;
+                        background: linear-gradient(145deg, rgba(13, 24, 42, 0.94), rgba(8, 15, 28, 0.98)) !important;
+                        border: 1px solid rgba(46, 213, 115, 0.34) !important;
+                        border-radius: 16px !important;
+                        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.12) !important;
                         display: flex !important;
                         flex-direction: column !important;
                         justify-content: center !important;
@@ -2509,55 +2725,64 @@
                         box-sizing: border-box !important;
                         overflow: hidden !important;
                     }
+                    /* Enlarged "ACTIVE WI-FI" Label & Enlarged Hotspot Name */
                     .mini-row-card-label {
-                        font-size: 9.5px;
-                        font-weight: 800;
-                        color: #94a3b8;
-                        letter-spacing: 0.6px;
-                        text-transform: uppercase;
-                        margin-bottom: 5px;
+                        font-size: 12.5px !important;
+                        font-weight: 900 !important;
+                        color: #00d2ff !important;
+                        letter-spacing: 0.9px !important;
+                        text-transform: uppercase !important;
+                        margin-bottom: 6px !important;
+                        text-shadow: 0 0 10px rgba(0, 210, 255, 0.25);
                     }
                     .mini-row-wifi-val-wrap {
                         display: flex;
                         align-items: center;
-                        gap: 7px;
+                        gap: 8px;
                         width: 100%;
                         overflow: hidden;
                     }
                     .wifi-live-dot {
-                        width: 8px;
-                        height: 8px;
+                        width: 9px;
+                        height: 9px;
                         border-radius: 50%;
                         background: #2ed573;
-                        box-shadow: 0 0 8px #2ed573;
+                        box-shadow: 0 0 10px #2ed573;
                         flex-shrink: 0;
                     }
                     .mini-row-wifi-val {
-                        font-size: 14px;
-                        font-weight: 800;
-                        color: #ffffff;
+                        font-size: 17.5px !important;
+                        font-weight: 900 !important;
+                        color: #ffffff !important;
+                        letter-spacing: 0.3px;
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
+                        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
                     }
 
-                    /* Premium Pump Control Card & 3D Tactile Button */
+                    /* Pump Control Square Block Decreased by 7% */
                     #pumpControlCard.premium-pump-card-box {
+                        width: 93% !important;
+                        max-width: 390px !important;
+                        margin-left: auto !important;
+                        margin-right: auto !important;
                         background: linear-gradient(160deg, rgba(14, 25, 45, 0.95) 0%, rgba(8, 14, 26, 0.98) 100%) !important;
                         border: 1px solid rgba(0, 210, 255, 0.32) !important;
-                        border-radius: 20px !important;
-                        padding: 20px 18px !important;
-                        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.78), inset 0 1px 2px rgba(255, 255, 255, 0.14), 0 0 22px rgba(0, 180, 255, 0.08) !important;
+                        border-radius: 18px !important;
+                        padding: 15px 14px !important;
+                        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.78), inset 0 1px 2px rgba(255, 255, 255, 0.14), 0 0 20px rgba(0, 180, 255, 0.08) !important;
                         position: relative;
                         overflow: hidden;
+                        box-sizing: border-box !important;
                     }
                     #pumpToggleBtn.premium-3d-pump-btn {
-                        width: 126px !important;
-                        height: 126px !important;
+                        width: 116px !important;
+                        height: 116px !important;
                         border-radius: 50% !important;
-                        font-size: 16px !important;
+                        font-size: 14.5px !important;
                         font-weight: 900 !important;
-                        letter-spacing: 1.2px !important;
+                        letter-spacing: 1.1px !important;
                         text-transform: uppercase !important;
                         transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
                         position: relative !important;
@@ -2565,19 +2790,93 @@
                     #pumpToggleBtn.btn-on {
                         background: radial-gradient(circle at 35% 30%, #55efc4 0%, #10ac84 55%, #075c46 100%) !important;
                         border: 4px solid rgba(123, 237, 159, 0.85) !important;
-                        box-shadow: 0 10px 28px rgba(16, 172, 132, 0.55), 0 0 0 7px rgba(46, 213, 115, 0.14), inset 0 3px 6px rgba(255, 255, 255, 0.45) !important;
+                        box-shadow: 0 10px 26px rgba(16, 172, 132, 0.55), 0 0 0 6px rgba(46, 213, 115, 0.14), inset 0 3px 6px rgba(255, 255, 255, 0.45) !important;
                         color: #ffffff !important;
                         text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55) !important;
                     }
                     #pumpToggleBtn.btn-off {
                         background: radial-gradient(circle at 35% 30%, #ff7675 0%, #eb3b5a 55%, #881327 100%) !important;
                         border: 4px solid rgba(255, 107, 129, 0.85) !important;
-                        box-shadow: 0 10px 28px rgba(235, 59, 90, 0.55), 0 0 0 7px rgba(255, 71, 87, 0.14), inset 0 3px 6px rgba(255, 255, 255, 0.45) !important;
+                        box-shadow: 0 10px 26px rgba(235, 59, 90, 0.55), 0 0 0 6px rgba(255, 71, 87, 0.14), inset 0 3px 6px rgba(255, 255, 255, 0.45) !important;
                         color: #ffffff !important;
                         text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55) !important;
                     }
                     #pumpToggleBtn:active {
                         transform: scale(0.93) !important;
+                    }
+
+                    /* Top-Down Slide-In Engineer Data Drawer */
+                    .eng-drawer-backdrop {
+                        position: fixed;
+                        inset: 0;
+                        background: rgba(2, 6, 16, 0.72);
+                        backdrop-filter: blur(6px);
+                        -webkit-backdrop-filter: blur(6px);
+                        z-index: 9990;
+                        opacity: 0;
+                        pointer-events: none;
+                        transition: opacity 0.35s ease;
+                    }
+                    .eng-drawer-backdrop.active {
+                        opacity: 1;
+                        pointer-events: auto;
+                    }
+                    #advancedSection.eng-top-down-drawer {
+                        position: fixed !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        width: 100% !important;
+                        max-width: 460px !important;
+                        max-height: 86vh !important;
+                        margin: 0 auto !important;
+                        padding: 16px 16px 22px 16px !important;
+                        background: linear-gradient(180deg, rgba(10, 20, 38, 0.98) 0%, rgba(6, 12, 24, 0.99) 100%) !important;
+                        border-bottom: 2px solid rgba(0, 210, 255, 0.45) !important;
+                        border-radius: 0 0 24px 24px !important;
+                        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.9) !important;
+                        z-index: 9995 !important;
+                        overflow-y: auto !important;
+                        box-sizing: border-box !important;
+                        transform: translateY(-110%) !important;
+                        opacity: 0 !important;
+                        pointer-events: none !important;
+                        transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        gap: 12px !important;
+                    }
+                    #advancedSection.eng-top-down-drawer.eng-drawer-open {
+                        transform: translateY(0) !important;
+                        opacity: 1 !important;
+                        pointer-events: auto !important;
+                    }
+                    .eng-drawer-header-bar {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        width: 100%;
+                        padding-bottom: 12px;
+                        margin-bottom: 4px;
+                        border-bottom: 1px solid rgba(0, 210, 255, 0.22);
+                    }
+                    .eng-drawer-close-btn {
+                        background: rgba(255, 71, 87, 0.16);
+                        border: 1px solid rgba(255, 71, 87, 0.45);
+                        color: #ff6b81;
+                        font-size: 12px;
+                        font-weight: 800;
+                        padding: 6px 12px;
+                        border-radius: 999px;
+                        cursor: pointer;
+                    }
+                    .premium-top-menu-pop {
+                        animation: topMenuPopDown 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                        transform-origin: top right;
+                    }
+                    @keyframes topMenuPopDown {
+                        0% { opacity: 0; transform: translateY(-12px) scale(0.95); }
+                        100% { opacity: 1; transform: translateY(0) scale(1); }
                     }
 
                     /* Glassmorphism BMS Card */
@@ -3051,7 +3350,7 @@
                         padding: 18px;
                         width: 100%;
                         max-width: 420px;
-                        margin-top: 16px;
+                        margin-top: 10px;
                         box-shadow: 0 10px 30px rgba(0,0,0,0.65);
                         text-align: left;
                         box-sizing: border-box;
@@ -3125,6 +3424,68 @@
                         justify-content: center;
                         gap: 8px;
                         box-shadow: 0 4px 15px rgba(46, 213, 115, 0.35);
+                    }
+
+                    /* Interactive Admin Sound Studio Modal (Play Preview Before Setup) */
+                    .sound-studio-overlay {
+                        position: fixed;
+                        inset: 0;
+                        background: rgba(3, 8, 18, 0.82);
+                        backdrop-filter: blur(10px);
+                        -webkit-backdrop-filter: blur(10px);
+                        z-index: 10000;
+                        display: none;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 14px;
+                        box-sizing: border-box;
+                    }
+                    .sound-studio-box {
+                        width: 100%;
+                        max-width: 410px;
+                        max-height: 88vh;
+                        overflow-y: auto;
+                        background: linear-gradient(165deg, rgba(14, 24, 44, 0.98) 0%, rgba(7, 13, 25, 0.99) 100%);
+                        border: 1px solid rgba(254, 202, 87, 0.45);
+                        border-radius: 20px;
+                        padding: 18px;
+                        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+                        color: #fff;
+                        text-align: left;
+                        box-sizing: border-box;
+                    }
+                    .sound-studio-row {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 8px;
+                        background: rgba(255, 255, 255, 0.04);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 12px;
+                        padding: 9px 11px;
+                        margin-bottom: 8px;
+                    }
+                    .sound-play-preview-btn {
+                        background: rgba(0, 210, 255, 0.16);
+                        border: 1px solid rgba(0, 210, 255, 0.45);
+                        color: #00d2ff;
+                        font-size: 11.5px;
+                        font-weight: 800;
+                        padding: 6px 11px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        white-space: nowrap;
+                    }
+                    .sound-apply-btn {
+                        background: linear-gradient(90deg, #10ac84, #2ed573);
+                        border: none;
+                        color: #000;
+                        font-size: 11.5px;
+                        font-weight: 800;
+                        padding: 6px 11px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        white-space: nowrap;
                     }
                 `;
                 document.head.appendChild(style);
@@ -3765,7 +4126,6 @@
                 c.isCharging = false;
             }
 
-            // Detect real Solar Charging ON / OFF transitions once valid battery/solar telemetry is present
             const hasValidPowerReading = (c.bVolt > 0.5 || c.sVolt > 0.5 || c.bCurrMa > 0);
             if (hasValidPowerReading) {
                 if (window.lastKnownSolarChargeState === null) {
@@ -4495,6 +4855,92 @@
         // === END OF SUBPART ALPHA (PASTE SUBPART BETA IMMEDIATELY BELOW THIS LINE) ===
     // === START OF SUBPART BETA (PASTE IMMEDIATELY BELOW SUBPART ALPHA) ===
 
+        // Safe layout organizer override (ensures zero reference errors and exact card sequence)
+        function organizeCustomerPortalLayout() {
+            ensureTankSignalBadgeMounted();
+
+            const mainView = document.getElementById('mainDashboardView');
+            if (!mainView) return;
+
+            const advSection = document.getElementById('advancedSection');
+
+            // 1. Build Single-Row "Daily Usage Tracker" (36%) + "Active Wi-Fi" (64%)
+            const usageValEl = document.getElementById('dailyUsageText');
+            const wifiValEl = document.getElementById('txtActiveWifiCustomer');
+
+            if (usageValEl && !document.getElementById('usageWifiCombinedRow')) {
+                const usageCard = usageValEl.closest('.card') || usageValEl.parentElement;
+                if (usageCard && usageCard.parentElement === mainView) {
+                    const combinedRow = document.createElement('div');
+                    combinedRow.id = 'usageWifiCombinedRow';
+                    combinedRow.className = 'usage-wifi-one-row';
+
+                    usageCard.parentElement.insertBefore(combinedRow, usageCard);
+                    usageCard.classList.add('compact-usage-mini-card');
+                    combinedRow.appendChild(usageCard);
+
+                    const wifiMiniCard = document.createElement('div');
+                    wifiMiniCard.id = 'customerActiveWifiMiniCard';
+                    wifiMiniCard.className = 'card compact-wifi-mini-card';
+
+                    if (wifiValEl) {
+                        const oldWifiContainer = wifiValEl.closest('.card');
+                        if (oldWifiContainer && oldWifiContainer !== usageCard && oldWifiContainer.parentElement === mainView) {
+                            oldWifiContainer.classList.add('compact-wifi-mini-card');
+                            combinedRow.appendChild(oldWifiContainer);
+                        } else {
+                            wifiMiniCard.innerHTML = `
+                                <div class="mini-row-card-label">📡 ACTIVE WI-FI</div>
+                                <div class="mini-row-wifi-val-wrap">
+                                    <span class="wifi-live-dot"></span>
+                                    <span id="txtActiveWifiCustomerTopMirror" class="mini-row-wifi-val">${window.activeHotspotName || '--'}</span>
+                                </div>
+                            `;
+                            combinedRow.appendChild(wifiMiniCard);
+                        }
+                    }
+                }
+            }
+
+            const pumpCard = document.getElementById('pumpControlCard');
+            const solarCard = document.getElementById('solarBatteryCard');
+            const combinedRow = document.getElementById('usageWifiCombinedRow');
+            const supCard = document.getElementById('customerSupportCard');
+
+            // 2. Apply 7% Smaller Premium Pump Card Styling & Place NEXUS SOLAR NODE directly below Pump
+            if (pumpCard && pumpCard.parentElement === mainView) {
+                pumpCard.classList.add('premium-pump-card-box');
+                const pumpBtn = document.getElementById('pumpToggleBtn');
+                if (pumpBtn) pumpBtn.classList.add('premium-3d-pump-btn');
+
+                if (solarCard && solarCard.parentElement === mainView && pumpCard.nextElementSibling !== solarCard) {
+                    mainView.insertBefore(solarCard, pumpCard.nextElementSibling);
+                }
+            }
+
+            // 3. Place Daily Usage + Active Wi-Fi Row directly ABOVE Experience & Support Card
+            if (combinedRow && supCard && supCard.parentElement === mainView) {
+                if (solarCard && solarCard.parentElement === mainView) {
+                    mainView.insertBefore(combinedRow, solarCard.nextElementSibling);
+                    mainView.insertBefore(supCard, combinedRow.nextElementSibling);
+                } else {
+                    mainView.insertBefore(combinedRow, supCard);
+                }
+            }
+
+            // 4. Move "Active Device Logins" block to the very end (bottom) of the portal
+            const custLoginsEl = document.getElementById('customerMobileLoginsList');
+            if (custLoginsEl) {
+                const loginsCard = custLoginsEl.closest('.card') || custLoginsEl.parentElement;
+                if (loginsCard && (loginsCard.parentElement === advSection || loginsCard.parentElement === mainView)) {
+                    mainView.appendChild(loginsCard);
+                }
+            }
+
+            // 5. Upgrade Engineer Data (#advancedSection) into a Top-Down Animated Slide Drawer
+            setupTopDownEngineerDrawer();
+        }
+
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
             authDomain: "home-water-level.firebaseapp.com",
@@ -4526,48 +4972,48 @@
         let globalScannerTimer = null; 
         let linkedDevicesRef = null;
 
-        // --- 7-EVENT DEFAULT NOTIFICATION SOUND MAP (SHORT 1-2.5 SECOND CHIMES) ---
+        // --- 7-EVENT DEFAULT NOTIFICATION SOUND MAP (SHORT 1-2.4 SECOND CHIMES) ---
         window.EVENT_SOUND_MAP = {
             "welcome": {
-                label: "Welcome Notification",
+                label: "👋 Welcome Notification",
                 url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg",
                 maxDurationMs: 1400
             },
             "usage": {
-                label: "Daily Water Usage Alert",
+                label: "💧 Daily Water Usage Alert",
                 url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg",
                 maxDurationMs: 1500
             },
             "pump_on": {
-                label: "Pump Turned ON",
+                label: "⚡ Pump Turned ON",
                 url: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
                 maxDurationMs: 1600
             },
             "pump_off": {
-                label: "Pump Turned OFF",
+                label: "🛑 Pump Turned OFF",
                 url: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
                 maxDurationMs: 1600
             },
             "tank_full": {
-                label: "100% Tank Full Success",
+                label: "🎉 100% Tank Full Success",
                 url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg",
                 maxDurationMs: 2400
             },
             "solar_on": {
-                label: "Solar Charging ON",
+                label: "☀️ Solar Charging ON",
                 url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg",
                 maxDurationMs: 1600
             },
             "solar_off": {
-                label: "Solar Charging OFF",
+                label: "🌙 Solar Charging OFF",
                 url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg",
                 maxDurationMs: 1500
             }
         };
 
-        // Built-in Short Tone Library for Per-Event Customization
+        // Built-in Short Tone Library with Preview Support
         window.TONE_LIBRARY = {
-            "1": { name: "Default Event Tone", url: "DEFAULT" },
+            "1": { name: "Default Event Matching Tone", url: "DEFAULT" },
             "2": { name: "Crisp Short Beep", url: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg" },
             "3": { name: "Success Bugle Fanfare", url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" },
             "4": { name: "Water Drop Wood Chime", url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" },
@@ -4575,7 +5021,6 @@
             "6": { name: "Power Down Wobble", url: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" }
         };
 
-        // Load Per-Event Custom Sound Overrides
         window.customEventSounds = {};
         try {
             const savedEvSounds = JSON.parse(localStorage.getItem('waterIoT_customEventSounds') || '{}');
@@ -4592,7 +5037,6 @@
         window.hasNotifiedTankFull = false;
         window.hasPlayedWelcomeSession = (sessionStorage.getItem('waterIoT_welcomed') === 'true');
 
-        // Restore cached dynamic Admin Support Contact if available
         if (localStorage.getItem('waterIoT_adminPhone')) {
             window.adminSupportPhone = localStorage.getItem('waterIoT_adminPhone');
         }
@@ -4658,23 +5102,16 @@
             }
         }
 
-        // --- STRICT EVENT-BASED SOUND TRIGGER (WITH PER-EVENT OVERRIDE & HARD CUTOFF) ---
-        function triggerAppNotificationSound(eventType = "usage") {
-            const evConfig = window.EVENT_SOUND_MAP[eventType] || window.EVENT_SOUND_MAP["usage"];
-            const maxMs = evConfig.maxDurationMs || 2200;
+        // --- PLAY SPECIFIC URL OR TONE WITH STRICT DURATION CUTOFF ---
+        function playRawSoundUrlWithCutoff(soundUrl, eventTypeForSynth = "usage", maxMs = 2200) {
+            if (eventTypeForSynth) {
+                playCrispWebTone(eventTypeForSynth);
+            }
+            if (!soundUrl || !soundUrl.startsWith("http")) return;
 
-            const customUrl = window.customEventSounds && window.customEventSounds[eventType];
-            const chosenUrl = (customUrl && customUrl !== "DEFAULT" && customUrl.startsWith("http"))
-                ? customUrl
-                : evConfig.url;
+            const sep = soundUrl.includes('?') ? '&' : '?';
+            const uniqueSoundUrl = `${soundUrl}${sep}ev=${eventTypeForSynth || 'preview'}_${Date.now()}`;
 
-            const sep = chosenUrl.includes('?') ? '&' : '?';
-            const uniqueSoundUrl = `${chosenUrl}${sep}ev=${eventType}_${Date.now()}`;
-
-            // 1. Play crisp event-specific musical chime immediately
-            playCrispWebTone(eventType);
-
-            // 2. Send short sound URL to MIT App Inventor Player1 and reset WebViewString after maxMs
             try {
                 if (window.AppInventor && window.AppInventor.setWebViewString) {
                     window.AppInventor.setWebViewString(uniqueSoundUrl);
@@ -4684,7 +5121,6 @@
                 }
             } catch (e) {}
 
-            // 3. Play HTML5 Audio with a strict time-limit cutoff so it NEVER rings longer than maxMs
             try {
                 if (window.activeAudioInstance) {
                     window.activeAudioInstance.pause();
@@ -4693,8 +5129,8 @@
                 if (window.activeAudioCutoffTimer) {
                     clearTimeout(window.activeAudioCutoffTimer);
                 }
-                const audio = new Audio(chosenUrl);
-                audio.volume = 0.9;
+                const audio = new Audio(soundUrl);
+                audio.volume = 0.92;
                 window.activeAudioInstance = audio;
                 audio.play().catch(() => {});
 
@@ -4707,98 +5143,206 @@
             } catch (e) {}
         }
 
-        // --- ADMIN 2-STEP PER-EVENT RINGTONE / SOUND CONFIGURER ---
-        async function configureDynamicAppSound() {
-            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to customize Event Notification Sounds:", true);
-            if (pin !== window.adminPin) {
-                await customAlert("❌ Access Denied: Incorrect Security PIN.");
-                return;
+        // --- STRICT EVENT-BASED SOUND TRIGGER ---
+        function triggerAppNotificationSound(eventType = "usage") {
+            const evConfig = window.EVENT_SOUND_MAP[eventType] || window.EVENT_SOUND_MAP["usage"];
+            const maxMs = evConfig.maxDurationMs || 2200;
+
+            const customUrl = window.customEventSounds && window.customEventSounds[eventType];
+            const chosenUrl = (customUrl && customUrl !== "DEFAULT" && customUrl.startsWith("http"))
+                ? customUrl
+                : evConfig.url;
+
+            playRawSoundUrlWithCutoff(chosenUrl, eventType, maxMs);
+        }
+
+        // --- INTERACTIVE ADMIN SOUND STUDIO MODAL (WITH "▶️ PLAY" BUTTON ON EVERY SOUND) ---
+        function ensureSoundStudioModalCreated() {
+            if (document.getElementById('adminSoundStudioModal')) return;
+
+            const overlay = document.createElement('div');
+            overlay.id = 'adminSoundStudioModal';
+            overlay.className = 'sound-studio-overlay';
+
+            let toneRowsHtml = '';
+            for (const [key, toneObj] of Object.entries(window.TONE_LIBRARY)) {
+                toneRowsHtml += `
+                    <div class="sound-studio-row">
+                        <div style="flex:1; overflow:hidden;">
+                            <div style="font-size:12.5px; font-weight:800; color:#fff;">${key}. ${toneObj.name}</div>
+                            <div style="font-size:10px; color:#94a3b8;">Short 1.5s Notification Tone</div>
+                        </div>
+                        <button type="button" class="sound-play-preview-btn" onclick="previewSoundInStudio('${key}')">▶️ Play</button>
+                        <button type="button" class="sound-apply-btn" onclick="applySoundInStudio('${key}')">✓ Set</button>
+                    </div>
+                `;
             }
 
-            const eventMenu =
-                `🔔 SELECT EVENT TO CHANGE SOUND:\n\n` +
-                `1 = 👋 Welcome Notification\n` +
-                `2 = 💧 Daily Water Usage Alert\n` +
-                `3 = ⚡ Pump Turned ON\n` +
-                `4 = 🛑 Pump Turned OFF\n` +
-                `5 = 🎉 100% Tank Full Success\n` +
-                `6 = ☀️ Solar Charging ON\n` +
-                `7 = 🌙 Solar Charging OFF\n` +
-                `0 = 🔄 Reset ALL Events to Default`;
+            overlay.innerHTML = `
+                <div class="sound-studio-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:12px;">
+                        <div>
+                            <div style="font-size:16px; font-weight:900; color:#feca57;">🔔 Event Sound Studio</div>
+                            <div style="font-size:11px; color:#94a3b8;">Preview any sound with ▶️ Play before saving</div>
+                        </div>
+                        <button type="button" class="eng-drawer-close-btn" onclick="closeAdminSoundStudio()">✕</button>
+                    </div>
 
-            const evPick = await customPrompt(eventMenu, false);
-            if (!evPick || evPick.trim() === "") return;
-            const cleanEvPick = evPick.trim();
+                    <label style="font-size:11px; font-weight:800; color:#00d2ff; text-transform:uppercase; display:block; margin-bottom:5px;">1. Select Notification Event:</label>
+                    <div style="display:flex; gap:8px; margin-bottom:8px;">
+                        <select id="studioEventSelect" class="support-input-field" style="margin-bottom:0; flex:1; font-weight:700;" onchange="updateStudioCurrentToneLabel()">
+                            <option value="welcome">👋 Welcome Notification</option>
+                            <option value="usage">💧 Daily Water Usage Alert</option>
+                            <option value="pump_on">⚡ Pump Turned ON</option>
+                            <option value="pump_off">🛑 Pump Turned OFF</option>
+                            <option value="tank_full">🎉 100% Tank Full Success</option>
+                            <option value="solar_on">☀️ Solar Charging ON</option>
+                            <option value="solar_off">🌙 Solar Charging OFF</option>
+                        </select>
+                        <button type="button" class="sound-play-preview-btn" onclick="previewCurrentEventAssignedSound()">▶️ Play Active</button>
+                    </div>
+                    <div id="studioCurrentAssignedText" style="font-size:11px; color:#7bed9f; margin-bottom:12px; font-family:monospace;">Active: Default Event Matching Tone</div>
 
-            if (cleanEvPick === "0") {
-                window.customEventSounds = {};
-                localStorage.setItem('waterIoT_customEventSounds', JSON.stringify({}));
-                try {
-                    const workerDb = await getHardwareWorkerDb();
-                    await workerDb.ref('/AdminConfig/EventSounds').remove();
-                } catch (e) {}
-                triggerAppNotificationSound("welcome");
-                await customAlert("✅ All 7 event sounds have been reset to their smart matching defaults!");
-                return;
-            }
+                    <label style="font-size:11px; font-weight:800; color:#feca57; text-transform:uppercase; display:block; margin-bottom:6px;">2. Preview & Choose Built-In Tone:</label>
+                    <div style="max-height:220px; overflow-y:auto; padding-right:2px;">
+                        ${toneRowsHtml}
+                    </div>
 
-            const eventKeyMap = {
-                "1": "welcome",
-                "2": "usage",
-                "3": "pump_on",
-                "4": "pump_off",
-                "5": "tank_full",
-                "6": "solar_on",
-                "7": "solar_off"
-            };
+                    <label style="font-size:11px; font-weight:800; color:#00d2ff; text-transform:uppercase; display:block; margin:10px 0 5px 0;">3. Or Preview & Set Custom Audio URL (.mp3/.ogg):</label>
+                    <input type="text" id="studioCustomUrlInput" class="support-input-field" placeholder="https://example.com/short-chime.mp3" style="margin-bottom:8px;">
+                    <div style="display:flex; gap:8px; margin-bottom:14px;">
+                        <button type="button" class="sound-play-preview-btn" style="flex:1; padding:9px;" onclick="previewCustomUrlInStudio()">▶️ Play Custom URL</button>
+                        <button type="button" class="sound-apply-btn" style="flex:1; padding:9px;" onclick="applyCustomUrlInStudio()">✓ Save Custom URL</button>
+                    </div>
 
-            const targetEventKey = eventKeyMap[cleanEvPick];
-            if (!targetEventKey) {
-                await customAlert("⚠️ Invalid event number. Please enter 1 to 7 (or 0 to reset).");
-                return;
-            }
+                    <div style="display:flex; justify-content:space-between; gap:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+                        <button type="button" class="eng-drawer-close-btn" style="flex:1;" onclick="resetAllEventSoundsInStudio()">🔄 Reset All 7 Events</button>
+                        <button type="button" class="sound-play-preview-btn" style="flex:1;" onclick="closeAdminSoundStudio()">Done</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
 
-            const targetEvLabel = window.EVENT_SOUND_MAP[targetEventKey].label;
-            const currentCustom = window.customEventSounds[targetEventKey] || "Default Event Tone";
-
-            const toneChoice = await customPrompt(
-                `🎵 CHOOSE SOUND FOR: ${targetEvLabel}\nCurrent: ${currentCustom}\n\n` +
-                `Type 1 to 6, OR paste any direct https:// .mp3 / .ogg link:\n` +
-                `1 = Default Matching Tone\n` +
-                `2 = Crisp Short Beep\n` +
-                `3 = Success Bugle Fanfare\n` +
-                `4 = Water Drop Wood Chime\n` +
-                `5 = Soft Bell Pop\n` +
-                `6 = Power Down Wobble`,
-                false
-            );
-
-            if (!toneChoice || toneChoice.trim() === "") return;
-            const cleanTone = toneChoice.trim();
-
-            if (window.TONE_LIBRARY[cleanTone]) {
-                if (cleanTone === "1") {
-                    delete window.customEventSounds[targetEventKey];
-                } else {
-                    window.customEventSounds[targetEventKey] = window.TONE_LIBRARY[cleanTone].url;
-                }
-            } else if (cleanTone.startsWith("http://") || cleanTone.startsWith("https://")) {
-                window.customEventSounds[targetEventKey] = cleanTone;
+        function updateStudioCurrentToneLabel() {
+            const sel = document.getElementById('studioEventSelect');
+            const lbl = document.getElementById('studioCurrentAssignedText');
+            if (!sel || !lbl) return;
+            const evKey = sel.value;
+            const customUrl = window.customEventSounds && window.customEventSounds[evKey];
+            if (!customUrl || customUrl === "DEFAULT") {
+                lbl.innerText = "Active: Default Event Matching Tone";
             } else {
-                await customAlert("⚠️ Invalid selection. Enter 1–6 or a valid https:// audio link.");
-                return;
+                const matchedPreset = Object.values(window.TONE_LIBRARY).find(t => t.url === customUrl);
+                lbl.innerText = matchedPreset ? `Active: ${matchedPreset.name}` : `Active: Custom URL (${customUrl.slice(0, 28)}...)`;
+            }
+        }
+
+        function previewCurrentEventAssignedSound() {
+            const sel = document.getElementById('studioEventSelect');
+            const evKey = sel ? sel.value : "welcome";
+            triggerAppNotificationSound(evKey);
+        }
+
+        function previewSoundInStudio(toneKey) {
+            const sel = document.getElementById('studioEventSelect');
+            const evKey = sel ? sel.value : "welcome";
+            const toneObj = window.TONE_LIBRARY[toneKey];
+            if (!toneObj) return;
+
+            if (toneObj.url === "DEFAULT") {
+                const defCfg = window.EVENT_SOUND_MAP[evKey] || window.EVENT_SOUND_MAP["welcome"];
+                playRawSoundUrlWithCutoff(defCfg.url, evKey, defCfg.maxDurationMs || 2000);
+            } else {
+                const synthMap = { "2": "pump_on", "3": "tank_full", "4": "usage", "5": "welcome", "6": "pump_off" };
+                playRawSoundUrlWithCutoff(toneObj.url, synthMap[toneKey] || evKey, 2000);
+            }
+        }
+
+        async function applySoundInStudio(toneKey) {
+            const sel = document.getElementById('studioEventSelect');
+            const evKey = sel ? sel.value : "welcome";
+            const toneObj = window.TONE_LIBRARY[toneKey];
+            if (!toneObj) return;
+
+            if (toneObj.url === "DEFAULT") {
+                delete window.customEventSounds[evKey];
+            } else {
+                window.customEventSounds[evKey] = toneObj.url;
             }
 
             localStorage.setItem('waterIoT_customEventSounds', JSON.stringify(window.customEventSounds));
+            updateStudioCurrentToneLabel();
 
             try {
                 const workerDb = await getHardwareWorkerDb();
                 await workerDb.ref('/AdminConfig/EventSounds').set(window.customEventSounds);
             } catch (e) {}
 
-            // Immediately test-ring the updated event sound!
-            triggerAppNotificationSound(targetEventKey);
-            await customAlert(`✅ Sound updated for "${targetEvLabel}"!`);
+            triggerAppNotificationSound(evKey);
+            showSmartEventBanner(`✅ Saved "${toneObj.name}" for ${window.EVENT_SOUND_MAP[evKey].label}`, "#2ed573");
+        }
+
+        async function previewCustomUrlInStudio() {
+            const input = document.getElementById('studioCustomUrlInput');
+            const url = input ? input.value.trim() : "";
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                await customAlert("⚠️ Please paste a valid https:// audio link first to preview it.");
+                return;
+            }
+            playRawSoundUrlWithCutoff(url, "welcome", 2400);
+        }
+
+        async function applyCustomUrlInStudio() {
+            const sel = document.getElementById('studioEventSelect');
+            const evKey = sel ? sel.value : "welcome";
+            const input = document.getElementById('studioCustomUrlInput');
+            const url = input ? input.value.trim() : "";
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                await customAlert("⚠️ Please paste a valid https:// .mp3 or .ogg link.");
+                return;
+            }
+
+            window.customEventSounds[evKey] = url;
+            localStorage.setItem('waterIoT_customEventSounds', JSON.stringify(window.customEventSounds));
+            updateStudioCurrentToneLabel();
+
+            try {
+                const workerDb = await getHardwareWorkerDb();
+                await workerDb.ref('/AdminConfig/EventSounds').set(window.customEventSounds);
+            } catch (e) {}
+
+            triggerAppNotificationSound(evKey);
+            showSmartEventBanner(`✅ Custom Sound URL saved for ${window.EVENT_SOUND_MAP[evKey].label}`, "#2ed573");
+        }
+
+        async function resetAllEventSoundsInStudio() {
+            window.customEventSounds = {};
+            localStorage.setItem('waterIoT_customEventSounds', JSON.stringify({}));
+            updateStudioCurrentToneLabel();
+            try {
+                const workerDb = await getHardwareWorkerDb();
+                await workerDb.ref('/AdminConfig/EventSounds').remove();
+            } catch (e) {}
+            triggerAppNotificationSound("welcome");
+            showSmartEventBanner("🔄 All 7 Events Reset to Default Matching Sounds", "#00d2ff");
+        }
+
+        function closeAdminSoundStudio() {
+            const modal = document.getElementById('adminSoundStudioModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function configureDynamicAppSound() {
+            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to open the Event Sound Studio:", true);
+            if (pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+            ensureSoundStudioModalCreated();
+            updateStudioCurrentToneLabel();
+            const modal = document.getElementById('adminSoundStudioModal');
+            if (modal) modal.style.display = 'flex';
         }
 
         // Helper: Get authenticated Secondary Worker DB (has ESP32 hardware privileges on /Devices/{macId})
@@ -4955,14 +5499,24 @@
             card.style.display = (card.style.display === 'none') ? 'block' : 'none';
         }
 
+        // --- TOP-DOWN ANIMATED ENGINEER DATA DRAWER TOGGLE ---
         function toggleAdvanced() {
+            setupTopDownEngineerDrawer();
             const adv = document.getElementById('advancedSection');
-            adv.style.display = (adv.style.display === "none") ? "flex" : "none";
+            if (!adv) return;
+            if (adv.classList.contains('eng-drawer-open')) {
+                closeTopDownEngineerDrawer();
+            } else {
+                openTopDownEngineerDrawer();
+            }
         }
 
         function toggleCustomerTopMenu() {
+            setupTopDownEngineerDrawer();
             const menu = document.getElementById('customerTopMenuDropdown');
-            menu.style.display = (menu.style.display === "none") ? "block" : "none";
+            if (!menu) return;
+            menu.classList.add('premium-top-menu-pop');
+            menu.style.display = (menu.style.display === "none" || menu.style.display === "") ? "block" : "none";
         }
 
         function toggleAdminOverrideBox() {
@@ -5690,7 +6244,7 @@
                     
                     document.getElementById('customerMarquee').style.display = 'none';
                     document.getElementById('customerMenuDots').style.display = 'none';
-                    document.getElementById('advancedSection').style.display = 'none';
+                    closeTopDownEngineerDrawer();
                     
                     document.getElementById('adminCommandCenter').style.display = 'flex';
                     document.getElementById('mainDashboardView').style.display = 'none'; 
