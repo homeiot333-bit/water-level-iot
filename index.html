@@ -2246,7 +2246,6 @@
                 const style = document.createElement('style');
                 style.id = 'premiumGlassBmsStyles';
                 style.innerHTML = `
-                    /* Smartphone Signal Bars */
                     .phone-sig-bars {
                         display: inline-flex;
                         align-items: flex-end;
@@ -2267,7 +2266,6 @@
                         0% { opacity: 0.45; }
                         100% { opacity: 1; }
                     }
-                    /* Glassmorphism BMS Card */
                     .bms-glass-card {
                         background: linear-gradient(160deg, rgba(11, 20, 36, 0.94) 0%, rgba(7, 13, 24, 0.97) 100%) !important;
                         backdrop-filter: blur(22px) saturate(180%) !important;
@@ -2375,7 +2373,6 @@
                         border-radius: 999px;
                         display: inline-block;
                     }
-                    /* Interactive Sun -> Solar Panel -> Battery Animation Stage */
                     .bms-solar-anim-stage {
                         position: relative;
                         z-index: 1;
@@ -2732,7 +2729,6 @@
                         position: relative;
                         z-index: 1;
                     }
-                    /* Customer Experience & Support Card */
                     .cust-support-card {
                         background: linear-gradient(160deg, rgba(12, 22, 38, 0.94) 0%, rgba(8, 14, 26, 0.97) 100%);
                         border: 1px solid rgba(0, 210, 255, 0.28);
@@ -2842,7 +2838,7 @@
                         <span id="bmsStatusBadge" class="bms-status-pill">🔋 ON BATTERY</span>
                     </div>
 
-                    <!-- Attractive Sunlight -> Solar Panel -> Battery Charging Animation (Shown in Both Portals) -->
+                    <!-- Attractive Sunlight -> Solar Panel -> Battery Charging Animation -->
                     <div class="bms-solar-anim-stage">
                         <div class="bms-sun-box">
                             <div id="bmsAnimSunOrb" class="bms-sun-orb">☀️</div>
@@ -2890,30 +2886,26 @@
                         <div class="bms-battery-cap"></div>
                     </div>
 
-                    <!-- Telemetry Grid (Admin sees all 4 tiles; Customer sees ONLY Backup/Charge Time & Battery Health) -->
+                    <!-- Telemetry Grid -->
                     <div class="bms-glass-grid">
-                        <!-- ADMIN-ONLY TILE 1: Battery Voltage & INA219 Current -->
                         <div id="bmsAdminTileVoltCurr" class="bms-glass-tile" style="display: none;">
                             <div class="bms-tile-label"><span>Battery & INA219 Amp</span><span>⚡</span></div>
                             <span id="bmsVoltCurrText" class="bms-tile-val" style="color: #7bed9f;">0.00 V | 0.00 A (0 mA)</span>
                             <span id="bmsVoltRangeSub" class="bms-tile-sub">32140 LiFePO4: 2.50V – 3.65V</span>
                         </div>
 
-                        <!-- ADMIN-ONLY TILE 2: Solar Voltage & Charging Current -->
                         <div id="bmsAdminTileSolar" class="bms-glass-tile" style="display: none;">
                             <div class="bms-tile-label"><span>Solar & Charge Current</span><span>☀️</span></div>
                             <span id="bmsSolarVoltText" class="bms-tile-val" style="color: #feca57;">0.0V | 0.00A (0mA)</span>
                             <span id="bmsSolarStateSub" class="bms-tile-sub">INA219 Shunt Sensor Active</span>
                         </div>
 
-                        <!-- SHARED TILE 3: Backup Time / Time Required to Full Charge -->
                         <div class="bms-glass-tile">
                             <div class="bms-tile-label"><span id="bmsBackupTileTitle">Backup / Full Charge</span><span>⏱️</span></div>
                             <span id="bmsBackupTimeText" class="bms-tile-val" style="color: #00d2ff;">--</span>
                             <span id="bmsCapMahSub" class="bms-tile-sub">Estimated Runtime</span>
                         </div>
 
-                        <!-- SHARED TILE 4: Battery Health -->
                         <div class="bms-glass-tile">
                             <div class="bms-tile-label"><span id="bmsHealthTileTitle">Battery Health</span><span>🛡️</span></div>
                             <span id="bmsHealthText" class="bms-tile-val" style="color: #2ed573;">100%</span>
@@ -2921,7 +2913,6 @@
                         </div>
                     </div>
 
-                    <!-- ADMIN-ONLY RAW TELEMETRY FOOTER -->
                     <div id="bmsStreamFooter" class="bms-stream-footer" style="display: none;">
                         📡 NEXUS SOLAR NODE: Waiting for rooftop packet...
                     </div>
@@ -2933,7 +2924,6 @@
 
         // --- METHOD C: CUSTOMER EXPERIENCE & SUPPORT CARD + DYNAMIC ADMIN CONTACT ---
         function initCustomerSupportCard() {
-            // 1. Inject Dynamic "📞 Support Info" Config Button into Admin Command Center
             const adminCenter = document.getElementById('adminCommandCenter');
             if (adminCenter && !document.getElementById('adminSupportCfgBtn')) {
                 const cfgBtn = document.createElement('button');
@@ -2944,7 +2934,6 @@
                 adminCenter.appendChild(cfgBtn);
             }
 
-            // 2. Inject Customer Experience & Problem Report Card into Main Dashboard View
             const mainView = document.getElementById('mainDashboardView');
             if (mainView && !document.getElementById('customerSupportCard')) {
                 const savedPhone = localStorage.getItem('waterIoT_custPhone') || '';
@@ -3000,7 +2989,6 @@
                 renderLocalSupportHistory();
             }
 
-            // Show Customer Support Card only for Customers (hide in Admin view)
             const cardEl = document.getElementById('customerSupportCard');
             if (cardEl) {
                 cardEl.style.display = isUserAdmin() ? 'none' : 'block';
@@ -3086,7 +3074,6 @@
                 return;
             }
 
-            // Save customer contact info locally on their phone so they never have to retype it
             localStorage.setItem('waterIoT_custPhone', custPhone);
             localStorage.setItem('waterIoT_custGmail', custGmail);
 
@@ -3117,7 +3104,6 @@
             ];
             const fullTicketText = reportLines.join("\n");
 
-            // Save a local copy in customer's phone browser memory (0 bytes of Firebase storage used)
             try {
                 const hist = JSON.parse(localStorage.getItem('waterIoT_supportHistory') || '[]');
                 hist.unshift({
@@ -3140,15 +3126,19 @@
                 return;
             }
 
-            // Default Method C: Direct WhatsApp Dispatch to Dynamic Admin Number (+916290169557)
             let cleanAdminPhone = String(window.adminSupportPhone || "+916290169557").replace(/\D/g, '');
             if (cleanAdminPhone.length === 10) cleanAdminPhone = "91" + cleanAdminPhone;
 
             const waUrl = `https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(fullTicketText)}`;
-            window.open(waUrl, '_blank');
+
+            // Bridge to MIT App Inventor WebViewString so the app opens WhatsApp natively
+            if (window.AppInventor && window.AppInventor.setWebViewString) {
+                window.AppInventor.setWebViewString(waUrl);
+            } else {
+                window.open(waUrl, '_blank');
+            }
         }
 
-        // --- DYNAMIC ADMIN SUPPORT CONTACT CONFIGURER (CHANGE WHATSAPP OR GMAIL ANYTIME) ---
         async function configureAdminSupportContact() {
             const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to update Support WhatsApp / Gmail:", true);
             if (pin !== window.adminPin) {
@@ -3173,7 +3163,8 @@
             }
 
             try {
-                await database.ref('/AdminConfig/SupportContact').set({
+                const workerDb = await getHardwareWorkerDb();
+                await workerDb.ref('/AdminConfig/SupportContact').set({
                     whatsapp: window.adminSupportPhone,
                     email: window.adminSupportEmail
                 });
@@ -4170,7 +4161,7 @@
             }
             return model;
         }
-        // === END OF SUBPART ALPHA (PASTE SUBPART BETA IMMEDIATELY BELOW THIS LINE) ===
+        // === END OF SUBPART ALPHA ===
     // === START OF SUBPART BETA (PASTE IMMEDIATELY BELOW SUBPART ALPHA) ===
 
         const firebaseConfig = {
@@ -4204,12 +4195,100 @@
         let globalScannerTimer = null; 
         let linkedDevicesRef = null;
 
+        // --- DYNAMIC APP NOTIFICATION SOUND PRESETS & STATE ---
+        window.SOUND_PRESETS = {
+            "1": { name: "Classic Digital Ring", url: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" },
+            "2": { name: "Urgent Beep Alert", url: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg" },
+            "3": { name: "Mechanical Bell Ring", url: "https://actions.google.com/sounds/v1/alarms/mechanical_clock_ring.ogg" },
+            "4": { name: "Bugle Call Chime", url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" },
+            "5": { name: "Spaceship Alarm Siren", url: "https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg" }
+        };
+        window.dynamicSoundUrl = localStorage.getItem('waterIoT_dynamicSoundUrl') || window.SOUND_PRESETS["1"].url;
+        window.dynamicSoundName = localStorage.getItem('waterIoT_dynamicSoundName') || window.SOUND_PRESETS["1"].name;
+        window.lastAlertSoundTime = 0;
+
         // Restore cached dynamic Admin Support Contact if available
         if (localStorage.getItem('waterIoT_adminPhone')) {
             window.adminSupportPhone = localStorage.getItem('waterIoT_adminPhone');
         }
         if (localStorage.getItem('waterIoT_adminEmail')) {
             window.adminSupportEmail = localStorage.getItem('waterIoT_adminEmail');
+        }
+
+        // --- TRIGGER DYNAMIC NOTIFICATION SOUND IN APP (Player1) & WEB ---
+        function triggerAppNotificationSound(forcePlay = false) {
+            const now = Date.now();
+            if (!forcePlay && (now - window.lastAlertSoundTime < 4000)) return;
+            window.lastAlertSoundTime = now;
+
+            const baseSoundUrl = window.dynamicSoundUrl || window.SOUND_PRESETS["1"].url;
+            const sep = baseSoundUrl.includes('?') ? '&' : '?';
+            // Append timestamp so MIT App Inventor WebViewStringChanged triggers every single time
+            const uniqueSoundUrl = `${baseSoundUrl}${sep}ring=${now}`;
+
+            // 1. Send https:// sound link to MIT App Inventor Player1 via WebViewStringChanged
+            try {
+                if (window.AppInventor && window.AppInventor.setWebViewString) {
+                    window.AppInventor.setWebViewString(uniqueSoundUrl);
+                }
+            } catch (e) {}
+
+            // 2. Also play via HTML5 Audio for mobile/desktop browsers
+            try {
+                const audio = new Audio(baseSoundUrl);
+                audio.volume = 1.0;
+                audio.play().catch(() => {});
+            } catch (e) {}
+        }
+
+        // --- ADMIN DYNAMIC RINGTONE / SOUND CONFIGURER ---
+        async function configureDynamicAppSound() {
+            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to change the App Notification Sound:", true);
+            if (pin !== window.adminPin) {
+                await customAlert("❌ Access Denied: Incorrect Security PIN.");
+                return;
+            }
+
+            const choice = await customPrompt(
+                `🔔 DYNAMIC APP RINGTONE SELECTOR\nCurrent: ${window.dynamicSoundName}\n\n` +
+                `Type 1 to 5 for a built-in ringtone, OR paste any direct https:// .mp3 / .ogg link:\n` +
+                `1 = Classic Digital Ring\n` +
+                `2 = Urgent Beep Alert\n` +
+                `3 = Mechanical Bell Ring\n` +
+                `4 = Bugle Call Chime\n` +
+                `5 = Spaceship Alarm Siren`,
+                false
+            );
+
+            if (!choice || choice.trim() === "") return;
+            const cleanChoice = choice.trim();
+
+            if (window.SOUND_PRESETS[cleanChoice]) {
+                window.dynamicSoundUrl = window.SOUND_PRESETS[cleanChoice].url;
+                window.dynamicSoundName = window.SOUND_PRESETS[cleanChoice].name;
+            } else if (cleanChoice.startsWith("http://") || cleanChoice.startsWith("https://")) {
+                window.dynamicSoundUrl = cleanChoice;
+                window.dynamicSoundName = "Custom Sound URL";
+            } else {
+                await customAlert("⚠️ Invalid selection. Enter 1–5 or a valid https:// audio link.");
+                return;
+            }
+
+            localStorage.setItem('waterIoT_dynamicSoundUrl', window.dynamicSoundUrl);
+            localStorage.setItem('waterIoT_dynamicSoundName', window.dynamicSoundName);
+
+            try {
+                const workerDb = await getHardwareWorkerDb();
+                await workerDb.ref('/AdminConfig/NotificationSound').set({
+                    url: window.dynamicSoundUrl,
+                    name: window.dynamicSoundName,
+                    updatedAt: Date.now()
+                });
+            } catch (e) {}
+
+            // Test-ring the newly selected sound immediately inside the app!
+            triggerAppNotificationSound(true);
+            await customAlert(`✅ App Notification Sound Updated & Tested!\n\n🔔 Active Tone: ${window.dynamicSoundName}`);
         }
 
         // Helper: Get authenticated Secondary Worker DB (has ESP32 hardware privileges on /Devices/{macId})
@@ -4224,8 +4303,19 @@
             }
         }
 
-        // Helper: Sync Dynamic Admin Support Phone & Gmail from Cloud
+        // Helper: Sync Dynamic Admin Support Contact & Dynamic Notification Sound from Cloud
         async function syncDynamicSupportContact() {
+            // Inject "🔔 Ringtone / Sound" button into Admin Command Center next to Support button
+            const adminCenter = document.getElementById('adminCommandCenter');
+            if (adminCenter && !document.getElementById('adminSoundCfgBtn')) {
+                const sndBtn = document.createElement('button');
+                sndBtn.id = 'adminSoundCfgBtn';
+                sndBtn.innerHTML = '🔔 Ringtone / Sound';
+                sndBtn.style.cssText = 'background: rgba(254, 202, 87, 0.15); border: 1px solid #feca57; color: #feca57; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 6px; margin-left: 6px;';
+                sndBtn.onclick = configureDynamicAppSound;
+                adminCenter.appendChild(sndBtn);
+            }
+
             try {
                 const workerDb = await getHardwareWorkerDb();
                 workerDb.ref('/AdminConfig/SupportContact').on('value', (snap) => {
@@ -4242,6 +4332,18 @@
                         const emailBtn = document.getElementById('custSupportEmailBtn');
                         if (emailBtn) {
                             emailBtn.style.display = (window.adminSupportEmail && window.adminSupportEmail.includes('@')) ? 'flex' : 'none';
+                        }
+                    }
+                });
+
+                workerDb.ref('/AdminConfig/NotificationSound').on('value', (snap) => {
+                    if (snap.exists() && snap.val()) {
+                        const sVal = snap.val();
+                        if (sVal.url && String(sVal.url).startsWith('http')) {
+                            window.dynamicSoundUrl = String(sVal.url).trim();
+                            window.dynamicSoundName = String(sVal.name || "Custom Sound").trim();
+                            localStorage.setItem('waterIoT_dynamicSoundUrl', window.dynamicSoundUrl);
+                            localStorage.setItem('waterIoT_dynamicSoundName', window.dynamicSoundName);
                         }
                     }
                 });
@@ -5061,7 +5163,6 @@
                 const displayEmail = localStorage.getItem('waterIoT_displayEmail_' + user.uid) || user.email;
                 document.getElementById('loggedInEmail').innerText = displayEmail;
 
-                // Pre-fill customer Gmail in support card if they logged in with a real Gmail address
                 const gmailField = document.getElementById('custSupportGmail');
                 if (gmailField && !gmailField.value && displayEmail && !displayEmail.toLowerCase().endsWith('@water.com')) {
                     gmailField.value = displayEmail;
@@ -5294,12 +5395,14 @@
                     let msg = adminInboxData[pendingOtaDevice].message || "";
                     
                     if (status.includes("OTA SUCCESS")) {
+                        triggerAppNotificationSound(true);
                         await customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
                         pendingOtaDevice = null; 
                         isOtaMode = false;
                         document.getElementById('offlineOverlay').style.display = 'none';
                         document.getElementById('connStatus').innerText = "ONLINE";
                     } else if (status.includes("ERROR") || status.includes("Failed")) {
+                        triggerAppNotificationSound(true);
                         await customAlert("❌❌ OTA UPLOAD FAILED! ❌❌\n\nDevice: " + pendingOtaDevice + "\n\n" + msg);
                         pendingOtaDevice = null; 
                         isOtaMode = false;
@@ -5432,6 +5535,9 @@
 
             const errorBanner = document.getElementById('criticalErrorBanner');
             if(currentConnectedDeviceFaultMessage) {
+                if (errorBanner.style.display === "none") {
+                    triggerAppNotificationSound();
+                }
                 errorBanner.style.display = "block";
                 errorBanner.innerHTML = `⚠️ <strong>CRITICAL LIVE ALERT:</strong><br>• ${currentConnectedDeviceFaultMessage}`;
             } else {
@@ -5911,6 +6017,8 @@
                             popup.style.borderColor = usageColor;
                             popup.innerHTML = popupMsg;
                             popup.classList.add('show');
+                            // Ring the dynamic notification sound in the app when usage popup appears
+                            triggerAppNotificationSound();
                             setTimeout(() => popup.classList.remove('show'), 6000);
                         }, 3000);
                     }
@@ -6244,6 +6352,7 @@
                         
                         if(data.log.includes("[OTA SUCCESS]")) {
                             if (pendingOtaDevice === currentDeviceId || isOtaMode) {
+                                triggerAppNotificationSound(true);
                                 customAlert("⭐⭐⭐ OTA UPLOAD SUCCESSFUL! ⭐⭐⭐\n\nDevice: " + currentDeviceId + "\n\nNew firmware downloaded and installed. Rebooting!");
                                 pendingOtaDevice = null;
                                 isOtaMode = false;
@@ -6295,11 +6404,15 @@
 
                     parseAndUpdateSolarBms(state);
 
+                    const wasFirstLoad = window.isFirstStateLoad;
                     if (window.isFirstStateLoad) {
                         window.isFirstStateLoad = false;
                     }
 
                     if (state.pumpActive && isCurrentlyOnline) {
+                        if (!wasFirstLoad && currentPumpState === false) {
+                            triggerAppNotificationSound();
+                        }
                         let espRunSecs = state.pumpRuntimeSecs || 0;
                         if (espRunSecs >= window.maxRunSecs) {
                             window.maxRunSecs = espRunSecs;
@@ -6320,6 +6433,7 @@
                         }
                         
                         if (currentPumpState === true) {
+                            triggerAppNotificationSound();
                             window.lastSavedRuntime = window.maxRunSecs;
                             let instantTime = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, month: 'short', day: 'numeric' });
                             window.lastSavedRunDate = "Ended: " + instantTime;
@@ -6339,6 +6453,9 @@
                             
                             if(isCustomer) {
                                 const errBanner = document.getElementById('criticalErrorBanner');
+                                if (errBanner.style.display === "none") {
+                                    triggerAppNotificationSound();
+                                }
                                 errBanner.style.display = "block";
                                 errBanner.innerHTML = `⚠️ <strong>SYSTEM ALERT:</strong><br>• The machine has lost connection with the tank sensor. Auto-pump is locked for safety.`;
                             }
