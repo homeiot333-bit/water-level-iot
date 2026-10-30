@@ -2114,19 +2114,24 @@
         window.isAutoLinking = false;
         window.attemptedUidSync = {};
 
-        // --- DYNAMIC ADMIN SUPPORT CONTACT & LOGO (EDITABLE FROM ADMIN PORTAL) ---
+        // --- DYNAMIC ADMIN SUPPORT CONTACT & OFFICIAL GITHUB RAW LOGO ---
+        window.DEFAULT_COMPANY_LOGO_URL = "https://github.com/homeiot333-bit/water-level-iot/blob/main/ASK%20IoT%20Ogo.png?raw=true";
         window.adminSupportPhone = "+916290169557";
         window.adminSupportEmail = "";
-        window.adminCompanyLogoUrl = "https://homeiot333-bit.github.io/water-level-iot/ASKIoTOgo.png";
+        window.adminCompanyLogoUrl = window.DEFAULT_COMPANY_LOGO_URL;
         window.selectedSupportType = "problem";
         window.selectedSupportStars = 5;
+
+        // --- ONLINE NOTIFICATION GATEKEEPER QUEUE (WAITS UNTIL MACHINE OFFLINE FINISHES) ---
+        window.onlineNotificationQueue = [];
 
         // --- DYNAMIC APP UPDATE CONFIG (EDITABLE FROM ADMIN PORTAL) ---
         window.appUpdateConfig = {
             version: "v2.0",
             apkUrl: "",
             notes: "Latest ASK IoT Smart Water & Solar App with live alerts.",
-            enabled: true
+            enabled: true,
+            updatedAt: 0
         };
 
         // --- DYNAMIC TANK STUDIO CONFIG (EDITABLE FROM ADMIN PORTAL) ---
@@ -2206,6 +2211,33 @@
             rawLine: ""
         };
 
+        // --- INJECT OPENGRAPH COMPANY LOGO METADATA FOR WHATSAPP LINK PREVIEW CARDS ---
+        function injectCompanyLogoOpenGraph() {
+            try {
+                const head = document.head || document.getElementsByTagName('head')[0];
+                if (!head) return;
+                const logoUrl = window.adminCompanyLogoUrl || window.DEFAULT_COMPANY_LOGO_URL;
+
+                const metaDefs = [
+                    { prop: 'og:title', content: 'ASK IoT SOLUTIONS - Smart Water & Solar Portal' },
+                    { prop: 'og:description', content: 'Official Customer Experience & Live Device Diagnostics' },
+                    { prop: 'og:image', content: logoUrl },
+                    { prop: 'og:image:secure_url', content: logoUrl },
+                    { prop: 'og:type', content: 'website' }
+                ];
+
+                metaDefs.forEach(m => {
+                    let el = head.querySelector(`meta[property="${m.prop}"]`);
+                    if (!el) {
+                        el = document.createElement('meta');
+                        el.setAttribute('property', m.prop);
+                        head.appendChild(el);
+                    }
+                    el.setAttribute('content', m.content);
+                });
+            } catch (e) {}
+        }
+
         // --- ROLE CHECKER: TRUE ONLY FOR ADMIN PORTAL ---
         function isUserAdmin() {
             try {
@@ -2214,6 +2246,49 @@
             } catch (e) {
                 return false;
             }
+        }
+
+        // --- ONLINE GATEKEEPER: BLOCKS POPUPS WHILE MACHINE IS OFFLINE ON STARTUP ---
+        function isMachineConfirmedOnline() {
+            if (isUserAdmin()) return true;
+            const overlay = document.getElementById('offlineOverlay');
+            const isOverlayVisible = overlay && overlay.style.display !== 'none' && overlay.style.display !== '';
+            if (isOverlayVisible) return false;
+            return Boolean(window.liveHeartbeatReceived && lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
+        }
+
+        function enqueueOrRunWhenOnline(taskId, fn, delayMs = 600) {
+            if (isMachineConfirmedOnline()) {
+                setTimeout(() => {
+                    if (isMachineConfirmedOnline()) {
+                        try { fn(); } catch (e) {}
+                    } else {
+                        window.onlineNotificationQueue = window.onlineNotificationQueue.filter(t => t.id !== taskId);
+                        window.onlineNotificationQueue.push({ id: taskId, fn: fn, delay: delayMs });
+                    }
+                }, delayMs);
+                return;
+            }
+            window.onlineNotificationQueue = window.onlineNotificationQueue.filter(t => t.id !== taskId);
+            window.onlineNotificationQueue.push({ id: taskId, fn: fn, delay: delayMs });
+        }
+
+        function flushOnlineNotificationQueue() {
+            if (!isMachineConfirmedOnline()) return;
+            if (!window.onlineNotificationQueue || window.onlineNotificationQueue.length === 0) return;
+
+            const pending = [...window.onlineNotificationQueue];
+            window.onlineNotificationQueue = [];
+
+            pending.forEach((item, index) => {
+                setTimeout(() => {
+                    if (isMachineConfirmedOnline()) {
+                        try { item.fn(); } catch (e) {}
+                    } else {
+                        window.onlineNotificationQueue.push(item);
+                    }
+                }, (item.delay || 500) + (index * 2800));
+            });
         }
 
         // --- SMARTPHONE 4-BAR SIGNAL STRENGTH RENDERER (UPDATES TANK TOP-RIGHT & TELEMETRY) ---
@@ -2298,7 +2373,6 @@
                 tankEl.style.setProperty('border', '2px solid rgba(254, 202, 87, 0.65)', 'important');
                 tankEl.style.setProperty('box-shadow', '0 0 26px rgba(254, 202, 87, 0.32), inset 0 0 20px rgba(254, 202, 87, 0.14)', 'important');
             } else {
-                // Default 'none': Clean border, zero outer glow box
                 tankEl.style.setProperty('border', '1.5px solid rgba(255, 255, 255, 0.22)', 'important');
                 tankEl.style.setProperty('box-shadow', 'none', 'important');
             }
@@ -2357,7 +2431,6 @@
                     pctEl.style.setProperty('border', 'none', 'important');
                     pctEl.style.setProperty('text-shadow', '0 0 8px rgba(0, 210, 255, 0.7)', 'important');
                 } else {
-                    // Default 'clean': Zero black shadow, zero dark box
                     pctEl.style.setProperty('background', 'transparent', 'important');
                     pctEl.style.setProperty('padding', '0', 'important');
                     pctEl.style.setProperty('border', 'none', 'important');
@@ -2396,7 +2469,6 @@
                 tankCard.insertBefore(headerRow, tankEl);
             }
 
-            // Inject Seamless Dual-Layer SVG Sine Wave inside #waterLevelFill (Zero Wave Cutting)
             const fillEl = document.getElementById('waterLevelFill');
             if (fillEl && !fillEl.dataset.waveUpgraded) {
                 fillEl.dataset.waveUpgraded = "true";
@@ -2593,6 +2665,8 @@
 
         // --- NEXUS SOLAR NODE UI, CLEAN WAVE TANK, APP UPDATE & SUPPORT INITIALIZER ---
         function initPremiumGlassBmsUI() {
+            injectCompanyLogoOpenGraph();
+
             if (!document.getElementById('premiumGlassBmsStyles')) {
                 const style = document.createElement('style');
                 style.id = 'premiumGlassBmsStyles';
@@ -2747,7 +2821,6 @@
                         pointer-events: none;
                         z-index: 4;
                     }
-                    /* Clean Water Percentage in Middle of Tank (Zero Black Shadow or Box) */
                     #waterLevelText {
                         position: absolute !important;
                         top: 50% !important;
@@ -3553,6 +3626,17 @@
                         gap: 8px;
                         box-shadow: 0 4px 15px rgba(46, 213, 115, 0.35);
                     }
+                    .new-update-pulse-badge {
+                        background: #ff4757;
+                        color: #fff;
+                        font-size: 9.5px;
+                        font-weight: 900;
+                        padding: 2px 7px;
+                        border-radius: 999px;
+                        margin-left: 6px;
+                        animation: sigCritBlink 0.8s ease-in-out infinite alternate;
+                        display: none;
+                    }
 
                     /* Interactive Admin Sound Studio & Tank Studio Modals */
                     .sound-studio-overlay {
@@ -3631,7 +3715,7 @@
                         <div class="nexus-main-title">NEXUS SOLAR NODE</div>
                         <div class="nexus-sub-row">
                             <span class="nexus-cyan-line"></span>
-                            <span class="nexus-sub-text">Powered by ASK Iot solutions.</span>
+                            <span class="nexus-sub-text">Powered by ASK IoT Solutions</span>
                             <span class="nexus-cyan-line"></span>
                         </div>
                         <div class="nexus-warm-glow"></div>
@@ -3728,7 +3812,7 @@
             organizeCustomerPortalLayout();
         }
 
-        // --- DYNAMIC APP UPDATE SECTION FOR CUSTOMER PORTAL (DOWNLOAD LINK + QR SCAN) ---
+        // --- DYNAMIC APP UPDATE SECTION FOR CUSTOMER PORTAL (INSTANT CLOUD SYNC + APK + QR) ---
         function initCustomerAppUpdateCard() {
             const mainView = document.getElementById('mainDashboardView');
             if (mainView && !document.getElementById('customerAppUpdateCard')) {
@@ -3740,20 +3824,27 @@
                 updCard.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <div style="width:38px; height:38px; border-radius:10px; background:rgba(254,202,87,0.14); border:1px solid rgba(254,202,87,0.4); display:flex; align-items:center; justify-content:center; font-size:20px;">📲</div>
+                            <img id="custUpdateLogoImg" src="${window.adminCompanyLogoUrl}" onerror="this.style.display='none'" alt="ASK IoT Logo" style="width:38px; height:38px; border-radius:10px; object-fit:contain; background:rgba(254,202,87,0.12); padding:3px; border:1px solid rgba(254,202,87,0.4);">
                             <div>
-                                <div style="font-size:14.5px; font-weight:900; color:#fff;">App Update Center <span id="custAppVerBadge" style="background:#feca57; color:#000; font-size:10px; font-weight:900; padding:2px 7px; border-radius:999px; margin-left:4px;">v2.0</span></div>
-                                <div id="custAppUpdateNotes" style="font-size:11px; color:#94a3b8; margin-top:2px;">Download latest mobile app or scan QR</div>
+                                <div style="font-size:14.5px; font-weight:900; color:#fff; display:flex; align-items:center; flex-wrap:wrap;">
+                                    <span>App Update Center</span>
+                                    <span id="custAppVerBadge" style="background:#feca57; color:#000; font-size:10px; font-weight:900; padding:2px 7px; border-radius:999px; margin-left:6px;">v2.0</span>
+                                    <span id="custAppNewPulseBadge" class="new-update-pulse-badge">NEW UPDATE</span>
+                                </div>
+                                <div id="custAppUpdateNotes" style="font-size:11px; color:#94a3b8; margin-top:2px;">Instant in-app update (no uninstall needed) or APK download</div>
                             </div>
                         </div>
                     </div>
 
                     <div style="display:flex; gap:8px; margin-top:12px;">
-                        <button type="button" class="support-wa-btn" style="flex:1; background:linear-gradient(90deg, #feca57, #ff9f43); color:#000; padding:10px;" onclick="downloadLatestAppApk()">
-                            <span>⬇️ Download App</span>
+                        <button type="button" class="support-wa-btn" style="flex:1.2; background:linear-gradient(90deg, #00d2ff, #00b4ff); color:#000; padding:10px; font-size:12.5px;" onclick="triggerInstantCloudUpdate()">
+                            <span>⚡ Instant Update</span>
                         </button>
-                        <button type="button" class="sound-play-preview-btn" style="padding:10px 14px;" onclick="toggleCustomerAppQrBox()">
-                            <span>📷 QR Scan</span>
+                        <button type="button" class="support-wa-btn" style="flex:1; background:linear-gradient(90deg, #feca57, #ff9f43); color:#000; padding:10px; font-size:12.5px;" onclick="downloadLatestAppApk()">
+                            <span>⬇️ APK File</span>
+                        </button>
+                        <button type="button" class="sound-play-preview-btn" style="padding:10px 11px;" onclick="toggleCustomerAppQrBox()">
+                            <span>📷 QR</span>
                         </button>
                     </div>
 
@@ -3782,12 +3873,22 @@
             card.style.display = 'block';
 
             const verBadge = document.getElementById('custAppVerBadge');
+            const pulseBadge = document.getElementById('custAppNewPulseBadge');
             const notesEl = document.getElementById('custAppUpdateNotes');
             const qrImg = document.getElementById('custAppQrImg');
             const rawTxt = document.getElementById('custAppRawLinkText');
+            const updLogo = document.getElementById('custUpdateLogoImg');
 
-            if (verBadge) verBadge.innerText = cfg.version || "v2.0";
-            if (notesEl) notesEl.innerText = cfg.notes || "Get the latest ASK IoT Solutions Android App.";
+            if (updLogo) updLogo.src = window.adminCompanyLogoUrl || window.DEFAULT_COMPANY_LOGO_URL;
+
+            const currentVer = cfg.version || "v2.0";
+            if (verBadge) verBadge.innerText = currentVer;
+            if (notesEl) notesEl.innerText = cfg.notes || "Get the latest ASK IoT Solutions update.";
+
+            const lastAckVer = localStorage.getItem('waterIoT_ackAppVer') || "v2.0";
+            if (pulseBadge) {
+                pulseBadge.style.display = (currentVer !== lastAckVer) ? 'inline-block' : 'none';
+            }
 
             const targetUrl = (cfg.apkUrl && cfg.apkUrl.trim() !== "")
                 ? cfg.apkUrl.trim()
@@ -3797,8 +3898,23 @@
                 qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=8&data=" + encodeURIComponent(targetUrl);
             }
             if (rawTxt) {
-                rawTxt.innerText = (cfg.apkUrl && cfg.apkUrl.trim() !== "") ? targetUrl : "Link will be active once Admin publishes an update.";
+                rawTxt.innerText = (cfg.apkUrl && cfg.apkUrl.trim() !== "") ? targetUrl : "Tap '⚡ Instant Update' to apply the latest cloud version immediately.";
             }
+        }
+
+        // Instant In-App Cloud Update (Updates app features in 1 second WITHOUT needing APK uninstall/reinstall)
+        async function triggerInstantCloudUpdate() {
+            const cfg = window.appUpdateConfig || {};
+            const ver = cfg.version || "v2.0";
+            localStorage.setItem('waterIoT_ackAppVer', ver);
+            localStorage.setItem('waterIoT_notifiedAppVer', ver);
+
+            const pulseBadge = document.getElementById('custAppNewPulseBadge');
+            if (pulseBadge) pulseBadge.style.display = 'none';
+
+            await customAlert(`⚡ Applying ASK IoT Solutions Update (${ver})...\n\nYour app will now refresh with the newest features without needing to uninstall your app!`);
+            const cleanBase = window.location.href.split('?')[0].split('#')[0];
+            window.location.replace(cleanBase + '?app_ver=' + encodeURIComponent(ver) + '_' + Date.now());
         }
 
         function toggleCustomerAppQrBox() {
@@ -3810,12 +3926,18 @@
 
         async function downloadLatestAppApk() {
             const cfg = window.appUpdateConfig || {};
+            const ver = cfg.version || "v2.0";
+            localStorage.setItem('waterIoT_ackAppVer', ver);
+            localStorage.setItem('waterIoT_notifiedAppVer', ver);
+
+            const pulseBadge = document.getElementById('custAppNewPulseBadge');
+            if (pulseBadge) pulseBadge.style.display = 'none';
+
             if (!cfg.apkUrl || !cfg.apkUrl.trim().startsWith("http")) {
-                await customAlert("ℹ️ You are already using the latest version! When a new APK update link is published by Admin, you can download it right here.");
+                await triggerInstantCloudUpdate();
                 return;
             }
             const cleanUrl = cfg.apkUrl.trim();
-            // Append #wa.me so MIT App Inventor's existing ActivityStarter1 block opens the external browser to download the APK!
             const bridgeUrl = cleanUrl.includes('#') ? cleanUrl : (cleanUrl + "#wa.me");
             if (window.AppInventor && window.AppInventor.setWebViewString) {
                 window.AppInventor.setWebViewString(bridgeUrl);
@@ -3824,7 +3946,7 @@
             }
         }
 
-        // --- METHOD C: CUSTOMER EXPERIENCE & SUPPORT CARD WITH COMPANY LOGO ---
+        // --- METHOD C: CUSTOMER EXPERIENCE & SUPPORT CARD WITH OFFICIAL GITHUB LOGO ---
         function initCustomerSupportCard() {
             const adminCenter = document.getElementById('adminCommandCenter');
             if (adminCenter && !document.getElementById('adminSupportCfgBtn')) {
@@ -3847,10 +3969,10 @@
                 supCard.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <img id="custSupportLogoImg" src="${window.adminCompanyLogoUrl}" onerror="this.style.display='none'" alt="ASK IoT Logo" style="width:36px; height:36px; border-radius:8px; object-fit:contain; background:rgba(255,255,255,0.06); padding:2px; border:1px solid rgba(0,210,255,0.3);">
+                            <img id="custSupportLogoImg" src="${window.adminCompanyLogoUrl}" onerror="this.style.display='none'" alt="ASK IoT Logo" style="width:40px; height:40px; border-radius:10px; object-fit:contain; background:rgba(255,255,255,0.08); padding:3px; border:1px solid rgba(0,210,255,0.35);">
                             <div>
                                 <div style="font-size:15px; font-weight:800; color:#fff;">💬 Experience & Support</div>
-                                <div style="font-size:11px; color:#89a;">ASK IoT Solutions • Direct WhatsApp Desk</div>
+                                <div style="font-size:11px; color:#00d2ff; font-weight:700;">ASK IoT SOLUTIONS</div>
                             </div>
                         </div>
                         <span style="font-size:20px;">🛠️</span>
@@ -3878,7 +4000,7 @@
 
                     <div style="display:flex; gap:8px;">
                         <button type="button" class="support-wa-btn" onclick="submitCustomerSupportTicket('whatsapp')">
-                            <span>📲 Send via WhatsApp (with Logo)</span>
+                            <span>📲 Send via WhatsApp</span>
                         </button>
                         <button type="button" id="custSupportEmailBtn" class="support-wa-btn" style="display:none; background:linear-gradient(90deg, #00b4ff, #00d2ff);" onclick="submitCustomerSupportTicket('email')">
                             <span>✉️ Email</span>
@@ -3984,7 +4106,7 @@
 
             const isProblem = (window.selectedSupportType === 'problem');
             const starStr = "⭐".repeat(window.selectedSupportStars || 5);
-            const logoUrl = (window.adminCompanyLogoUrl || "https://homeiot333-bit.github.io/water-level-iot/ASKIoTOgo.png").trim();
+            const logoUrl = (window.adminCompanyLogoUrl || window.DEFAULT_COMPANY_LOGO_URL).trim();
 
             const headerTitle = isProblem
                 ? "🛠️ *DEVICE PROBLEM REPORT*"
@@ -3996,10 +4118,9 @@
             const sigQual = document.getElementById('txtSignalCustomer') ? document.getElementById('txtSignalCustomer').innerText.trim() : "N/A";
             const battLvl = document.getElementById('bmsBatteryPercentText') ? document.getElementById('bmsBatteryPercentText').innerText.trim() : "--%";
 
-            // Placing the Company Logo URL on Line 1 triggers WhatsApp's Rich Image Preview Banner at the top of the message bubble
+            // Cleanly formatted ticket (No ® symbol; uses official GitHub raw logo URL)
             const reportLines = [
-                logoUrl,
-                "🟦⚡ *ASK IoT SOLUTIONS®* ⚡🟦",
+                "🟦⚡ *ASK IoT SOLUTIONS* ⚡🟦",
                 headerTitle,
                 "━━━━━━━━━━━━━━━━━━━━",
                 `👤 *Client:* ${custNameRaw || "Valued Customer"}`,
@@ -4010,7 +4131,9 @@
                 `📡 *Status:* Signal: ${sigQual} | Water: ${waterLvl} | Batt: ${battLvl} | WiFi: ${window.activeHotspotName || "--"}`,
                 "━━━━━━━━━━━━━━━━━━━━",
                 `💬 *Customer Message:*`,
-                custMsg
+                custMsg,
+                "━━━━━━━━━━━━━━━━━━━━",
+                `🖼️ *Brand Logo:* ${logoUrl}`
             ];
             const fullTicketText = reportLines.join("\n");
 
@@ -4072,7 +4195,7 @@
             }
 
             const newLogo = await customPrompt(
-                `🖼️ COMPANY LOGO IMAGE URL (Attached to WhatsApp Messages)\nCurrent: ${window.adminCompanyLogoUrl}\n\nPaste direct https:// link to your company logo image (or leave blank to keep current):`,
+                `🖼️ COMPANY LOGO IMAGE URL\nCurrent: ${window.adminCompanyLogoUrl}\n\nPaste direct https:// link to your company logo image (or leave blank to keep current):`,
                 false
             );
             if (newLogo !== null && newLogo.trim().startsWith("http")) {
@@ -4092,10 +4215,17 @@
             localStorage.setItem('waterIoT_adminEmail', window.adminSupportEmail);
             localStorage.setItem('waterIoT_adminLogo', window.adminCompanyLogoUrl);
 
+            injectCompanyLogoOpenGraph();
+
             const logoImg = document.getElementById('custSupportLogoImg');
             if (logoImg) {
                 logoImg.src = window.adminCompanyLogoUrl;
                 logoImg.style.display = 'block';
+            }
+            const updLogoImg = document.getElementById('custUpdateLogoImg');
+            if (updLogoImg) {
+                updLogoImg.src = window.adminCompanyLogoUrl;
+                updLogoImg.style.display = 'block';
             }
 
             const emailBtn = document.getElementById('custSupportEmailBtn');
@@ -4103,7 +4233,7 @@
                 emailBtn.style.display = (window.adminSupportEmail && window.adminSupportEmail.includes('@')) ? 'flex' : 'none';
             }
 
-            await customAlert(`✅ Support & Logo Updated!\n\n📲 WhatsApp: ${window.adminSupportPhone}\n📧 Gmail: ${window.adminSupportEmail || "WhatsApp Only"}\n🖼️ Logo attached to WhatsApp tickets.`);
+            await customAlert(`✅ Support & Logo Updated!\n\n📲 WhatsApp: ${window.adminSupportPhone}\n📧 Gmail: ${window.adminSupportEmail || "WhatsApp Only"}`);
         }
 
         // True Resting/Discharging Voltage-to-SOC (%) Curve
@@ -4375,7 +4505,7 @@
             }
 
             const hasValidPowerReading = (c.bVolt > 0.5 || c.sVolt > 0.5 || c.bCurrMa > 0);
-            if (hasValidPowerReading) {
+            if (hasValidPowerReading && isMachineConfirmedOnline()) {
                 if (window.lastKnownSolarChargeState === null) {
                     window.lastKnownSolarChargeState = c.isCharging;
                 } else if (c.isCharging !== window.lastKnownSolarChargeState) {
@@ -5141,7 +5271,7 @@
         let globalScannerTimer = null; 
         let linkedDevicesRef = null;
 
-        // --- 7-EVENT DEFAULT NOTIFICATION SOUND MAP (SHORT 1-2.4 SECOND CHIMES) ---
+        // --- 8-EVENT DEFAULT NOTIFICATION SOUND MAP (SHORT 1-2.4 SECOND CHIMES) ---
         window.EVENT_SOUND_MAP = {
             "welcome": {
                 label: "👋 Welcome Notification",
@@ -5177,6 +5307,11 @@
                 label: "🌙 Solar Charging OFF",
                 url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg",
                 maxDurationMs: 1500
+            },
+            "app_update": {
+                label: "📲 New App Update Available",
+                url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg",
+                maxDurationMs: 2200
             }
         };
 
@@ -5227,10 +5362,17 @@
             window.adminSupportEmail = localStorage.getItem('waterIoT_adminEmail');
         }
         if (localStorage.getItem('waterIoT_adminLogo')) {
-            window.adminCompanyLogoUrl = localStorage.getItem('waterIoT_adminLogo');
+            const cachedLogo = localStorage.getItem('waterIoT_adminLogo');
+            // Auto-upgrade old broken logo filename to official GitHub raw logo URL
+            if (cachedLogo.includes('ASKIoTOgo.png') && !cachedLogo.includes('raw=true')) {
+                window.adminCompanyLogoUrl = window.DEFAULT_COMPANY_LOGO_URL;
+                localStorage.setItem('waterIoT_adminLogo', window.DEFAULT_COMPANY_LOGO_URL);
+            } else {
+                window.adminCompanyLogoUrl = cachedLogo;
+            }
         }
 
-        // --- SYNTHESIZE CRISP WEB-AUDIO TONE (7 DISTINCT EVENT MELODIES) ---
+        // --- SYNTHESIZE CRISP WEB-AUDIO TONE (8 DISTINCT EVENT MELODIES) ---
         function playCrispWebTone(eventType) {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -5239,13 +5381,14 @@
                 const now = ctx.currentTime;
 
                 const notes = {
-                    "welcome":   [{ f: 523.25, t: 0.0, d: 0.14 }, { f: 659.25, t: 0.15, d: 0.14 }, { f: 783.99, t: 0.30, d: 0.25 }],
-                    "usage":     [{ f: 587.33, t: 0.0, d: 0.13 }, { f: 880.00, t: 0.14, d: 0.22 }],
-                    "pump_on":   [{ f: 440.00, t: 0.0, d: 0.14 }, { f: 554.37, t: 0.15, d: 0.14 }, { f: 659.25, t: 0.30, d: 0.26 }],
-                    "pump_off":  [{ f: 659.25, t: 0.0, d: 0.16 }, { f: 440.00, t: 0.18, d: 0.26 }],
-                    "tank_full": [{ f: 523.25, t: 0.0, d: 0.13 }, { f: 659.25, t: 0.14, d: 0.13 }, { f: 783.99, t: 0.28, d: 0.13 }, { f: 1046.50, t: 0.42, d: 0.36 }],
-                    "solar_on":  [{ f: 587.33, t: 0.0, d: 0.12 }, { f: 739.99, t: 0.13, d: 0.12 }, { f: 880.00, t: 0.26, d: 0.12 }, { f: 1174.66, t: 0.39, d: 0.30 }],
-                    "solar_off": [{ f: 880.00, t: 0.0, d: 0.15 }, { f: 659.25, t: 0.16, d: 0.15 }, { f: 523.25, t: 0.32, d: 0.26 }]
+                    "welcome":    [{ f: 523.25, t: 0.0, d: 0.14 }, { f: 659.25, t: 0.15, d: 0.14 }, { f: 783.99, t: 0.30, d: 0.25 }],
+                    "usage":      [{ f: 587.33, t: 0.0, d: 0.13 }, { f: 880.00, t: 0.14, d: 0.22 }],
+                    "pump_on":    [{ f: 440.00, t: 0.0, d: 0.14 }, { f: 554.37, t: 0.15, d: 0.14 }, { f: 659.25, t: 0.30, d: 0.26 }],
+                    "pump_off":   [{ f: 659.25, t: 0.0, d: 0.16 }, { f: 440.00, t: 0.18, d: 0.26 }],
+                    "tank_full":  [{ f: 523.25, t: 0.0, d: 0.13 }, { f: 659.25, t: 0.14, d: 0.13 }, { f: 783.99, t: 0.28, d: 0.13 }, { f: 1046.50, t: 0.42, d: 0.36 }],
+                    "solar_on":   [{ f: 587.33, t: 0.0, d: 0.12 }, { f: 739.99, t: 0.13, d: 0.12 }, { f: 880.00, t: 0.26, d: 0.12 }, { f: 1174.66, t: 0.39, d: 0.30 }],
+                    "solar_off":  [{ f: 880.00, t: 0.0, d: 0.15 }, { f: 659.25, t: 0.16, d: 0.15 }, { f: 523.25, t: 0.32, d: 0.26 }],
+                    "app_update": [{ f: 659.25, t: 0.0, d: 0.12 }, { f: 783.99, t: 0.13, d: 0.12 }, { f: 987.77, t: 0.26, d: 0.14 }, { f: 1318.51, t: 0.41, d: 0.35 }]
                 }[eventType] || [{ f: 659.25, t: 0.0, d: 0.20 }];
 
                 notes.forEach(n => {
@@ -5265,20 +5408,27 @@
             } catch (e) {}
         }
 
-        // --- SHOW COMPACT MOBILE NOTIFICATION BANNER (NEVER CUTS PHONE SCREEN) ---
+        // --- SHOW COMPACT BRANDED MOBILE NOTIFICATION BANNER (WITH COMPANY LOGO) ---
         function showSmartEventBanner(message, borderColor) {
             const popup = document.getElementById('usageSmsPopup');
             if (!popup) return;
+            const logoUrl = window.adminCompanyLogoUrl || window.DEFAULT_COMPANY_LOGO_URL;
             popup.style.borderColor = borderColor || "#00d2ff";
-            popup.innerHTML = message;
+            popup.innerHTML = `
+                <div style="display:inline-flex; align-items:center; justify-content:center; gap:8px;">
+                    <img src="${logoUrl}" onerror="this.style.display='none'" style="width:20px; height:20px; border-radius:5px; object-fit:contain; flex-shrink:0;">
+                    <span>${message}</span>
+                </div>
+            `;
             popup.classList.add('show');
             setTimeout(() => {
                 popup.classList.remove('show');
-            }, 4500);
+            }, 4600);
         }
 
         // --- SOLAR CHARGING ON / OFF TRANSITION HANDLER ---
         function handleSolarChargeTransition(isNowCharging) {
+            if (!isMachineConfirmedOnline()) return;
             if (isNowCharging) {
                 showSmartEventBanner("☀️ Solar Charging Active", "#2ed573");
                 triggerAppNotificationSound("solar_on");
@@ -5384,6 +5534,7 @@
                             <option value="tank_full">🎉 100% Tank Full Success</option>
                             <option value="solar_on">☀️ Solar Charging ON</option>
                             <option value="solar_off">🌙 Solar Charging OFF</option>
+                            <option value="app_update">📲 New App Update Available</option>
                         </select>
                         <button type="button" class="sound-play-preview-btn" onclick="previewCurrentEventAssignedSound()">▶️ Play Active</button>
                     </div>
@@ -5402,7 +5553,7 @@
                     </div>
 
                     <div style="display:flex; justify-content:space-between; gap:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
-                        <button type="button" class="eng-drawer-close-btn" style="flex:1;" onclick="resetAllEventSoundsInStudio()">🔄 Reset All 7 Events</button>
+                        <button type="button" class="eng-drawer-close-btn" style="flex:1;" onclick="resetAllEventSoundsInStudio()">🔄 Reset All 8 Events</button>
                         <button type="button" class="sound-play-preview-btn" style="flex:1;" onclick="closeAdminSoundStudio()">Done</button>
                     </div>
                 </div>
@@ -5511,7 +5662,7 @@
                 await workerDb.ref('/AdminConfig/EventSounds').remove();
             } catch (e) {}
             triggerAppNotificationSound("welcome");
-            showSmartEventBanner("🔄 All 7 Events Reset to Default Matching Sounds", "#00d2ff");
+            showSmartEventBanner("🔄 All 8 Events Reset to Default Matching Sounds", "#00d2ff");
         }
 
         function closeAdminSoundStudio() {
@@ -5660,14 +5811,17 @@
             }
 
             const curVer = (window.appUpdateConfig && window.appUpdateConfig.version) || "v2.0";
-            const newVer = await customPrompt(`📲 APP VERSION NUMBER\nCurrent: ${curVer}\n\nEnter new App Version (e.g., v2.1 or v3.0):`, false);
+            const newVer = await customPrompt(
+                `📲 APP VERSION NUMBER\nCurrent: ${curVer}\n\nEnter a new Version (e.g., v2.1 or v2.2) to trigger a New Update Notification & Sound on all customer phones:`,
+                false
+            );
             if (newVer !== null && newVer.trim() !== "") {
                 window.appUpdateConfig.version = newVer.trim();
             }
 
             const curUrl = (window.appUpdateConfig && window.appUpdateConfig.apkUrl) || "";
             const newUrl = await customPrompt(
-                `🔗 APK DOWNLOAD LINK (Google Drive / GitHub / Direct URL)\nCurrent: ${curUrl || "Not Set"}\n\nPaste the https:// download link for your new MIT App Inventor APK:`,
+                `🔗 APK DOWNLOAD LINK (Optional)\nCurrent: ${curUrl || "Instant Cloud Update Mode"}\n\nPaste https:// APK link (or leave blank to let customers use '⚡ Instant Update' with zero uninstall required):`,
                 false
             );
             if (newUrl !== null) {
@@ -5684,6 +5838,7 @@
             }
 
             window.appUpdateConfig.enabled = true;
+            window.appUpdateConfig.updatedAt = Date.now();
             localStorage.setItem('waterIoT_appUpdateCfg', JSON.stringify(window.appUpdateConfig));
 
             try {
@@ -5692,11 +5847,11 @@
             } catch (e) {}
 
             refreshCustomerAppUpdateUI();
+            triggerAppNotificationSound("app_update");
             await customAlert(
-                `✅ App Update Published to Customer Portals!\n\n` +
-                `📌 Version: ${window.appUpdateConfig.version}\n` +
-                `🔗 Link: ${window.appUpdateConfig.apkUrl || "QR Active"}\n` +
-                `📷 Customers can now download the new APK or scan the QR code directly from their portal.`
+                `✅ App Update (${window.appUpdateConfig.version}) Published!\n\n` +
+                `🔔 Customers will receive a 'New App Update Available' notification and chime as soon as their machine is online.\n` +
+                `⚡ Customers can tap 'Instant Update' to update in-place without uninstalling the old app.`
             );
         }
 
@@ -5757,12 +5912,22 @@
                             localStorage.setItem('waterIoT_adminEmail', window.adminSupportEmail);
                         }
                         if (val.logoUrl && String(val.logoUrl).startsWith("http")) {
-                            window.adminCompanyLogoUrl = String(val.logoUrl).trim();
+                            let cloudLogo = String(val.logoUrl).trim();
+                            if (cloudLogo.includes('ASKIoTOgo.png') && !cloudLogo.includes('raw=true')) {
+                                cloudLogo = window.DEFAULT_COMPANY_LOGO_URL;
+                            }
+                            window.adminCompanyLogoUrl = cloudLogo;
                             localStorage.setItem('waterIoT_adminLogo', window.adminCompanyLogoUrl);
+                            injectCompanyLogoOpenGraph();
                             const logoImg = document.getElementById('custSupportLogoImg');
                             if (logoImg) {
                                 logoImg.src = window.adminCompanyLogoUrl;
                                 logoImg.style.display = 'block';
+                            }
+                            const updLogoImg = document.getElementById('custUpdateLogoImg');
+                            if (updLogoImg) {
+                                updLogoImg.src = window.adminCompanyLogoUrl;
+                                updLogoImg.style.display = 'block';
                             }
                         }
                         const emailBtn = document.getElementById('custSupportEmailBtn');
@@ -5786,11 +5951,24 @@
                     }
                 });
 
+                // EVENT 8: NEW APP UPDATE AVAILABLE NOTIFICATION (QUEUED UNTIL MACHINE IS ONLINE)
                 workerDb.ref('/AdminConfig/AppUpdate').on('value', (snap) => {
                     if (snap.exists() && snap.val() && typeof snap.val() === 'object') {
-                        window.appUpdateConfig = Object.assign({}, window.appUpdateConfig, snap.val());
+                        const incoming = snap.val();
+                        window.appUpdateConfig = Object.assign({}, window.appUpdateConfig, incoming);
                         localStorage.setItem('waterIoT_appUpdateCfg', JSON.stringify(window.appUpdateConfig));
                         refreshCustomerAppUpdateUI();
+
+                        const newVer = String(incoming.version || "v2.0").trim();
+                        const lastNotifiedVer = localStorage.getItem('waterIoT_notifiedAppVer') || "v2.0";
+
+                        if (!isUserAdmin() && incoming.enabled !== false && newVer !== lastNotifiedVer) {
+                            enqueueOrRunWhenOnline("app_update_popup", () => {
+                                localStorage.setItem('waterIoT_notifiedAppVer', newVer);
+                                showSmartEventBanner(`📲 App Update ${newVer} Available! Tap 'Instant Update' below.`, "#feca57");
+                                triggerAppNotificationSound("app_update");
+                            }, 1200);
+                        }
                     }
                 });
             } catch (e) {}
@@ -6626,14 +6804,14 @@
                     gmailField.value = displayEmail;
                 }
 
-                // EVENT 1: COMPACT WELCOME NOTIFICATION (ONCE PER SESSION)
+                // EVENT 1: WELCOME NOTIFICATION (QUEUED UNTIL MACHINE OFFLINE STATUS FINISHES)
                 if (!window.hasPlayedWelcomeSession) {
                     window.hasPlayedWelcomeSession = true;
                     sessionStorage.setItem('waterIoT_welcomed', 'true');
-                    setTimeout(() => {
+                    enqueueOrRunWhenOnline("welcome_popup", () => {
                         showSmartEventBanner("👋 Welcome to ASK IoT Portal!", "#00d2ff");
                         triggerAppNotificationSound("welcome");
-                    }, 900);
+                    }, 500);
                 }
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
@@ -7452,7 +7630,7 @@
                 }
             });
 
-            // EVENT 2: DAILY WATER USAGE PERCENTAGE POPUP NOTIFICATION
+            // EVENT 2: DAILY WATER USAGE PERCENTAGE POPUP (QUEUED UNTIL MACHINE IS CONFIRMED ONLINE)
             database.ref(basePath + '/usageStats/today').on('value', snap => {
                 let val = snap.val();
                 let todayDate = new Date().toDateString();
@@ -7482,15 +7660,15 @@
                     
                     if(!hasShownPopup && localDailyUsage > 0) {
                         hasShownPopup = true;
-                        setTimeout(() => {
+                        enqueueOrRunWhenOnline("daily_usage_popup", () => {
                             showSmartEventBanner(popupMsg, usageColor);
                             triggerAppNotificationSound("usage");
-                        }, 3500);
+                        }, 900);
                     }
                 }
             });
 
-            // --- BULLETPROOF HEARTBEAT DETECTOR ---
+            // --- BULLETPROOF HEARTBEAT DETECTOR (FLUSHES QUEUED POPUPS ONLY ONCE MACHINE IS ONLINE) ---
             database.ref(basePath + '/deviceStatus').on('value', (snapshot) => {
                 const statusData = snapshot.val() || {};
                 let hb = statusData.heartbeat || 0;
@@ -7503,11 +7681,12 @@
                     window.liveHeartbeatReceived = true;
                 }
                 
-                if (!isOtaMode) {
-                    document.getElementById('offlineOverlay').style.display = 'none'; 
+                let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
+                if (!isOtaMode && isCurrentlyOnline) {
+                    document.getElementById('offlineOverlay').style.display = 'none';
+                    flushOnlineNotificationQueue();
                 }
                 
-                let isCurrentlyOnline = (lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
                 updateConnectionUI(isCurrentlyOnline);
                 
                 if (window.deviceDeployDate) {
@@ -7613,6 +7792,9 @@
                     const badge = document.getElementById('connStatus');
                     const btn = document.getElementById('pumpToggleBtn');
                     
+                    document.getElementById('offlineOverlay').style.display = 'none';
+                    flushOnlineNotificationQueue();
+
                     if (badge.innerText === "OFFLINE") {
                         badge.style.background = "#2ed573";
                         badge.innerText = "ONLINE";
@@ -7695,13 +7877,15 @@
                         document.getElementById('waterLevelFill').style.height = pctVal + '%';
                         document.getElementById('waterLevelText').innerText = pctVal.toFixed(1) + '%';
 
-                        // EVENT 5: COMPACT 100% WATER TANK FULL SUCCESS NOTIFICATION (LATCHED ONCE PER FILL)
+                        // EVENT 5: COMPACT 100% WATER TANK FULL SUCCESS NOTIFICATION (ONLY WHEN MACHINE IS ONLINE)
                         if (!isNaN(pctVal)) {
                             if (pctVal >= 99.5 && !window.hasNotifiedTankFull) {
                                 window.hasNotifiedTankFull = true;
                                 if (lastWaterPercent !== -1 || currentPumpState) {
-                                    showSmartEventBanner("🎉 Tank 100% Full! Maximum level reached.", "#2ed573");
-                                    triggerAppNotificationSound("tank_full");
+                                    enqueueOrRunWhenOnline("tank_full_popup", () => {
+                                        showSmartEventBanner("🎉 Tank 100% Full! Maximum level reached.", "#2ed573");
+                                        triggerAppNotificationSound("tank_full");
+                                    }, 300);
                                 }
                             } else if (pctVal < 95.0) {
                                 window.hasNotifiedTankFull = false;
@@ -7865,7 +8049,7 @@
                 }
             });
 
-            // EVENTS 3 & 4: PUMP ON / OFF NOTIFICATION (MANUAL OR AUTOMATIC — NO FALSE LOAD RINGS)
+            // EVENTS 3 & 4: PUMP ON / OFF NOTIFICATION (ONLY FIRES WHEN MACHINE IS ONLINE)
             database.ref(basePath + '/state').on('value', (snapshot) => {
                 const state = snapshot.val();
                 if(state) {
@@ -7893,12 +8077,14 @@
                         window.lastKnownPumpState = rawPumpActive;
                     } else if (rawPumpActive !== window.lastKnownPumpState) {
                         window.lastKnownPumpState = rawPumpActive;
-                        if (rawPumpActive) {
-                            showSmartEventBanner("⚡ Pump Turned ON", "#2ed573");
-                            triggerAppNotificationSound("pump_on");
-                        } else {
-                            showSmartEventBanner("🛑 Pump Turned OFF", "#feca57");
-                            triggerAppNotificationSound("pump_off");
+                        if (isMachineConfirmedOnline()) {
+                            if (rawPumpActive) {
+                                showSmartEventBanner("⚡ Pump Turned ON", "#2ed573");
+                                triggerAppNotificationSound("pump_on");
+                            } else {
+                                showSmartEventBanner("🛑 Pump Turned OFF", "#feca57");
+                                triggerAppNotificationSound("pump_off");
+                            }
                         }
                     }
 
