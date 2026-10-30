@@ -2158,6 +2158,7 @@
         window.lastSavedRuntime = 0;
         window.lastSavedRunDate = "Waiting for data...";
         window.isFirstStateLoad = true;
+        window.lastKnownSolarChargeState = null;
 
         // --- INTERNAL HARDWARE CONSTANTS (HIDDEN FROM CUSTOMER UI) ---
         const BATTERY_CAPACITY_MAH = 15000;
@@ -2198,11 +2199,8 @@
             }
         }
 
-        // --- SMARTPHONE 4-BAR SIGNAL STRENGTH RENDERER ---
+        // --- SMARTPHONE 4-BAR SIGNAL STRENGTH RENDERER (UPDATES TANK TOP-RIGHT & TELEMETRY) ---
         function renderSignalBars(signalText, targetElementId) {
-            const el = document.getElementById(targetElementId);
-            if (!el) return;
-
             const raw = String(signalText || "N/A").trim();
             const lower = raw.toLowerCase();
 
@@ -2229,15 +2227,145 @@
             }
 
             const heights = [5, 9, 13, 17];
-            let barsHtml = `<span class="phone-sig-bars ${isCritical ? 'sig-critical-pulse' : ''}" title="Signal: ${raw}">`;
+            let barsOnlyHtml = `<span class="phone-sig-bars ${isCritical ? 'sig-critical-pulse' : ''}" title="Signal: ${raw}">`;
             for (let i = 0; i < 4; i++) {
                 const lit = i < activeBars;
                 const bg = lit ? barColor : "rgba(255, 255, 255, 0.18)";
                 const shadow = lit ? `0 0 6px ${barColor}` : "none";
-                barsHtml += `<span class="phone-sig-bar" style="height:${heights[i]}px; background:${bg}; box-shadow:${shadow};"></span>`;
+                barsOnlyHtml += `<span class="phone-sig-bar" style="height:${heights[i]}px; background:${bg}; box-shadow:${shadow};"></span>`;
             }
-            barsHtml += `</span><span style="color:${activeBars > 0 ? barColor : '#aaa'}; font-weight:700; margin-left:6px;">${raw}</span>`;
-            el.innerHTML = barsHtml;
+            barsOnlyHtml += `</span>`;
+
+            const textColor = activeBars > 0 ? barColor : '#94a3b8';
+
+            const el = document.getElementById(targetElementId);
+            if (el) {
+                el.innerHTML = `${barsOnlyHtml}<span class="sig-status-small-txt" style="color:${textColor};">${raw}</span>`;
+            }
+
+            // Also update the floating Signal Quality pill above the Water Tank (Right Side)
+            if (targetElementId === 'txtSignalCustomer' || targetElementId === 'adminTxtSignal') {
+                ensureTankSignalBadgeMounted();
+                const tankBadge = document.getElementById('tankTopRightSignalBadge');
+                if (tankBadge) {
+                    tankBadge.innerHTML = `${barsOnlyHtml}<span class="tank-sig-pill-text" style="color:${textColor};">${raw}</span>`;
+                    tankBadge.style.borderColor = activeBars > 0 ? `${barColor}55` : 'rgba(255,255,255,0.14)';
+                }
+            }
+        }
+
+        // --- MOUNT FLOATING SIGNAL PILL ABOVE WATER TANK (TOP-RIGHT) ---
+        function ensureTankSignalBadgeMounted() {
+            const tankEl = document.getElementById('waterTankModel');
+            if (!tankEl) return;
+            const tankCard = tankEl.closest('.card') || tankEl.parentElement;
+            if (!tankCard) return;
+
+            if (!document.getElementById('tankTopRightSignalRow')) {
+                const headerRow = document.createElement('div');
+                headerRow.id = 'tankTopRightSignalRow';
+                headerRow.className = 'tank-sig-top-row';
+                headerRow.innerHTML = `
+                    <div id="tankTopRightSignalBadge" class="tank-sig-glass-pill">
+                        <span class="phone-sig-bars">
+                            <span class="phone-sig-bar" style="height:5px; background:rgba(255,255,255,0.18);"></span>
+                            <span class="phone-sig-bar" style="height:9px; background:rgba(255,255,255,0.18);"></span>
+                            <span class="phone-sig-bar" style="height:13px; background:rgba(255,255,255,0.18);"></span>
+                            <span class="phone-sig-bar" style="height:17px; background:rgba(255,255,255,0.18);"></span>
+                        </span>
+                        <span class="tank-sig-pill-text" style="color:#94a3b8;">N/A</span>
+                    </div>
+                `;
+                tankCard.insertBefore(headerRow, tankEl);
+            }
+        }
+
+        // --- ORGANIZE PORTAL LAYOUT: 1-ROW USAGE+WIFI, SOLAR UNDER PUMP, LOGINS AT END ---
+        function organizeCustomerPortalLayout() {
+            ensureTankSignalBadgeMounted();
+
+            const mainView = document.getElementById('mainDashboardView');
+            if (!mainView) return;
+
+            // 1. Pair "Daily Usage Tracker" (compact 38%) and "Active Wi-Fi" (62%) into One Premium Row
+            const usageValEl = document.getElementById('dailyUsageText');
+            const wifiValEl = document.getElementById('txtActiveWifiCustomer');
+
+            if (usageValEl && !document.getElementById('usageWifiCombinedRow')) {
+                const usageCard = usageValEl.closest('.card') || usageValEl.parentElement;
+                if (usageCard && usageCard.parentElement === mainView) {
+                    const combinedRow = document.createElement('div');
+                    combinedRow.id = 'usageWifiCombinedRow';
+                    combinedRow.className = 'usage-wifi-one-row';
+
+                    usageCard.parentElement.insertBefore(combinedRow, usageCard);
+                    usageCard.classList.add('compact-usage-mini-card');
+                    combinedRow.appendChild(usageCard);
+
+                    // Create a dedicated visible Active Wi-Fi card in the same row while keeping #txtActiveWifiCustomer synced
+                    const wifiMiniCard = document.createElement('div');
+                    wifiMiniCard.id = 'customerActiveWifiMiniCard';
+                    wifiMiniCard.className = 'card compact-wifi-mini-card';
+
+                    // If #txtActiveWifiCustomer was inside Advanced Section, move or mirror it cleanly into this top row
+                    if (wifiValEl) {
+                        const oldWifiContainer = wifiValEl.closest('.card');
+                        if (oldWifiContainer && oldWifiContainer !== usageCard && oldWifiContainer.parentElement === mainView) {
+                            oldWifiContainer.classList.add('compact-wifi-mini-card');
+                            combinedRow.appendChild(oldWifiContainer);
+                        } else {
+                            wifiMiniCard.innerHTML = `
+                                <div class="mini-row-card-label">📡 ACTIVE WI-FI</div>
+                                <div class="mini-row-wifi-val-wrap">
+                                    <span class="wifi-live-dot"></span>
+                                    <span id="txtActiveWifiCustomerTopMirror" class="mini-row-wifi-val">${window.activeHotspotName || '--'}</span>
+                                </div>
+                            `;
+                            combinedRow.appendChild(wifiMiniCard);
+                        }
+                    }
+                }
+            }
+
+            // 2. Place NEXUS SOLAR NODE (#solarBatteryCard) directly underneath Pump Control Card (#pumpControlCard)
+            const pumpCard = document.getElementById('pumpControlCard');
+            const solarCard = document.getElementById('solarBatteryCard');
+            if (pumpCard && solarCard && pumpCard.parentElement === mainView) {
+                pumpCard.classList.add('premium-pump-card-box');
+                const pumpBtn = document.getElementById('pumpToggleBtn');
+                if (pumpBtn) pumpBtn.classList.add('premium-3d-pump-btn');
+
+                if (pumpCard.nextElementSibling !== solarCard) {
+                    mainView.insertBefore(solarCard, pumpCard.nextElementSibling);
+                }
+            }
+
+            // 3. Place Customer Experience & Support Card underneath NEXUS SOLAR NODE
+            const supCard = document.getElementById('customerSupportCard');
+            if (solarCard && supCard && solarCard.parentElement === mainView) {
+                if (solarCard.nextElementSibling !== supCard) {
+                    mainView.insertBefore(supCard, solarCard.nextElementSibling);
+                }
+            }
+
+            // 4. Move "Active Device Logins" block to the very end (bottom) of the portal
+            const custLoginsEl = document.getElementById('customerMobileLoginsList');
+            if (custLoginsEl) {
+                const loginsCard = custLoginsEl.closest('.card') || custLoginsEl.parentElement;
+                if (loginsCard && loginsCard.parentElement) {
+                    loginsCard.parentElement.appendChild(loginsCard);
+                }
+            }
+            const advSection = document.getElementById('advancedSection');
+            if (advSection && advSection.parentElement === mainView) {
+                mainView.appendChild(advSection);
+                if (custLoginsEl) {
+                    const loginsCardInAdv = custLoginsEl.closest('.card') || custLoginsEl.parentElement;
+                    if (loginsCardInAdv && loginsCardInAdv.parentElement === advSection) {
+                        advSection.appendChild(loginsCardInAdv);
+                    }
+                }
+            }
         }
 
         // --- NEXUS SOLAR NODE UI, SIGNAL BARS & CUSTOMER SUPPORT CARD INITIALIZER ---
@@ -2246,6 +2374,7 @@
                 const style = document.createElement('style');
                 style.id = 'premiumGlassBmsStyles';
                 style.innerHTML = `
+                    /* Smartphone Signal Bars (Bar Size Preserved, Text Small & Premium) */
                     .phone-sig-bars {
                         display: inline-flex;
                         align-items: flex-end;
@@ -2259,6 +2388,41 @@
                         border-radius: 1.5px;
                         transition: background 0.3s ease, box-shadow 0.3s ease;
                     }
+                    .sig-status-small-txt {
+                        font-size: 10px !important;
+                        font-weight: 800 !important;
+                        letter-spacing: 0.5px;
+                        text-transform: uppercase;
+                        margin-left: 6px;
+                        vertical-align: middle;
+                    }
+                    .tank-sig-top-row {
+                        width: 100%;
+                        display: flex;
+                        justify-content: flex-end;
+                        align-items: center;
+                        margin-bottom: 6px;
+                        padding-right: 2px;
+                        box-sizing: border-box;
+                    }
+                    .tank-sig-glass-pill {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        background: linear-gradient(135deg, rgba(10, 20, 36, 0.90), rgba(6, 12, 22, 0.95));
+                        border: 1px solid rgba(0, 210, 255, 0.28);
+                        border-radius: 999px;
+                        padding: 4px 11px 4px 10px;
+                        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+                        backdrop-filter: blur(12px);
+                    }
+                    .tank-sig-pill-text {
+                        font-size: 9.5px !important;
+                        font-weight: 800 !important;
+                        letter-spacing: 0.6px;
+                        text-transform: uppercase;
+                        line-height: 1;
+                    }
                     .sig-critical-pulse {
                         animation: sigCritBlink 1s ease-in-out infinite alternate;
                     }
@@ -2266,6 +2430,157 @@
                         0% { opacity: 0.45; }
                         100% { opacity: 1; }
                     }
+
+                    /* Compact Mobile Notification Banner (Never Cuts Phone Screen) */
+                    #usageSmsPopup {
+                        max-width: 88vw !important;
+                        width: max-content !important;
+                        min-width: 210px !important;
+                        padding: 8px 14px !important;
+                        font-size: 11.5px !important;
+                        font-weight: 700 !important;
+                        line-height: 1.35 !important;
+                        border-radius: 14px !important;
+                        left: 50% !important;
+                        transform: translateX(-50%) !important;
+                        right: auto !important;
+                        white-space: normal !important;
+                        word-wrap: break-word !important;
+                        text-align: center !important;
+                        box-sizing: border-box !important;
+                        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.78) !important;
+                        z-index: 9999 !important;
+                    }
+
+                    /* Single-Row Daily Usage (Tiny 38%) + Active Wi-Fi (62%) */
+                    .usage-wifi-one-row {
+                        display: flex !important;
+                        align-items: stretch !important;
+                        justify-content: space-between !important;
+                        gap: 10px !important;
+                        width: 100% !important;
+                        max-width: 420px !important;
+                        margin: 8px 0 !important;
+                        box-sizing: border-box !important;
+                    }
+                    .compact-usage-mini-card {
+                        flex: 0 0 37% !important;
+                        max-width: 37% !important;
+                        margin: 0 !important;
+                        padding: 10px 10px !important;
+                        background: linear-gradient(145deg, rgba(13, 24, 42, 0.92), rgba(8, 15, 28, 0.96)) !important;
+                        border: 1px solid rgba(0, 210, 255, 0.25) !important;
+                        border-radius: 14px !important;
+                        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        justify-content: center !important;
+                        align-items: center !important;
+                        text-align: center !important;
+                        box-sizing: border-box !important;
+                    }
+                    .compact-usage-mini-card h3,
+                    .compact-usage-mini-card div:first-child {
+                        font-size: 9.5px !important;
+                        letter-spacing: 0.5px !important;
+                        text-transform: uppercase !important;
+                        color: #94a3b8 !important;
+                        margin: 0 0 4px 0 !important;
+                    }
+                    .compact-usage-mini-card #dailyUsageText {
+                        font-size: 18px !important;
+                        font-weight: 800 !important;
+                        margin: 0 !important;
+                    }
+                    .compact-wifi-mini-card {
+                        flex: 1 1 60% !important;
+                        max-width: 63% !important;
+                        margin: 0 !important;
+                        padding: 10px 14px !important;
+                        background: linear-gradient(145deg, rgba(13, 24, 42, 0.92), rgba(8, 15, 28, 0.96)) !important;
+                        border: 1px solid rgba(46, 213, 115, 0.28) !important;
+                        border-radius: 14px !important;
+                        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        justify-content: center !important;
+                        align-items: flex-start !important;
+                        text-align: left !important;
+                        box-sizing: border-box !important;
+                        overflow: hidden !important;
+                    }
+                    .mini-row-card-label {
+                        font-size: 9.5px;
+                        font-weight: 800;
+                        color: #94a3b8;
+                        letter-spacing: 0.6px;
+                        text-transform: uppercase;
+                        margin-bottom: 5px;
+                    }
+                    .mini-row-wifi-val-wrap {
+                        display: flex;
+                        align-items: center;
+                        gap: 7px;
+                        width: 100%;
+                        overflow: hidden;
+                    }
+                    .wifi-live-dot {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background: #2ed573;
+                        box-shadow: 0 0 8px #2ed573;
+                        flex-shrink: 0;
+                    }
+                    .mini-row-wifi-val {
+                        font-size: 14px;
+                        font-weight: 800;
+                        color: #ffffff;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    /* Premium Pump Control Card & 3D Tactile Button */
+                    #pumpControlCard.premium-pump-card-box {
+                        background: linear-gradient(160deg, rgba(14, 25, 45, 0.95) 0%, rgba(8, 14, 26, 0.98) 100%) !important;
+                        border: 1px solid rgba(0, 210, 255, 0.32) !important;
+                        border-radius: 20px !important;
+                        padding: 20px 18px !important;
+                        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.78), inset 0 1px 2px rgba(255, 255, 255, 0.14), 0 0 22px rgba(0, 180, 255, 0.08) !important;
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    #pumpToggleBtn.premium-3d-pump-btn {
+                        width: 126px !important;
+                        height: 126px !important;
+                        border-radius: 50% !important;
+                        font-size: 16px !important;
+                        font-weight: 900 !important;
+                        letter-spacing: 1.2px !important;
+                        text-transform: uppercase !important;
+                        transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                        position: relative !important;
+                    }
+                    #pumpToggleBtn.btn-on {
+                        background: radial-gradient(circle at 35% 30%, #55efc4 0%, #10ac84 55%, #075c46 100%) !important;
+                        border: 4px solid rgba(123, 237, 159, 0.85) !important;
+                        box-shadow: 0 10px 28px rgba(16, 172, 132, 0.55), 0 0 0 7px rgba(46, 213, 115, 0.14), inset 0 3px 6px rgba(255, 255, 255, 0.45) !important;
+                        color: #ffffff !important;
+                        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55) !important;
+                    }
+                    #pumpToggleBtn.btn-off {
+                        background: radial-gradient(circle at 35% 30%, #ff7675 0%, #eb3b5a 55%, #881327 100%) !important;
+                        border: 4px solid rgba(255, 107, 129, 0.85) !important;
+                        box-shadow: 0 10px 28px rgba(235, 59, 90, 0.55), 0 0 0 7px rgba(255, 71, 87, 0.14), inset 0 3px 6px rgba(255, 255, 255, 0.45) !important;
+                        color: #ffffff !important;
+                        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55) !important;
+                    }
+                    #pumpToggleBtn:active {
+                        transform: scale(0.93) !important;
+                    }
+
+                    /* Glassmorphism BMS Card */
                     .bms-glass-card {
                         background: linear-gradient(160deg, rgba(11, 20, 36, 0.94) 0%, rgba(7, 13, 24, 0.97) 100%) !important;
                         backdrop-filter: blur(22px) saturate(180%) !important;
@@ -2920,6 +3235,7 @@
             }
 
             initCustomerSupportCard();
+            organizeCustomerPortalLayout();
         }
 
         // --- METHOD C: CUSTOMER EXPERIENCE & SUPPORT CARD + DYNAMIC ADMIN CONTACT ---
@@ -3449,6 +3765,19 @@
                 c.isCharging = false;
             }
 
+            // Detect real Solar Charging ON / OFF transitions once valid battery/solar telemetry is present
+            const hasValidPowerReading = (c.bVolt > 0.5 || c.sVolt > 0.5 || c.bCurrMa > 0);
+            if (hasValidPowerReading) {
+                if (window.lastKnownSolarChargeState === null) {
+                    window.lastKnownSolarChargeState = c.isCharging;
+                } else if (c.isCharging !== window.lastKnownSolarChargeState) {
+                    window.lastKnownSolarChargeState = c.isCharging;
+                    if (typeof handleSolarChargeTransition === 'function') {
+                        handleSolarChargeTransition(c.isCharging);
+                    }
+                }
+            }
+
             const nowMs = Date.now();
             const dtHours = c.lastIntegrateTime ? Math.max(0, Math.min(0.1, (nowMs - c.lastIntegrateTime) / 3600000.0)) : 0;
             c.lastIntegrateTime = nowMs;
@@ -3510,6 +3839,7 @@
 
         function resetSolarBmsUI() {
             initPremiumGlassBmsUI();
+            window.lastKnownSolarChargeState = null;
             window.bmsCache = {
                 active: true,
                 ina219Detected: true,
@@ -3989,7 +4319,7 @@
             }, 200); 
         }
 
-        // Global function to securely lock in Active WiFi
+        // Global function to securely lock in Active WiFi (Updates both original and top-row mirror)
         function updateActiveWifiDisplay(ssid) {
             if (!ssid || typeof ssid !== 'string') return;
             let cleanSsid = ssid.trim();
@@ -4003,6 +4333,7 @@
             }
             
             if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
+            if(document.getElementById('txtActiveWifiCustomerTopMirror')) document.getElementById('txtActiveWifiCustomerTopMirror').innerText = window.activeHotspotName;
             if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
         }
 
@@ -4161,8 +4492,8 @@
             }
             return model;
         }
-        // === END OF SUBPART ALPHA ===
-// === START OF SUBPART BETA (PASTE IMMEDIATELY BELOW SUBPART ALPHA) ===
+        // === END OF SUBPART ALPHA (PASTE SUBPART BETA IMMEDIATELY BELOW THIS LINE) ===
+    // === START OF SUBPART BETA (PASTE IMMEDIATELY BELOW SUBPART ALPHA) ===
 
         const firebaseConfig = {
             apiKey: "AIzaSyBFYPV4WMVt4yPagb5CBqW83pvPPBGNid4",
@@ -4195,46 +4526,64 @@
         let globalScannerTimer = null; 
         let linkedDevicesRef = null;
 
-        // --- EVENT-MATCHED NOTIFICATION SOUNDS (SHORT 1-2 SECOND CHIMES ONLY) ---
+        // --- 7-EVENT DEFAULT NOTIFICATION SOUND MAP (SHORT 1-2.5 SECOND CHIMES) ---
         window.EVENT_SOUND_MAP = {
             "welcome": {
-                name: "Welcome Chime",
+                label: "Welcome Notification",
                 url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg",
-                maxDurationMs: 1500
+                maxDurationMs: 1400
             },
             "usage": {
-                name: "Water Usage Alert",
+                label: "Daily Water Usage Alert",
                 url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg",
                 maxDurationMs: 1500
             },
             "pump_on": {
-                name: "Pump ON Alert",
+                label: "Pump Turned ON",
                 url: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
                 maxDurationMs: 1600
             },
             "pump_off": {
-                name: "Pump OFF Alert",
+                label: "Pump Turned OFF",
                 url: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
                 maxDurationMs: 1600
             },
             "tank_full": {
-                name: "100% Tank Full Success",
+                label: "100% Tank Full Success",
                 url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg",
-                maxDurationMs: 2500
+                maxDurationMs: 2400
+            },
+            "solar_on": {
+                label: "Solar Charging ON",
+                url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg",
+                maxDurationMs: 1600
+            },
+            "solar_off": {
+                label: "Solar Charging OFF",
+                url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg",
+                maxDurationMs: 1500
             }
         };
 
-        // Optional Admin Custom Override Presets (All Short Sounds)
-        window.SOUND_PRESETS = {
-            "1": { name: "Smart Event-Matched Tones (Default)", url: "AUTO_EVENT" },
+        // Built-in Short Tone Library for Per-Event Customization
+        window.TONE_LIBRARY = {
+            "1": { name: "Default Event Tone", url: "DEFAULT" },
             "2": { name: "Crisp Short Beep", url: "https://actions.google.com/sounds/v1/alarms/beep_short.ogg" },
-            "3": { name: "Success Bugle Chime", url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" },
-            "4": { name: "Soft Wood Chime", url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" },
-            "5": { name: "Quick Bell Pop", url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg" }
+            "3": { name: "Success Bugle Fanfare", url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" },
+            "4": { name: "Water Drop Wood Chime", url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" },
+            "5": { name: "Soft Bell Pop", url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg" },
+            "6": { name: "Power Down Wobble", url: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" }
         };
 
-        window.dynamicSoundUrl = localStorage.getItem('waterIoT_dynamicSoundUrl') || "AUTO_EVENT";
-        window.dynamicSoundName = localStorage.getItem('waterIoT_dynamicSoundName') || "Smart Event-Matched Tones (Default)";
+        // Load Per-Event Custom Sound Overrides
+        window.customEventSounds = {};
+        try {
+            const savedEvSounds = JSON.parse(localStorage.getItem('waterIoT_customEventSounds') || '{}');
+            if (savedEvSounds && typeof savedEvSounds === 'object') {
+                window.customEventSounds = savedEvSounds;
+            }
+        } catch (e) {}
+
         window.activeAudioInstance = null;
         window.activeAudioCutoffTimer = null;
 
@@ -4251,7 +4600,7 @@
             window.adminSupportEmail = localStorage.getItem('waterIoT_adminEmail');
         }
 
-        // --- SYNTHESIZE CRISP WEB-AUDIO TONE (EXACT DURATION, ZERO BUFFER DELAY) ---
+        // --- SYNTHESIZE CRISP WEB-AUDIO TONE (7 DISTINCT EVENT MELODIES) ---
         function playCrispWebTone(eventType) {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -4260,11 +4609,13 @@
                 const now = ctx.currentTime;
 
                 const notes = {
-                    "welcome":   [{ f: 523.25, t: 0.0, d: 0.16 }, { f: 659.25, t: 0.16, d: 0.16 }, { f: 783.99, t: 0.32, d: 0.30 }],
-                    "usage":     [{ f: 587.33, t: 0.0, d: 0.14 }, { f: 880.00, t: 0.15, d: 0.25 }],
-                    "pump_on":   [{ f: 440.00, t: 0.0, d: 0.15 }, { f: 554.37, t: 0.16, d: 0.15 }, { f: 659.25, t: 0.32, d: 0.28 }],
-                    "pump_off":  [{ f: 659.25, t: 0.0, d: 0.18 }, { f: 440.00, t: 0.20, d: 0.30 }],
-                    "tank_full": [{ f: 523.25, t: 0.0, d: 0.14 }, { f: 659.25, t: 0.15, d: 0.14 }, { f: 783.99, t: 0.30, d: 0.14 }, { f: 1046.50, t: 0.46, d: 0.40 }]
+                    "welcome":   [{ f: 523.25, t: 0.0, d: 0.14 }, { f: 659.25, t: 0.15, d: 0.14 }, { f: 783.99, t: 0.30, d: 0.25 }],
+                    "usage":     [{ f: 587.33, t: 0.0, d: 0.13 }, { f: 880.00, t: 0.14, d: 0.22 }],
+                    "pump_on":   [{ f: 440.00, t: 0.0, d: 0.14 }, { f: 554.37, t: 0.15, d: 0.14 }, { f: 659.25, t: 0.30, d: 0.26 }],
+                    "pump_off":  [{ f: 659.25, t: 0.0, d: 0.16 }, { f: 440.00, t: 0.18, d: 0.26 }],
+                    "tank_full": [{ f: 523.25, t: 0.0, d: 0.13 }, { f: 659.25, t: 0.14, d: 0.13 }, { f: 783.99, t: 0.28, d: 0.13 }, { f: 1046.50, t: 0.42, d: 0.36 }],
+                    "solar_on":  [{ f: 587.33, t: 0.0, d: 0.12 }, { f: 739.99, t: 0.13, d: 0.12 }, { f: 880.00, t: 0.26, d: 0.12 }, { f: 1174.66, t: 0.39, d: 0.30 }],
+                    "solar_off": [{ f: 880.00, t: 0.0, d: 0.15 }, { f: 659.25, t: 0.16, d: 0.15 }, { f: 523.25, t: 0.32, d: 0.26 }]
                 }[eventType] || [{ f: 659.25, t: 0.0, d: 0.20 }];
 
                 notes.forEach(n => {
@@ -4280,11 +4631,11 @@
                     osc.stop(now + n.t + n.d);
                 });
 
-                setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1500);
+                setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1400);
             } catch (e) {}
         }
 
-        // --- SHOW VISUAL NOTIFICATION BANNER WITH MATCHING SOUND ---
+        // --- SHOW COMPACT MOBILE NOTIFICATION BANNER (NEVER CUTS PHONE SCREEN) ---
         function showSmartEventBanner(message, borderColor) {
             const popup = document.getElementById('usageSmsPopup');
             if (!popup) return;
@@ -4293,25 +4644,37 @@
             popup.classList.add('show');
             setTimeout(() => {
                 popup.classList.remove('show');
-            }, 5000);
+            }, 4500);
         }
 
-        // --- STRICT EVENT-BASED SOUND TRIGGER (WITH HARD TIME CUTOFF) ---
+        // --- SOLAR CHARGING ON / OFF TRANSITION HANDLER ---
+        function handleSolarChargeTransition(isNowCharging) {
+            if (isNowCharging) {
+                showSmartEventBanner("☀️ Solar Charging Active", "#2ed573");
+                triggerAppNotificationSound("solar_on");
+            } else {
+                showSmartEventBanner("🌙 Solar Standby • On Battery", "#feca57");
+                triggerAppNotificationSound("solar_off");
+            }
+        }
+
+        // --- STRICT EVENT-BASED SOUND TRIGGER (WITH PER-EVENT OVERRIDE & HARD CUTOFF) ---
         function triggerAppNotificationSound(eventType = "usage") {
             const evConfig = window.EVENT_SOUND_MAP[eventType] || window.EVENT_SOUND_MAP["usage"];
             const maxMs = evConfig.maxDurationMs || 2200;
 
-            const chosenUrl = (window.dynamicSoundUrl && window.dynamicSoundUrl !== "AUTO_EVENT" && window.dynamicSoundUrl.startsWith("http"))
-                ? window.dynamicSoundUrl
+            const customUrl = window.customEventSounds && window.customEventSounds[eventType];
+            const chosenUrl = (customUrl && customUrl !== "DEFAULT" && customUrl.startsWith("http"))
+                ? customUrl
                 : evConfig.url;
 
             const sep = chosenUrl.includes('?') ? '&' : '?';
             const uniqueSoundUrl = `${chosenUrl}${sep}ev=${eventType}_${Date.now()}`;
 
-            // 1. Play crisp musical chime locally with exact sub-second duration
+            // 1. Play crisp event-specific musical chime immediately
             playCrispWebTone(eventType);
 
-            // 2. Send short sound URL to MIT App Inventor Player1 and clear WebViewString after maxMs
+            // 2. Send short sound URL to MIT App Inventor Player1 and reset WebViewString after maxMs
             try {
                 if (window.AppInventor && window.AppInventor.setWebViewString) {
                     window.AppInventor.setWebViewString(uniqueSoundUrl);
@@ -4344,54 +4707,98 @@
             } catch (e) {}
         }
 
-        // --- ADMIN DYNAMIC RINGTONE / SOUND CONFIGURER ---
+        // --- ADMIN 2-STEP PER-EVENT RINGTONE / SOUND CONFIGURER ---
         async function configureDynamicAppSound() {
-            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to change the App Notification Sound:", true);
+            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to customize Event Notification Sounds:", true);
             if (pin !== window.adminPin) {
                 await customAlert("❌ Access Denied: Incorrect Security PIN.");
                 return;
             }
 
-            const choice = await customPrompt(
-                `🔔 DYNAMIC APP RINGTONE SELECTOR\nCurrent: ${window.dynamicSoundName}\n\n` +
-                `Type 1 to 5, OR paste a short https:// .mp3 / .ogg notification link:\n` +
-                `1 = Smart Event-Matched Tones (Recommended)\n` +
-                `2 = Crisp Short Beep\n` +
-                `3 = Success Bugle Chime\n` +
-                `4 = Soft Wood Chime\n` +
-                `5 = Quick Bell Pop`,
-                false
-            );
+            const eventMenu =
+                `🔔 SELECT EVENT TO CHANGE SOUND:\n\n` +
+                `1 = 👋 Welcome Notification\n` +
+                `2 = 💧 Daily Water Usage Alert\n` +
+                `3 = ⚡ Pump Turned ON\n` +
+                `4 = 🛑 Pump Turned OFF\n` +
+                `5 = 🎉 100% Tank Full Success\n` +
+                `6 = ☀️ Solar Charging ON\n` +
+                `7 = 🌙 Solar Charging OFF\n` +
+                `0 = 🔄 Reset ALL Events to Default`;
 
-            if (!choice || choice.trim() === "") return;
-            const cleanChoice = choice.trim();
+            const evPick = await customPrompt(eventMenu, false);
+            if (!evPick || evPick.trim() === "") return;
+            const cleanEvPick = evPick.trim();
 
-            if (window.SOUND_PRESETS[cleanChoice]) {
-                window.dynamicSoundUrl = window.SOUND_PRESETS[cleanChoice].url;
-                window.dynamicSoundName = window.SOUND_PRESETS[cleanChoice].name;
-            } else if (cleanChoice.startsWith("http://") || cleanChoice.startsWith("https://")) {
-                window.dynamicSoundUrl = cleanChoice;
-                window.dynamicSoundName = "Custom Short Sound URL";
-            } else {
-                await customAlert("⚠️ Invalid selection. Enter 1–5 or a valid https:// audio link.");
+            if (cleanEvPick === "0") {
+                window.customEventSounds = {};
+                localStorage.setItem('waterIoT_customEventSounds', JSON.stringify({}));
+                try {
+                    const workerDb = await getHardwareWorkerDb();
+                    await workerDb.ref('/AdminConfig/EventSounds').remove();
+                } catch (e) {}
+                triggerAppNotificationSound("welcome");
+                await customAlert("✅ All 7 event sounds have been reset to their smart matching defaults!");
                 return;
             }
 
-            localStorage.setItem('waterIoT_dynamicSoundUrl', window.dynamicSoundUrl);
-            localStorage.setItem('waterIoT_dynamicSoundName', window.dynamicSoundName);
+            const eventKeyMap = {
+                "1": "welcome",
+                "2": "usage",
+                "3": "pump_on",
+                "4": "pump_off",
+                "5": "tank_full",
+                "6": "solar_on",
+                "7": "solar_off"
+            };
+
+            const targetEventKey = eventKeyMap[cleanEvPick];
+            if (!targetEventKey) {
+                await customAlert("⚠️ Invalid event number. Please enter 1 to 7 (or 0 to reset).");
+                return;
+            }
+
+            const targetEvLabel = window.EVENT_SOUND_MAP[targetEventKey].label;
+            const currentCustom = window.customEventSounds[targetEventKey] || "Default Event Tone";
+
+            const toneChoice = await customPrompt(
+                `🎵 CHOOSE SOUND FOR: ${targetEvLabel}\nCurrent: ${currentCustom}\n\n` +
+                `Type 1 to 6, OR paste any direct https:// .mp3 / .ogg link:\n` +
+                `1 = Default Matching Tone\n` +
+                `2 = Crisp Short Beep\n` +
+                `3 = Success Bugle Fanfare\n` +
+                `4 = Water Drop Wood Chime\n` +
+                `5 = Soft Bell Pop\n` +
+                `6 = Power Down Wobble`,
+                false
+            );
+
+            if (!toneChoice || toneChoice.trim() === "") return;
+            const cleanTone = toneChoice.trim();
+
+            if (window.TONE_LIBRARY[cleanTone]) {
+                if (cleanTone === "1") {
+                    delete window.customEventSounds[targetEventKey];
+                } else {
+                    window.customEventSounds[targetEventKey] = window.TONE_LIBRARY[cleanTone].url;
+                }
+            } else if (cleanTone.startsWith("http://") || cleanTone.startsWith("https://")) {
+                window.customEventSounds[targetEventKey] = cleanTone;
+            } else {
+                await customAlert("⚠️ Invalid selection. Enter 1–6 or a valid https:// audio link.");
+                return;
+            }
+
+            localStorage.setItem('waterIoT_customEventSounds', JSON.stringify(window.customEventSounds));
 
             try {
                 const workerDb = await getHardwareWorkerDb();
-                await workerDb.ref('/AdminConfig/NotificationSound').set({
-                    url: window.dynamicSoundUrl,
-                    name: window.dynamicSoundName,
-                    updatedAt: Date.now()
-                });
+                await workerDb.ref('/AdminConfig/EventSounds').set(window.customEventSounds);
             } catch (e) {}
 
-            // Test-ring the 100% Full Success Chime once
-            triggerAppNotificationSound("tank_full");
-            await customAlert(`✅ App Notification Sound Updated!\n\n🔔 Active Mode: ${window.dynamicSoundName}`);
+            // Immediately test-ring the updated event sound!
+            triggerAppNotificationSound(targetEventKey);
+            await customAlert(`✅ Sound updated for "${targetEvLabel}"!`);
         }
 
         // Helper: Get authenticated Secondary Worker DB (has ESP32 hardware privileges on /Devices/{macId})
@@ -4406,7 +4813,7 @@
             }
         }
 
-        // Helper: Sync Dynamic Admin Support Contact & Dynamic Notification Sound from Cloud
+        // Helper: Sync Dynamic Admin Support Contact & Per-Event Sounds from Cloud
         async function syncDynamicSupportContact() {
             const adminCenter = document.getElementById('adminCommandCenter');
             if (adminCenter && !document.getElementById('adminSoundCfgBtn')) {
@@ -4438,21 +4845,10 @@
                     }
                 });
 
-                workerDb.ref('/AdminConfig/NotificationSound').on('value', (snap) => {
-                    if (snap.exists() && snap.val()) {
-                        const sVal = snap.val();
-                        if (sVal.url) {
-                            // Auto-upgrade old 15-second alarm URL if it was saved in Firebase previously
-                            if (String(sVal.url).includes("digital_watch_alarm_long")) {
-                                window.dynamicSoundUrl = "AUTO_EVENT";
-                                window.dynamicSoundName = "Smart Event-Matched Tones (Default)";
-                            } else {
-                                window.dynamicSoundUrl = String(sVal.url).trim();
-                                window.dynamicSoundName = String(sVal.name || "Custom Sound").trim();
-                            }
-                            localStorage.setItem('waterIoT_dynamicSoundUrl', window.dynamicSoundUrl);
-                            localStorage.setItem('waterIoT_dynamicSoundName', window.dynamicSoundName);
-                        }
+                workerDb.ref('/AdminConfig/EventSounds').on('value', (snap) => {
+                    if (snap.exists() && snap.val() && typeof snap.val() === 'object') {
+                        window.customEventSounds = snap.val();
+                        localStorage.setItem('waterIoT_customEventSounds', JSON.stringify(window.customEventSounds));
                     }
                 });
             } catch (e) {}
@@ -5266,6 +5662,7 @@
                 initPremiumGlassBmsUI();
                 renderSolarBmsUI();
                 syncDynamicSupportContact();
+                organizeCustomerPortalLayout();
 
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('dashboardScreen').style.display = 'flex';
@@ -5277,12 +5674,12 @@
                     gmailField.value = displayEmail;
                 }
 
-                // EVENT 1: FIRST-TIME APP OPEN WELCOME NOTIFICATION (ONCE PER SESSION)
+                // EVENT 1: COMPACT WELCOME NOTIFICATION (ONCE PER SESSION)
                 if (!window.hasPlayedWelcomeSession) {
                     window.hasPlayedWelcomeSession = true;
                     sessionStorage.setItem('waterIoT_welcomed', 'true');
                     setTimeout(() => {
-                        showSmartEventBanner("👋 Welcome to ASK IoT Solutions Smart Water & Solar Portal!", "#00d2ff");
+                        showSmartEventBanner("👋 Welcome to ASK IoT Portal!", "#00d2ff");
                         triggerAppNotificationSound("welcome");
                     }, 900);
                 }
@@ -5723,11 +6120,11 @@
             btn.style.opacity = "1"; 
             
             if(currentPumpState) {
-                btn.className = "btn-round btn-off";
+                btn.className = "btn-round btn-off premium-3d-pump-btn";
                 btn.innerText = "TURN\nOFF";
                 if(tankModel) tankModel.classList.add('pump-active'); 
             } else {
-                btn.className = "btn-round btn-on";
+                btn.className = "btn-round btn-on premium-3d-pump-btn";
                 btn.innerText = "TURN\nON";
                 if(tankModel) tankModel.classList.remove('pump-active'); 
             }
@@ -5791,6 +6188,7 @@
             window.lastSavedRunDate = "Waiting for data...";
             window.isFirstStateLoad = true;
             window.lastKnownPumpState = null;
+            window.lastKnownSolarChargeState = null;
             window.hasNotifiedTankFull = false;
             
             window.lastKnownHeartbeat = -1; 
@@ -5802,6 +6200,7 @@
             window.dbLastDisconnect = "--";
 
             resetSolarBmsUI();
+            organizeCustomerPortalLayout();
 
             for (let i = 1; i <= 4; i++) {
                 if (document.getElementById('cust_slot' + i + '_name')) document.getElementById('cust_slot' + i + '_name').innerText = 'Empty';
@@ -5812,6 +6211,7 @@
                 if(snap.exists() && snap.val() !== "--" && snap.val() !== "") {
                     window.activeHotspotName = snap.val();
                     if(document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = window.activeHotspotName;
+                    if(document.getElementById('txtActiveWifiCustomerTopMirror')) document.getElementById('txtActiveWifiCustomerTopMirror').innerText = window.activeHotspotName;
                     if(document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = window.activeHotspotName;
                 } else {
                     setTimeout(() => {
@@ -5839,6 +6239,7 @@
             updateConnectionUI(false); 
             
             if (document.getElementById('txtActiveWifiCustomer')) document.getElementById('txtActiveWifiCustomer').innerText = '--';
+            if (document.getElementById('txtActiveWifiCustomerTopMirror')) document.getElementById('txtActiveWifiCustomerTopMirror').innerText = '--';
             if (document.getElementById('adminTxtActiveWifi')) document.getElementById('adminTxtActiveWifi').innerText = '--';
 
             if (document.getElementById('dailyUsageText')) {
@@ -5882,7 +6283,7 @@
             }
             
             const btn = document.getElementById('pumpToggleBtn');
-            btn.className = "btn-round btn-off";
+            btn.className = "btn-round btn-off premium-3d-pump-btn";
             btn.innerText = "OFFLINE";
             btn.style.pointerEvents = "none";
             btn.style.opacity = "0.6";
@@ -6115,14 +6516,14 @@
                     usageTextEl.innerText = localDailyUsage.toFixed(1) + '%';
                     
                     let usageColor = "#2ed573"; 
-                    let popupMsg = `💧 Good job! Today's water usage is low: ${localDailyUsage.toFixed(1)}%`;
+                    let popupMsg = `💧 Daily Usage: ${localDailyUsage.toFixed(1)}% (Low)`;
                     
                     if (localDailyUsage >= 5.0 && localDailyUsage <= 7.0) {
                         usageColor = "#feca57"; 
-                        popupMsg = `⚠️ Moderate water usage today: ${localDailyUsage.toFixed(1)}%`;
+                        popupMsg = `⚠️ Daily Usage: ${localDailyUsage.toFixed(1)}% (Moderate)`;
                     } else if (localDailyUsage > 7.0) {
                         usageColor = "#ff4757"; 
-                        popupMsg = `🚨 High water usage warning: ${localDailyUsage.toFixed(1)}%!`;
+                        popupMsg = `🚨 High Water Usage: ${localDailyUsage.toFixed(1)}%!`;
                     }
                     
                     usageTextEl.style.color = usageColor;
@@ -6130,13 +6531,8 @@
                     if(!hasShownPopup && localDailyUsage > 0) {
                         hasShownPopup = true;
                         setTimeout(() => {
-                            const popup = document.getElementById('usageSmsPopup');
-                            popup.style.borderColor = usageColor;
-                            popup.innerHTML = popupMsg;
-                            popup.classList.add('show');
-                            // Ring short Water Usage Notification Chime
+                            showSmartEventBanner(popupMsg, usageColor);
                             triggerAppNotificationSound("usage");
-                            setTimeout(() => popup.classList.remove('show'), 6000);
                         }, 3500);
                     }
                 }
@@ -6237,7 +6633,7 @@
                         badge.style.background = "#00d2ff";
                         badge.innerText = "OTA DOWNLOADING...";
                         
-                        btn.className = "btn-round btn-off";
+                        btn.className = "btn-round btn-off premium-3d-pump-btn";
                         btn.innerText = "UPDATING";
                         btn.style.opacity = "0.5";
                         btn.style.pointerEvents = "none";
@@ -6247,7 +6643,7 @@
                         badge.style.background = "#ff4757";
                         badge.innerText = "OFFLINE";
                         
-                        btn.className = "btn-round btn-off";
+                        btn.className = "btn-round btn-off premium-3d-pump-btn";
                         btn.innerText = "OFFLINE";
                         btn.style.pointerEvents = "none"; 
                         
@@ -6347,17 +6743,15 @@
                         document.getElementById('waterLevelFill').style.height = pctVal + '%';
                         document.getElementById('waterLevelText').innerText = pctVal.toFixed(1) + '%';
 
-                        // EVENT 5: 100% WATER TANK FULL SUCCESS NOTIFICATION (LATCHED ONCE PER FILL)
+                        // EVENT 5: COMPACT 100% WATER TANK FULL SUCCESS NOTIFICATION (LATCHED ONCE PER FILL)
                         if (!isNaN(pctVal)) {
                             if (pctVal >= 99.5 && !window.hasNotifiedTankFull) {
                                 window.hasNotifiedTankFull = true;
-                                // Only ring if water rose up to 100% or if pump was running
                                 if (lastWaterPercent !== -1 || currentPumpState) {
-                                    showSmartEventBanner("🎉 Tank 100% Full! Water level has reached maximum capacity.", "#2ed573");
+                                    showSmartEventBanner("🎉 Tank 100% Full! Maximum level reached.", "#2ed573");
                                     triggerAppNotificationSound("tank_full");
                                 }
                             } else if (pctVal < 95.0) {
-                                // Reset latch when water level drops below 95%
                                 window.hasNotifiedTankFull = false;
                             }
                         }
@@ -6398,7 +6792,7 @@
                         document.getElementById('txtS2').innerText = 'FAULT';
                     }
 
-                    // Render 4-Bar Smartphone Signal Meter in Both Customer & Admin Portals
+                    // Render 4-Bar Smartphone Signal Meter Above Tank (Right Side) & Telemetry
                     const sigVal = (data.signalStrength !== undefined && data.signalStrength !== null) ? data.signalStrength : 'N/A';
                     renderSignalBars(sigVal, 'txtSignalCustomer');
                     renderSignalBars(sigVal, 'adminTxtSignal');
