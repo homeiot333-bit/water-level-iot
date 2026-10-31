@@ -4099,7 +4099,7 @@
             }
         }
 
-        async function submitCustomerSupportTicket(channel) {
+async function submitCustomerSupportTicket(channel) {
             const phoneEl = document.getElementById('custSupportPhone');
             const gmailEl = document.getElementById('custSupportGmail');
             const msgEl = document.getElementById('custSupportMsg');
@@ -4137,11 +4137,8 @@
             const sigQual = document.getElementById('txtSignalCustomer') ? document.getElementById('txtSignalCustomer').innerText.trim() : "N/A";
             const battLvl = document.getElementById('bmsBatteryPercentText') ? document.getElementById('bmsBatteryPercentText').innerText.trim() : "--%";
 
-            // Uses the clean portal URL on Line 1 so WhatsApp renders the <head> og:image Logo Card at the top of the message
-            const portalPreviewUrl = "https://homeiot333-bit.github.io/water-level-iot/";
-
+            // 100% Clean WhatsApp Ticket — Zero GitHub or Website URLs
             const reportLines = [
-                portalPreviewUrl,
                 "🟦⚡ *ASK IoT SOLUTIONS* ⚡🟦",
                 headerTitle,
                 "━━━━━━━━━━━━━━━━━━━━",
