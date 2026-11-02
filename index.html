@@ -2123,6 +2123,7 @@
         </div>
     </div>
     <script>
+      <script>
         // === START OF SUBPART ALPHA ===
         const globalLogTimestamps = {};
         
@@ -2144,8 +2145,12 @@
         window.selectedSupportType = "problem";
         window.selectedSupportStars = 5;
 
-        // --- ONLINE NOTIFICATION GATEKEEPER QUEUE & REPEATING UPDATE TIMER ---
+        // --- SEQUENTIAL 5-SECOND NON-OVERLAPPING BANNER QUEUE & 1-MINUTE UPDATE REMINDER ---
         window.onlineNotificationQueue = [];
+        window.bannerQueue = [];
+        window.isBannerCurrentlyShowing = false;
+        window.lastQueuedBannerItem = null;
+        window.lastQueuedBannerTime = 0;
         window.appUpdateRepeatTimer = null;
         window.lastHandledPushTrigger = 0;
 
@@ -2159,28 +2164,34 @@
             pushTriggerId: 0
         };
 
-        // --- DYNAMIC TANK STUDIO CONFIG (EDITABLE WITH REALTIME DEMO) ---
+        // --- EXPANDED TANK STUDIO CONFIG (6 REAL-TIME EDITABLE OPTIONS) ---
         window.tankStyleConfig = {
-            waveMode: "dual_sine",    // dual_sine | fast_hydro | gentle_ripple | flat_still
-            glowMode: "none",         // none | soft_cyan | neon_emerald | solar_gold | royal_purple
-            waterTheme: "ocean_cyan", // ocean_cyan | aqua_mint | royal_blue | emerald_bio | sunset_amber
-            pctStyle: "clean"         // clean | outline | frosted_pill | cyber_hud
+            waveMode: "dual_sine",          // dual_sine | fast_hydro | gentle_ripple | tsunami_surge | flat_still
+            glowMode: "none",               // none | soft_cyan | neon_emerald | solar_gold | royal_purple | crimson_alert
+            waterTheme: "ocean_cyan",       // ocean_cyan | aqua_mint | royal_blue | emerald_bio | sunset_amber | violet_nebula
+            pctStyle: "clean",              // clean | outline | frosted_pill | cyber_hud | gold_badge
+            waterfallStyle: "crystal_flow", // crystal_flow | neon_laser | heavy_torrent | hidden
+            glassFinish: "full_3d"          // full_3d | crystal_clear | dark_smoked | minimal_ticks
         };
 
-        // --- DYNAMIC PUMP BUTTON STUDIO CONFIG (EDITABLE WITH REALTIME DEMO) ---
+        // --- EXPANDED PUMP BUTTON STUDIO CONFIG (6 REAL-TIME EDITABLE OPTIONS) ---
         window.pumpStyleConfig = {
-            btnTheme: "neon_3d",      // neon_3d | cyber_cyan | plasma_gold | industrial_steel | royal_purple
-            animStyle: "pulse_ring",  // pulse_ring | rotating_halo | liquid_morph | breathing_glow | none
-            btnShape: "circle",       // circle | squircle | diamond_hex | pill
-            cardGlow: "cyan_glass"    // cyan_glass | emerald_matrix | gold_solar | minimal_clean
+            btnTheme: "neon_3d",       // neon_3d | cyber_cyan | plasma_gold | industrial_steel | royal_purple | crimson_matrix
+            animStyle: "pulse_ring",   // pulse_ring | rotating_halo | liquid_morph | breathing_glow | radar_sweep | none
+            btnShape: "circle",        // circle | squircle | diamond_hex | pill | shield_crest
+            cardGlow: "cyan_glass",    // cyan_glass | emerald_matrix | gold_solar | purple_cyber | minimal_clean
+            btnSize: "compact_116",    // compact_116 | standard_126 | large_136
+            fontStyle: "modern_bold"   // modern_bold | cyber_mono | heavy_impact
         };
 
-        // --- DYNAMIC NEXUS SOLAR NODE STUDIO CONFIG (EDITABLE WITH REALTIME DEMO) ---
+        // --- EXPANDED NEXUS SOLAR NODE STUDIO CONFIG (6 REAL-TIME EDITABLE OPTIONS) ---
         window.solarStyleConfig = {
-            nodeTheme: "cyber_cyan",     // cyber_cyan | solar_gold | emerald_bio | royal_amethyst | obsidian_stealth
-            animSpeed: "normal",         // normal | hyper | zen
-            sunStyle: "classic_sun",     // classic_sun | plasma_core | quantum_star | cyber_bolt
-            capsuleStyle: "segmented_3d" // segmented_3d | neon_tube | minimal_flat
+            nodeTheme: "cyber_cyan",       // cyber_cyan | solar_gold | emerald_bio | royal_amethyst | obsidian_stealth | crimson_core
+            animSpeed: "normal",           // normal | hyper | zen | turbo_pulse
+            sunStyle: "classic_sun",       // classic_sun | plasma_core | quantum_star | cyber_bolt | golden_halo
+            capsuleStyle: "segmented_3d",  // segmented_3d | neon_tube | minimal_flat | cyber_grid
+            panelStyle: "blue_silicon",    // blue_silicon | mono_black | gold_matrix | emerald_cell
+            titleStyle: "nexus_glow"       // nexus_glow | gold_prestige | clean_minimal
         };
 
         // --- LIVE DEMO PREVIEW STATE FOR ADMIN STUDIO ---
@@ -2301,7 +2312,7 @@
             return Boolean(window.liveHeartbeatReceived && lastHeartbeatTime > 0 && (Date.now() - lastHeartbeatTime <= 35000));
         }
 
-        function enqueueOrRunWhenOnline(taskId, fn, delayMs = 600) {
+        function enqueueOrRunWhenOnline(taskId, fn, delayMs = 400) {
             if (isMachineConfirmedOnline()) {
                 setTimeout(() => {
                     if (isMachineConfirmedOnline()) {
@@ -2324,6 +2335,7 @@
             const pending = [...window.onlineNotificationQueue];
             window.onlineNotificationQueue = [];
 
+            // Execute queued tasks; the 5-second sequential banner queue handles spacing automatically!
             pending.forEach((item, index) => {
                 setTimeout(() => {
                     if (isMachineConfirmedOnline()) {
@@ -2331,8 +2343,31 @@
                     } else {
                         window.onlineNotificationQueue.push(item);
                     }
-                }, (item.delay || 500) + (index * 2800));
+                }, 250 + (index * 200));
             });
+        }
+
+        // --- AUTO-SCROLL TO APP UPDATE CENTER WHEN TOP VERSION PILL OR UPDATE BANNER IS CLICKED ---
+        function scrollToCustomerAppUpdateCenter() {
+            const updCard = document.getElementById('customerAppUpdateCard');
+            const adv = document.getElementById('advancedSection');
+            if (!updCard) return;
+
+            // If App Update Center is inside Engineering Data (after update), open Engineering Data drawer first!
+            if (adv && adv.contains(updCard)) {
+                openTopDownEngineerDrawer();
+                setTimeout(() => {
+                    updCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    updCard.classList.add('demo-highlight-ring');
+                    setTimeout(() => updCard.classList.remove('demo-highlight-ring'), 2600);
+                }, 320);
+            } else {
+                closeTopDownEngineerDrawer();
+                updCard.style.display = 'block';
+                updCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                updCard.classList.add('demo-highlight-ring');
+                setTimeout(() => updCard.classList.remove('demo-highlight-ring'), 2600);
+            }
         }
 
         // --- SMARTPHONE 4-BAR SIGNAL STRENGTH RENDERER (UPDATES TANK TOP-RIGHT & TELEMETRY) ---
@@ -2389,7 +2424,7 @@
             }
         }
 
-        // --- APPLY DYNAMIC TANK STUDIO MODIFICATIONS LIVE ---
+        // --- APPLY DYNAMIC TANK STUDIO MODIFICATIONS LIVE (6 OPTIONS) ---
         function applyDynamicTankStyle(cfg) {
             if (cfg && typeof cfg === 'object') {
                 window.tankStyleConfig = Object.assign({}, window.tankStyleConfig, cfg);
@@ -2405,26 +2440,32 @@
             const backWave = fillEl.querySelector('.wave-layer-back');
             const frontPath = frontWave ? frontWave.querySelector('path') : null;
             const backPath = backWave ? backWave.querySelector('path') : null;
+            const waterfallEl = tankEl.querySelector('.waterfall');
+            const shineEl = tankEl.querySelector('.tank-3d-glass-shine');
+            const ticksEl = tankEl.querySelector('.tank-scale-ticks');
 
-            // 1. Apply Tank Border & Glow Mode
+            // 1. Tank Border & Glow Mode
             if (s.glowMode === 'soft_cyan') {
-                tankEl.style.setProperty('border', '2px solid rgba(0, 210, 255, 0.55)', 'important');
-                tankEl.style.setProperty('box-shadow', '0 0 22px rgba(0, 210, 255, 0.28), inset 0 0 18px rgba(0, 210, 255, 0.14)', 'important');
+                tankEl.style.setProperty('border', '2px solid rgba(0, 210, 255, 0.6)', 'important');
+                tankEl.style.setProperty('box-shadow', '0 0 22px rgba(0, 210, 255, 0.3), inset 0 0 18px rgba(0, 210, 255, 0.14)', 'important');
             } else if (s.glowMode === 'neon_emerald') {
-                tankEl.style.setProperty('border', '2px solid rgba(46, 213, 115, 0.65)', 'important');
-                tankEl.style.setProperty('box-shadow', '0 0 26px rgba(46, 213, 115, 0.35), inset 0 0 20px rgba(46, 213, 115, 0.16)', 'important');
+                tankEl.style.setProperty('border', '2px solid rgba(46, 213, 115, 0.68)', 'important');
+                tankEl.style.setProperty('box-shadow', '0 0 26px rgba(46, 213, 115, 0.36), inset 0 0 20px rgba(46, 213, 115, 0.16)', 'important');
             } else if (s.glowMode === 'solar_gold') {
-                tankEl.style.setProperty('border', '2px solid rgba(254, 202, 87, 0.65)', 'important');
-                tankEl.style.setProperty('box-shadow', '0 0 26px rgba(254, 202, 87, 0.32), inset 0 0 20px rgba(254, 202, 87, 0.14)', 'important');
+                tankEl.style.setProperty('border', '2px solid rgba(254, 202, 87, 0.68)', 'important');
+                tankEl.style.setProperty('box-shadow', '0 0 26px rgba(254, 202, 87, 0.34), inset 0 0 20px rgba(254, 202, 87, 0.14)', 'important');
             } else if (s.glowMode === 'royal_purple') {
-                tankEl.style.setProperty('border', '2px solid rgba(165, 94, 234, 0.7)', 'important');
+                tankEl.style.setProperty('border', '2px solid rgba(165, 94, 234, 0.72)', 'important');
                 tankEl.style.setProperty('box-shadow', '0 0 28px rgba(165, 94, 234, 0.38), inset 0 0 20px rgba(165, 94, 234, 0.18)', 'important');
+            } else if (s.glowMode === 'crimson_alert') {
+                tankEl.style.setProperty('border', '2px solid rgba(255, 71, 87, 0.72)', 'important');
+                tankEl.style.setProperty('box-shadow', '0 0 28px rgba(255, 71, 87, 0.38), inset 0 0 20px rgba(255, 71, 87, 0.18)', 'important');
             } else {
                 tankEl.style.setProperty('border', '1.5px solid rgba(255, 255, 255, 0.22)', 'important');
                 tankEl.style.setProperty('box-shadow', 'none', 'important');
             }
 
-            // 2. Apply Water Liquid Color Theme
+            // 2. Water Liquid Color Theme
             let grad = 'linear-gradient(180deg, rgba(0, 225, 255, 0.88) 0%, rgba(0, 140, 255, 0.92) 55%, rgba(0, 82, 212, 0.98) 100%)';
             let wFrontCol = 'rgba(0, 225, 255, 0.88)';
             let wBackCol = 'rgba(0, 180, 255, 0.45)';
@@ -2445,20 +2486,29 @@
                 grad = 'linear-gradient(180deg, rgba(254, 202, 87, 0.88) 0%, rgba(255, 159, 67, 0.92) 55%, rgba(238, 82, 83, 0.98) 100%)';
                 wFrontCol = 'rgba(254, 202, 87, 0.88)';
                 wBackCol = 'rgba(255, 159, 67, 0.45)';
+            } else if (s.waterTheme === 'violet_nebula') {
+                grad = 'linear-gradient(180deg, rgba(217, 128, 250, 0.88) 0%, rgba(153, 128, 250, 0.92) 55%, rgba(87, 88, 187, 0.98) 100%)';
+                wFrontCol = 'rgba(217, 128, 250, 0.88)';
+                wBackCol = 'rgba(153, 128, 250, 0.45)';
             }
             fillEl.style.setProperty('background', grad, 'important');
             if (frontPath) frontPath.setAttribute('fill', wFrontCol);
             if (backPath) backPath.setAttribute('fill', wBackCol);
 
-            // 3. Apply Wave Animation Mode
+            // 3. Wave Animation Mode
             if (waveWrap && frontWave && backWave) {
                 if (s.waveMode === 'flat_still') {
                     waveWrap.style.display = 'none';
                 } else {
                     waveWrap.style.display = 'block';
+                    waveWrap.style.height = (s.waveMode === 'tsunami_surge') ? '24px' : '18px';
+                    waveWrap.style.top = (s.waveMode === 'tsunami_surge') ? '-23px' : '-17px';
                     if (s.waveMode === 'fast_hydro') {
-                        frontWave.style.animationDuration = '1.5s';
-                        backWave.style.animationDuration = '2.2s';
+                        frontWave.style.animationDuration = '1.4s';
+                        backWave.style.animationDuration = '2.1s';
+                    } else if (s.waveMode === 'tsunami_surge') {
+                        frontWave.style.animationDuration = '1.05s';
+                        backWave.style.animationDuration = '1.65s';
                     } else if (s.waveMode === 'gentle_ripple') {
                         frontWave.style.animationDuration = '6.2s';
                         backWave.style.animationDuration = '8.8s';
@@ -2469,10 +2519,11 @@
                 }
             }
 
-            // 4. Apply Percentage Text Style
+            // 4. Percentage Text Style
             if (pctEl) {
+                pctEl.style.setProperty('color', '#ffffff', 'important');
                 if (s.pctStyle === 'frosted_pill') {
-                    pctEl.style.setProperty('background', 'rgba(10, 20, 36, 0.48)', 'important');
+                    pctEl.style.setProperty('background', 'rgba(10, 20, 36, 0.5)', 'important');
                     pctEl.style.setProperty('padding', '4px 12px', 'important');
                     pctEl.style.setProperty('border-radius', '999px', 'important');
                     pctEl.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.22)', 'important');
@@ -2481,13 +2532,20 @@
                     pctEl.style.setProperty('background', 'transparent', 'important');
                     pctEl.style.setProperty('padding', '0', 'important');
                     pctEl.style.setProperty('border', 'none', 'important');
-                    pctEl.style.setProperty('text-shadow', '0 0 10px rgba(0, 210, 255, 0.85)', 'important');
+                    pctEl.style.setProperty('text-shadow', '0 0 10px rgba(0, 210, 255, 0.9)', 'important');
                 } else if (s.pctStyle === 'cyber_hud') {
-                    pctEl.style.setProperty('background', 'rgba(0, 210, 255, 0.14)', 'important');
+                    pctEl.style.setProperty('background', 'rgba(0, 210, 255, 0.16)', 'important');
                     pctEl.style.setProperty('padding', '4px 14px', 'important');
                     pctEl.style.setProperty('border-radius', '6px', 'important');
                     pctEl.style.setProperty('border', '1.5px dashed #00d2ff', 'important');
                     pctEl.style.setProperty('text-shadow', '0 0 8px #00d2ff', 'important');
+                } else if (s.pctStyle === 'gold_badge') {
+                    pctEl.style.setProperty('background', 'rgba(254, 202, 87, 0.2)', 'important');
+                    pctEl.style.setProperty('padding', '4px 13px', 'important');
+                    pctEl.style.setProperty('border-radius', '10px', 'important');
+                    pctEl.style.setProperty('border', '1.5px solid #feca57', 'important');
+                    pctEl.style.setProperty('color', '#fff2a3', 'important');
+                    pctEl.style.setProperty('text-shadow', 'none', 'important');
                 } else {
                     pctEl.style.setProperty('background', 'transparent', 'important');
                     pctEl.style.setProperty('padding', '0', 'important');
@@ -2497,9 +2555,31 @@
                     pctEl.style.setProperty('text-shadow', 'none', 'important');
                 }
             }
+
+            // 5. Waterfall Stream Style
+            if (waterfallEl) {
+                if (s.waterfallStyle === 'hidden') {
+                    waterfallEl.style.display = 'none';
+                } else {
+                    waterfallEl.style.display = 'block';
+                    waterfallEl.style.width = (s.waterfallStyle === 'heavy_torrent') ? '24px' : '16px';
+                    waterfallEl.style.filter = (s.waterfallStyle === 'neon_laser') ? 'drop-shadow(0 0 8px #00d2ff)' : 'none';
+                }
+            }
+
+            // 6. Tank Glass Reflection & Ticks
+            if (shineEl && ticksEl) {
+                shineEl.style.display = (s.glassFinish === 'minimal_ticks' || s.glassFinish === 'crystal_clear') ? 'none' : 'block';
+                ticksEl.style.display = (s.glassFinish === 'crystal_clear') ? 'none' : 'flex';
+                if (s.glassFinish === 'dark_smoked') {
+                    tankEl.style.setProperty('background', 'linear-gradient(90deg, rgba(0,0,0,0.88) 0%, rgba(5,10,20,0.95) 50%, rgba(0,0,0,0.88) 100%)', 'important');
+                } else {
+                    tankEl.style.setProperty('background', 'linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(8, 16, 30, 0.78) 24%, rgba(6, 12, 24, 0.85) 76%, rgba(255, 255, 255, 0.06) 100%)', 'important');
+                }
+            }
         }
 
-        // --- APPLY DYNAMIC PUMP BUTTON STUDIO MODIFICATIONS LIVE ---
+        // --- APPLY DYNAMIC PUMP BUTTON STUDIO MODIFICATIONS LIVE (6 OPTIONS) ---
         function applyDynamicPumpStyle(cfg) {
             if (cfg && typeof cfg === 'object') {
                 window.pumpStyleConfig = Object.assign({}, window.pumpStyleConfig, cfg);
@@ -2509,10 +2589,9 @@
             const btnEl = document.getElementById('pumpToggleBtn');
             if (!cardEl || !btnEl) return;
 
-            // Remove old dynamic classes
-            const themeClasses = ['pump-theme-neon_3d', 'pump-theme-cyber_cyan', 'pump-theme-plasma_gold', 'pump-theme-industrial_steel', 'pump-theme-royal_purple'];
-            const animClasses = ['pump-anim-pulse_ring', 'pump-anim-rotating_halo', 'pump-anim-liquid_morph', 'pump-anim-breathing_glow', 'pump-anim-none'];
-            const shapeClasses = ['pump-shape-circle', 'pump-shape-squircle', 'pump-shape-diamond_hex', 'pump-shape-pill'];
+            const themeClasses = ['pump-theme-neon_3d', 'pump-theme-cyber_cyan', 'pump-theme-plasma_gold', 'pump-theme-industrial_steel', 'pump-theme-royal_purple', 'pump-theme-crimson_matrix'];
+            const animClasses = ['pump-anim-pulse_ring', 'pump-anim-rotating_halo', 'pump-anim-liquid_morph', 'pump-anim-breathing_glow', 'pump-anim-radar_sweep', 'pump-anim-none'];
+            const shapeClasses = ['pump-shape-circle', 'pump-shape-squircle', 'pump-shape-diamond_hex', 'pump-shape-pill', 'pump-shape-shield_crest'];
 
             btnEl.classList.remove(...themeClasses, ...animClasses, ...shapeClasses);
             btnEl.classList.add(
@@ -2521,13 +2600,37 @@
                 'pump-shape-' + (p.btnShape || 'circle')
             );
 
-            // Apply Card Glow Style
+            // Button Size Scale
+            if (p.btnShape !== 'pill') {
+                let sz = '116px';
+                if (p.btnSize === 'standard_126') sz = '126px';
+                else if (p.btnSize === 'large_136') sz = '136px';
+                btnEl.style.setProperty('width', sz, 'important');
+                btnEl.style.setProperty('height', sz, 'important');
+            }
+
+            // Button Font Style
+            if (p.fontStyle === 'cyber_mono') {
+                btnEl.style.fontFamily = "'Courier New', monospace";
+                btnEl.style.letterSpacing = "2px";
+            } else if (p.fontStyle === 'heavy_impact') {
+                btnEl.style.fontFamily = "'Impact', 'Arial Black', sans-serif";
+                btnEl.style.letterSpacing = "1.5px";
+            } else {
+                btnEl.style.fontFamily = "'Segoe UI', sans-serif";
+                btnEl.style.letterSpacing = "1.1px";
+            }
+
+            // Card Border & Glow Style
             if (p.cardGlow === 'emerald_matrix') {
                 cardEl.style.setProperty('border', '1.5px solid rgba(46, 213, 115, 0.55)', 'important');
                 cardEl.style.setProperty('box-shadow', '0 12px 32px rgba(0,0,0,0.8), 0 0 24px rgba(46, 213, 115, 0.18)', 'important');
             } else if (p.cardGlow === 'gold_solar') {
                 cardEl.style.setProperty('border', '1.5px solid rgba(254, 202, 87, 0.55)', 'important');
                 cardEl.style.setProperty('box-shadow', '0 12px 32px rgba(0,0,0,0.8), 0 0 24px rgba(254, 202, 87, 0.18)', 'important');
+            } else if (p.cardGlow === 'purple_cyber') {
+                cardEl.style.setProperty('border', '1.5px solid rgba(165, 94, 234, 0.6)', 'important');
+                cardEl.style.setProperty('box-shadow', '0 12px 32px rgba(0,0,0,0.8), 0 0 24px rgba(165, 94, 234, 0.22)', 'important');
             } else if (p.cardGlow === 'minimal_clean') {
                 cardEl.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.14)', 'important');
                 cardEl.style.setProperty('box-shadow', '0 8px 20px rgba(0,0,0,0.5)', 'important');
@@ -2537,7 +2640,7 @@
             }
         }
 
-        // --- APPLY DYNAMIC NEXUS SOLAR NODE STUDIO MODIFICATIONS LIVE ---
+        // --- APPLY DYNAMIC NEXUS SOLAR NODE STUDIO MODIFICATIONS LIVE (6 OPTIONS) ---
         function applyDynamicSolarStyle(cfg) {
             if (cfg && typeof cfg === 'object') {
                 window.solarStyleConfig = Object.assign({}, window.solarStyleConfig, cfg);
@@ -2546,12 +2649,12 @@
             const cardEl = document.getElementById('solarBatteryCard');
             if (!cardEl) return;
 
-            // 1. Node Border & Theme
             const cyanLines = cardEl.querySelectorAll('.nexus-cyan-line');
-            const stageEl = cardEl.querySelector('.bms-solar-anim-stage');
             const capsuleEl = cardEl.querySelector('.bms-3d-capsule');
             const rays = cardEl.querySelectorAll('.bms-sun-ray');
             const streamEl = cardEl.querySelector('.bms-energy-stream');
+            const pvPanel = cardEl.querySelector('.bms-pv-panel');
+            const mainTitle = cardEl.querySelector('.nexus-main-title');
 
             let accentColor = '#00b4ff';
             let borderCol = 'rgba(0, 180, 255, 0.35)';
@@ -2573,6 +2676,10 @@
                 accentColor = '#94a3b8';
                 borderCol = 'rgba(255, 255, 255, 0.18)';
                 cardBg = 'linear-gradient(160deg, rgba(10, 12, 16, 0.98) 0%, rgba(4, 6, 8, 0.99) 100%)';
+            } else if (s.nodeTheme === 'crimson_core') {
+                accentColor = '#ff4757';
+                borderCol = 'rgba(255, 71, 87, 0.5)';
+                cardBg = 'linear-gradient(160deg, rgba(34, 12, 18, 0.95) 0%, rgba(18, 6, 10, 0.98) 100%)';
             }
 
             cardEl.style.setProperty('background', cardBg, 'important');
@@ -2584,7 +2691,8 @@
 
             // 2. Animation Speed
             let durMult = 1.0;
-            if (s.animSpeed === 'hyper') durMult = 0.55;
+            if (s.animSpeed === 'hyper') durMult = 0.52;
+            else if (s.animSpeed === 'turbo_pulse') durMult = 0.35;
             else if (s.animSpeed === 'zen') durMult = 2.0;
 
             rays.forEach(r => {
@@ -2604,6 +2712,10 @@
                     capsuleEl.style.borderRadius = '8px';
                     capsuleEl.style.border = '1px solid rgba(255,255,255,0.18)';
                     capsuleEl.style.boxShadow = 'none';
+                } else if (s.capsuleStyle === 'cyber_grid') {
+                    capsuleEl.style.borderRadius = '4px';
+                    capsuleEl.style.border = `1.5px dashed ${accentColor}`;
+                    capsuleEl.style.boxShadow = `inset 0 0 14px ${accentColor}33`;
                 } else {
                     capsuleEl.style.borderRadius = '14px';
                     capsuleEl.style.border = '2px solid rgba(255, 255, 255, 0.22)';
@@ -2618,13 +2730,41 @@
                     'classic_sun': '☀️',
                     'plasma_core': '🔥',
                     'quantum_star': '✨',
-                    'cyber_bolt': '⚡'
+                    'cyber_bolt': '⚡',
+                    'golden_halo': '🌟'
                 };
                 const chosenIcon = iconMap[s.sunStyle] || '☀️';
                 if (window.bmsCache && window.bmsCache.isCharging) {
                     sunOrbEl.innerText = chosenIcon;
                 } else {
                     sunOrbEl.innerText = (s.sunStyle === 'classic_sun') ? '🌙' : chosenIcon;
+                }
+            }
+
+            // 5. Solar Panel Grid Style
+            if (pvPanel) {
+                if (s.panelStyle === 'mono_black') {
+                    pvPanel.style.background = 'linear-gradient(135deg, #111 0%, #2d3436 50%, #000 100%)';
+                } else if (s.panelStyle === 'gold_matrix') {
+                    pvPanel.style.background = 'linear-gradient(135deg, #b8860b 0%, #feca57 50%, #8b6508 100%)';
+                } else if (s.panelStyle === 'emerald_cell') {
+                    pvPanel.style.background = 'linear-gradient(135deg, #075c46 0%, #10ac84 50%, #04392b 100%)';
+                } else {
+                    pvPanel.style.background = 'linear-gradient(135deg, #0a3d62 0%, #1e3799 50%, #0c2461 100%)';
+                }
+            }
+
+            // 6. Title Banner Style
+            if (mainTitle) {
+                if (s.titleStyle === 'gold_prestige') {
+                    mainTitle.style.color = '#feca57';
+                    mainTitle.style.textShadow = '0 0 14px rgba(254, 202, 87, 0.55)';
+                } else if (s.titleStyle === 'clean_minimal') {
+                    mainTitle.style.color = '#e2e8f0';
+                    mainTitle.style.textShadow = 'none';
+                } else {
+                    mainTitle.style.color = '#ffffff';
+                    mainTitle.style.textShadow = `0 0 12px ${accentColor}66`;
                 }
             }
         }
@@ -2735,7 +2875,6 @@
             const solarCard = document.getElementById('solarBatteryCard');
             const combinedRow = document.getElementById('usageWifiCombinedRow');
             const supCard = document.getElementById('customerSupportCard');
-            const appUpdCard = document.getElementById('customerAppUpdateCard');
 
             // 2. Apply 7% Smaller Premium Pump Card Styling & Place NEXUS SOLAR NODE directly below Pump
             if (pumpCard && pumpCard.parentElement === mainView) {
@@ -2759,12 +2898,13 @@
                 }
             }
 
-            // 4. Place Dynamic App Update Card right below Support Card
-            if (appUpdCard && supCard && supCard.parentElement === mainView) {
-                mainView.insertBefore(appUpdCard, supCard.nextElementSibling);
-            }
+            // 4. Upgrade Engineer Data (#advancedSection) into a Top-Down Animated Slide Drawer
+            setupTopDownEngineerDrawer();
 
-            // 5. Move "Active Device Logins" block to the very end (bottom) of the portal
+            // 5. Place App Update Center (on Main Dashboard when update is pending; inside Engineering Data after update)
+            refreshCustomerAppUpdateUI();
+
+            // 6. Move "Active Device Logins" block to the very end (bottom) of the portal
             const custLoginsEl = document.getElementById('customerMobileLoginsList');
             if (custLoginsEl) {
                 const loginsCard = custLoginsEl.closest('.card') || custLoginsEl.parentElement;
@@ -2772,9 +2912,6 @@
                     mainView.appendChild(loginsCard);
                 }
             }
-
-            // 6. Upgrade Engineer Data (#advancedSection) into a Top-Down Animated Slide Drawer
-            setupTopDownEngineerDrawer();
         }
 
         // --- TOP-DOWN ANIMATED ENGINEER DATA DRAWER ---
@@ -3029,16 +3166,16 @@
                         font-weight: 900 !important;
                     }
 
-                    /* Compact Mobile Notification Banner */
+                    /* +7% Enlarged Mobile Notification Banner (5-Second Stable Display) */
                     #usageSmsPopup {
-                        max-width: 88vw !important;
+                        max-width: 92vw !important;
                         width: max-content !important;
-                        min-width: 210px !important;
-                        padding: 8px 14px !important;
-                        font-size: 11.5px !important;
-                        font-weight: 700 !important;
-                        line-height: 1.35 !important;
-                        border-radius: 14px !important;
+                        min-width: 226px !important;
+                        padding: 10px 16px !important;
+                        font-size: 12.5px !important;
+                        font-weight: 800 !important;
+                        line-height: 1.38 !important;
+                        border-radius: 16px !important;
                         left: 50% !important;
                         transform: translateX(-50%) !important;
                         right: auto !important;
@@ -3046,8 +3183,9 @@
                         word-wrap: break-word !important;
                         text-align: center !important;
                         box-sizing: border-box !important;
-                        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.78) !important;
+                        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.84) !important;
                         z-index: 10005 !important;
+                        transition: top 0.45s cubic-bezier(0.22, 1, 0.36, 1) !important;
                     }
 
                     /* Single-Row Daily Usage (36%) + Filled Active Wi-Fi (64%) */
@@ -3182,10 +3320,11 @@
                     }
 
                     /* Pump Shapes */
-                    #pumpToggleBtn.pump-shape-circle { border-radius: 50% !important; }
-                    #pumpToggleBtn.pump-shape-squircle { border-radius: 28px !important; }
-                    #pumpToggleBtn.pump-shape-diamond_hex { border-radius: 18px !important; transform: rotate(0deg); clip-path: polygon(25% 0%, 75% 0%, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%); }
-                    #pumpToggleBtn.pump-shape-pill { width: 148px !important; height: 92px !important; border-radius: 999px !important; }
+                    #pumpToggleBtn.pump-shape-circle { border-radius: 50% !important; clip-path: none !important; }
+                    #pumpToggleBtn.pump-shape-squircle { border-radius: 28px !important; clip-path: none !important; }
+                    #pumpToggleBtn.pump-shape-diamond_hex { border-radius: 18px !important; clip-path: polygon(25% 0%, 75% 0%, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%) !important; }
+                    #pumpToggleBtn.pump-shape-shield_crest { border-radius: 18px 18px 50% 50% !important; clip-path: none !important; }
+                    #pumpToggleBtn.pump-shape-pill { width: 152px !important; height: 92px !important; border-radius: 999px !important; clip-path: none !important; }
 
                     /* Pump Color Themes (ON vs OFF) */
                     #pumpToggleBtn.btn-on,
@@ -3247,6 +3386,16 @@
                         border: 4px solid #ed4c67 !important;
                         box-shadow: 0 0 25px rgba(181, 52, 113, 0.6) !important;
                     }
+                    #pumpToggleBtn.pump-theme-crimson_matrix.btn-on {
+                        background: radial-gradient(circle at 35% 30%, #2ed573 0%, #05c46b 55%, #000000 100%) !important;
+                        border: 4px solid #7bed9f !important;
+                        box-shadow: 0 0 30px rgba(46, 213, 115, 0.75) !important;
+                    }
+                    #pumpToggleBtn.pump-theme-crimson_matrix.btn-off {
+                        background: radial-gradient(circle at 35% 30%, #ff4757 0%, #c0392b 55%, #000000 100%) !important;
+                        border: 4px solid #ff6b81 !important;
+                        box-shadow: 0 0 30px rgba(255, 71, 87, 0.75) !important;
+                    }
 
                     /* Pump Button Animations */
                     #pumpToggleBtn.pump-anim-pulse_ring {
@@ -3254,7 +3403,7 @@
                     }
                     @keyframes pumpPulseSonar {
                         0% { transform: scale(1); }
-                        50% { transform: scale(1.04); }
+                        50% { transform: scale(1.045); }
                         100% { transform: scale(1); }
                     }
                     #pumpToggleBtn.pump-anim-rotating_halo::after {
@@ -3265,6 +3414,19 @@
                         border: 2.5px dashed rgba(0, 210, 255, 0.75);
                         animation: motorSpin 5s linear infinite;
                         pointer-events: none;
+                    }
+                    #pumpToggleBtn.pump-anim-radar_sweep::before {
+                        content: '';
+                        position: absolute;
+                        inset: -10px;
+                        border-radius: inherit;
+                        border: 2px solid rgba(46, 213, 115, 0.65);
+                        animation: radarPingOut 1.8s ease-out infinite;
+                        pointer-events: none;
+                    }
+                    @keyframes radarPingOut {
+                        0% { transform: scale(0.88); opacity: 0.95; }
+                        100% { transform: scale(1.22); opacity: 0; }
                     }
                     #pumpToggleBtn.pump-anim-liquid_morph {
                         animation: pumpLiquidMorph 4s ease-in-out infinite;
@@ -3931,7 +4093,6 @@
                         padding: 14px;
                         box-sizing: border-box;
                     }
-                    /* Docked Live Demo Mode: Transparent top so Admin sees Tank/Pump/Solar changes live! */
                     .live-demo-docked-overlay {
                         position: fixed;
                         inset: 0;
@@ -3949,7 +4110,7 @@
                         pointer-events: auto;
                         width: 100%;
                         max-width: 470px;
-                        max-height: 46vh;
+                        max-height: 52vh;
                         overflow-y: auto;
                         background: linear-gradient(180deg, rgba(12, 22, 42, 0.98) 0%, rgba(6, 11, 22, 0.99) 100%);
                         border-top: 2px solid #00d2ff;
@@ -4125,8 +4286,16 @@
             organizeCustomerPortalLayout();
         }
 
-        // --- APP UPDATE CENTER (NO INSTANT UPDATE BUTTON; AUTO-HIDES AFTER UPDATE; REPEATS NOTIFICATION UNTIL UPDATED) ---
+        // --- APP UPDATE CENTER (MAIN VIEW WHEN UPDATE PENDING; MOVES TO ENGINEER DATA AFTER UPDATE) ---
         function initCustomerAppUpdateCard() {
+            const topVerBadge = document.getElementById('alwaysVisibleAppVersion');
+            if (topVerBadge && !topVerBadge.dataset.scrollBound) {
+                topVerBadge.dataset.scrollBound = "true";
+                topVerBadge.style.cursor = "pointer";
+                topVerBadge.title = "Tap to view App Update Center";
+                topVerBadge.onclick = scrollToCustomerAppUpdateCenter;
+            }
+
             const mainView = document.getElementById('mainDashboardView');
             if (mainView && !document.getElementById('customerAppUpdateCard')) {
                 const updCard = document.createElement('div');
@@ -4134,14 +4303,13 @@
                 updCard.className = 'cust-support-card';
                 updCard.style.marginTop = '12px';
                 updCard.style.borderColor = 'rgba(254, 202, 87, 0.45)';
-                updCard.style.display = 'none';
                 updCard.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div style="display:flex; align-items:center; gap:10px;">
                             <img id="custUpdateLogoImg" src="${window.adminCompanyLogoUrl}" onerror="this.style.display='none'" alt="ASK IoT Logo" style="width:38px; height:38px; border-radius:10px; object-fit:contain; background:rgba(254,202,87,0.12); padding:3px; border:1px solid rgba(254,202,87,0.4);">
                             <div>
                                 <div style="font-size:14.5px; font-weight:900; color:#fff; display:flex; align-items:center; flex-wrap:wrap;">
-                                    <span>New App Update</span>
+                                    <span id="custAppCenterHeaderTitle">App Update Center</span>
                                     <span id="custAppVerBadge" style="background:#feca57; color:#000; font-size:10px; font-weight:900; padding:2px 7px; border-radius:999px; margin-left:6px;">v2.0</span>
                                     <span id="custAppNewPulseBadge" class="new-update-pulse-badge">ACTION REQUIRED</span>
                                 </div>
@@ -4152,7 +4320,7 @@
 
                     <div style="display:flex; gap:8px; margin-top:12px;">
                         <button type="button" class="support-wa-btn" style="flex:1.5; background:linear-gradient(90deg, #feca57, #ff9f43); color:#000; padding:11px; font-size:13px;" onclick="downloadLatestAppApk()">
-                            <span>⬇️ Download New App (.APK)</span>
+                            <span id="custAppDownloadBtnLabel">⬇️ Download New App (.APK)</span>
                         </button>
                         <button type="button" class="sound-play-preview-btn" style="padding:11px 14px;" onclick="toggleCustomerAppQrBox()">
                             <span>📷 Scan QR</span>
@@ -4160,7 +4328,7 @@
                     </div>
 
                     <div id="custAppQrBox" style="display:none; flex-direction:column; align-items:center; justify-content:center; margin-top:12px; padding:12px; background:rgba(0,0,0,0.45); border:1px dashed rgba(254,202,87,0.4); border-radius:12px; text-align:center;">
-                        <div style="font-size:11px; color:#feca57; font-weight:800; margin-bottom:8px;">Scan QR with Phone Camera to Download New App:</div>
+                        <div style="font-size:11px; color:#feca57; font-weight:800; margin-bottom:8px;">Scan QR with Phone Camera to Download App:</div>
                         <img id="custAppQrImg" src="" alt="App Update QR" style="width:145px; height:145px; border-radius:10px; background:#fff; padding:6px;">
                         <div id="custAppRawLinkText" style="font-size:10px; color:#94a3b8; margin-top:6px; word-break:break-all;"></div>
                     </div>
@@ -4170,25 +4338,39 @@
             refreshCustomerAppUpdateUI();
         }
 
-        // Starts a repeating 25-second notification reminder until the customer downloads the update
+        function isCustomerUpdatePending() {
+            const cfg = window.appUpdateConfig || {};
+            if (cfg.enabled === false) return false;
+            const publishedVer = String(cfg.version || "v2.0").trim();
+            let ackVer = localStorage.getItem('waterIoT_ackAppVer');
+            if (!ackVer) {
+                ackVer = "v2.0";
+                localStorage.setItem('waterIoT_ackAppVer', ackVer);
+            }
+            const pushTrig = cfg.pushTriggerId ? String(cfg.pushTriggerId) : "0";
+            let ackTrig = localStorage.getItem('waterIoT_ackPushTrig');
+            if (!ackTrig) {
+                ackTrig = pushTrig;
+                localStorage.setItem('waterIoT_ackPushTrig', ackTrig);
+            }
+            return (publishedVer !== ackVer) || (pushTrig !== "0" && pushTrig !== ackTrig);
+        }
+
+        // Repeats App Update Notification every 1 MINUTE (60,000 ms) until customer downloads the update
         function startRepeatingAppUpdateReminder(targetVersion) {
             stopRepeatingAppUpdateReminder();
             if (isUserAdmin()) return;
 
             const fireReminder = () => {
-                if (isUserAdmin()) {
-                    stopRepeatingAppUpdateReminder();
-                    return;
-                }
-                const ackVer = localStorage.getItem('waterIoT_ackAppVer') || "";
-                if (ackVer === targetVersion) {
+                if (isUserAdmin() || !isCustomerUpdatePending()) {
                     stopRepeatingAppUpdateReminder();
                     refreshCustomerAppUpdateUI();
                     return;
                 }
                 if (isMachineConfirmedOnline()) {
+                    const verStr = (window.appUpdateConfig && window.appUpdateConfig.version) || targetVersion || "v2.0";
                     if (typeof showSmartEventBanner === 'function') {
-                        showSmartEventBanner(`📲 New App Update (${targetVersion}) Available! Please download from App Update Center.`, "#feca57");
+                        showSmartEventBanner(`📲 New App Update (${verStr}) Available! Tap here to update.`, "#feca57", "scroll_to_update");
                     }
                     if (typeof triggerAppNotificationSound === 'function') {
                         triggerAppNotificationSound("app_update");
@@ -4196,8 +4378,8 @@
                 }
             };
 
-            enqueueOrRunWhenOnline("app_update_popup", fireReminder, 1000);
-            window.appUpdateRepeatTimer = setInterval(fireReminder, 25000);
+            enqueueOrRunWhenOnline("app_update_popup", fireReminder, 1200);
+            window.appUpdateRepeatTimer = setInterval(fireReminder, 60000);
         }
 
         function stopRepeatingAppUpdateReminder() {
@@ -4211,40 +4393,79 @@
             const cfg = window.appUpdateConfig || {};
             const isAdmin = isUserAdmin();
             const publishedVer = String(cfg.version || "v2.0").trim();
+            const ackVer = localStorage.getItem('waterIoT_ackAppVer') || "v2.0";
+            const updatePending = isCustomerUpdatePending();
 
-            // First-time initialization: if no ackAppVer saved yet, initialize to v2.0 so card is hidden until Admin pushes a newer version
-            let ackVer = localStorage.getItem('waterIoT_ackAppVer');
-            if (!ackVer) {
-                ackVer = "v2.0";
-                localStorage.setItem('waterIoT_ackAppVer', ackVer);
-            }
-
-            const isUpdatePending = (cfg.enabled !== false) && (publishedVer !== ackVer);
-
-            // Always show the customer's current installed version in the top header badge
+            // Update top bar clickable version pill (shows v1 ➔ v2 when update is pending!)
             const topVerBadge = document.getElementById('alwaysVisibleAppVersion');
             if (topVerBadge) {
+                topVerBadge.style.cursor = "pointer";
+                topVerBadge.onclick = scrollToCustomerAppUpdateCenter;
                 if (isAdmin) {
                     topVerBadge.innerText = `📱 Latest App: ${publishedVer}`;
+                    topVerBadge.style.borderColor = "rgba(254, 202, 87, 0.5)";
+                    topVerBadge.style.color = "#feca57";
+                } else if (updatePending) {
+                    topVerBadge.innerText = `📲 Update: ${ackVer} ➔ ${publishedVer} ⬇️`;
+                    topVerBadge.style.background = "rgba(255, 71, 87, 0.25)";
+                    topVerBadge.style.borderColor = "#ff4757";
+                    topVerBadge.style.color = "#fff";
                 } else {
-                    topVerBadge.innerText = isUpdatePending
-                        ? `📱 App ${ackVer} ➔ ${publishedVer} Available`
-                        : `📱 App ${publishedVer}`;
+                    topVerBadge.innerText = `📱 App ${publishedVer}`;
+                    topVerBadge.style.background = "rgba(254, 202, 87, 0.16)";
+                    topVerBadge.style.borderColor = "rgba(254, 202, 87, 0.5)";
+                    topVerBadge.style.color = "#feca57";
                 }
             }
 
             const card = document.getElementById('customerAppUpdateCard');
             if (!card) return;
 
-            // Hide Update Center card in Admin Portal OR after customer has updated to the latest version!
-            if (isAdmin || !isUpdatePending) {
+            if (isAdmin) {
                 card.style.display = 'none';
                 stopRepeatingAppUpdateReminder();
                 return;
             }
 
-            // Show Update Center card when an update is pending
             card.style.display = 'block';
+
+            const mainView = document.getElementById('mainDashboardView');
+            const supCard = document.getElementById('customerSupportCard');
+            const advSection = document.getElementById('advancedSection');
+            const pulseBadge = document.getElementById('custAppNewPulseBadge');
+            const dlLabel = document.getElementById('custAppDownloadBtnLabel');
+
+            if (updatePending) {
+                // Pending update: Keep App Update Center on the Main Dashboard below Support Card so auto-scroll lands on it directly!
+                if (mainView && supCard && card.parentElement !== mainView) {
+                    mainView.insertBefore(card, supCard.nextElementSibling);
+                }
+                card.style.borderColor = 'rgba(254, 202, 87, 0.55)';
+                if (pulseBadge) {
+                    pulseBadge.innerText = 'NEW UPDATE';
+                    pulseBadge.style.background = '#ff4757';
+                    pulseBadge.style.color = '#fff';
+                    pulseBadge.style.display = 'inline-block';
+                }
+                if (dlLabel) dlLabel.innerText = `⬇️ Download Update (${publishedVer})`;
+                if (!window.appUpdateRepeatTimer) {
+                    startRepeatingAppUpdateReminder(publishedVer);
+                }
+            } else {
+                // Already updated: Move App Update Center into Engineering Data (#advancedSection) instead of hiding it!
+                stopRepeatingAppUpdateReminder();
+                if (advSection && card.parentElement !== advSection) {
+                    advSection.appendChild(card);
+                }
+                card.style.borderColor = 'rgba(46, 213, 115, 0.4)';
+                if (pulseBadge) {
+                    pulseBadge.innerText = '✅ UP TO DATE';
+                    pulseBadge.style.background = 'rgba(46, 213, 115, 0.2)';
+                    pulseBadge.style.color = '#2ed573';
+                    pulseBadge.style.display = 'inline-block';
+                }
+                if (dlLabel) dlLabel.innerText = `⬇️ Re-Download App (${publishedVer})`;
+            }
 
             const verBadge = document.getElementById('custAppVerBadge');
             const notesEl = document.getElementById('custAppUpdateNotes');
@@ -4254,7 +4475,11 @@
 
             if (updLogo) updLogo.src = window.adminCompanyLogoUrl || window.DEFAULT_COMPANY_LOGO_URL;
             if (verBadge) verBadge.innerText = publishedVer;
-            if (notesEl) notesEl.innerText = cfg.notes || "Download the newest ASK IoT Solutions mobile app.";
+            if (notesEl) {
+                notesEl.innerText = updatePending
+                    ? (cfg.notes || "New version available! Download and install now.")
+                    : `Installed Version ${publishedVer} • Stored in Engineering Data`;
+            }
 
             const targetUrl = (cfg.apkUrl && cfg.apkUrl.trim() !== "")
                 ? cfg.apkUrl.trim()
@@ -4265,10 +4490,6 @@
             }
             if (rawTxt) {
                 rawTxt.innerText = (cfg.apkUrl && cfg.apkUrl.trim() !== "") ? targetUrl : "Scan QR or tap Download to install the latest app.";
-            }
-
-            if (!window.appUpdateRepeatTimer) {
-                startRepeatingAppUpdateReminder(publishedVer);
             }
         }
 
@@ -4281,15 +4502,17 @@
         async function downloadLatestAppApk() {
             const cfg = window.appUpdateConfig || {};
             const ver = String(cfg.version || "v2.0").trim();
+            const pushTrig = cfg.pushTriggerId ? String(cfg.pushTriggerId) : "0";
 
             if (!cfg.apkUrl || !cfg.apkUrl.trim().startsWith("http")) {
                 await customAlert("⚠️ APK Download Link has not been set by Admin yet. Please scan the QR code or contact support.");
                 return;
             }
 
-            // Mark update as completed: stops repeating notifications, updates permanent version badge, and hides Update Center block!
+            // Mark update as completed: stops 1-minute repeating alerts and moves Update Center into Engineering Data!
             localStorage.setItem('waterIoT_ackAppVer', ver);
             localStorage.setItem('waterIoT_notifiedAppVer', ver);
+            localStorage.setItem('waterIoT_ackPushTrig', pushTrig);
             stopRepeatingAppUpdateReminder();
             refreshCustomerAppUpdateUI();
 
@@ -5058,7 +5281,7 @@
             const battLblEl = document.getElementById('bmsAnimBattLabel');
 
             const sCfg = window.solarStyleConfig || {};
-            const iconMap = { 'classic_sun': '☀️', 'plasma_core': '🔥', 'quantum_star': '✨', 'cyber_bolt': '⚡' };
+            const iconMap = { 'classic_sun': '☀️', 'plasma_core': '🔥', 'quantum_star': '✨', 'cyber_bolt': '⚡', 'golden_halo': '🌟' };
             const activeSunEmoji = iconMap[sCfg.sunStyle] || '☀️';
 
             if (sunOrbEl) sunOrbEl.innerText = isCharging ? activeSunEmoji : ((sCfg.sunStyle === 'classic_sun' || !sCfg.sunStyle) ? '🌙' : activeSunEmoji);
@@ -5629,7 +5852,7 @@
         let globalScannerTimer = null; 
         let linkedDevicesRef = null;
 
-        // --- 8-EVENT DEFAULT NOTIFICATION SOUND MAP (SHORT 1-2.4 SECOND CHIMES) ---
+        // --- 8-EVENT DEFAULT NOTIFICATION SOUND MAP (WITH DISTINCT APP UPDATE CHIME) ---
         window.EVENT_SOUND_MAP = {
             "welcome": {
                 label: "👋 Welcome Notification",
@@ -5668,8 +5891,8 @@
             },
             "app_update": {
                 label: "📲 New App Update Available",
-                url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg",
-                maxDurationMs: 2200
+                url: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg",
+                maxDurationMs: 2100
             }
         };
 
@@ -5680,7 +5903,8 @@
             "3": { name: "Success Bugle Fanfare", url: "https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" },
             "4": { name: "Water Drop Wood Chime", url: "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" },
             "5": { name: "Soft Bell Pop", url: "https://actions.google.com/sounds/v1/cartoon/pop.ogg" },
-            "6": { name: "Power Down Wobble", url: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" }
+            "6": { name: "Power Down Wobble", url: "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" },
+            "7": { name: "Digital App Update Chime", url: "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" }
         };
 
         window.customEventSounds = {};
@@ -5743,130 +5967,7 @@
             }
         }
 
-        // --- ENHANCED APP UPDATE UI & REPEATING REMINDER OVERRIDE (SUPPORTS PUSH TRIGGER ID) ---
-        function isCustomerUpdatePending() {
-            const cfg = window.appUpdateConfig || {};
-            if (cfg.enabled === false) return false;
-            const publishedVer = String(cfg.version || "v2.0").trim();
-            let ackVer = localStorage.getItem('waterIoT_ackAppVer');
-            if (!ackVer) {
-                ackVer = "v2.0";
-                localStorage.setItem('waterIoT_ackAppVer', ackVer);
-            }
-            const pushTrig = cfg.pushTriggerId ? String(cfg.pushTriggerId) : "0";
-            let ackTrig = localStorage.getItem('waterIoT_ackPushTrig');
-            if (!ackTrig) {
-                ackTrig = pushTrig;
-                localStorage.setItem('waterIoT_ackPushTrig', ackTrig);
-            }
-            return (publishedVer !== ackVer) || (pushTrig !== "0" && pushTrig !== ackTrig);
-        }
-
-        function startRepeatingAppUpdateReminder(targetVersion) {
-            stopRepeatingAppUpdateReminder();
-            if (isUserAdmin()) return;
-
-            const fireReminder = () => {
-                if (isUserAdmin() || !isCustomerUpdatePending()) {
-                    stopRepeatingAppUpdateReminder();
-                    refreshCustomerAppUpdateUI();
-                    return;
-                }
-                if (isMachineConfirmedOnline()) {
-                    const verStr = (window.appUpdateConfig && window.appUpdateConfig.version) || targetVersion || "v2.0";
-                    showSmartEventBanner(`📲 App Update (${verStr}) Available! Please download from the Update Center below.`, "#feca57");
-                    triggerAppNotificationSound("app_update");
-                }
-            };
-
-            enqueueOrRunWhenOnline("app_update_popup", fireReminder, 900);
-            window.appUpdateRepeatTimer = setInterval(fireReminder, 25000);
-        }
-
-        function refreshCustomerAppUpdateUI() {
-            const cfg = window.appUpdateConfig || {};
-            const isAdmin = isUserAdmin();
-            const publishedVer = String(cfg.version || "v2.0").trim();
-            const ackVer = localStorage.getItem('waterIoT_ackAppVer') || "v2.0";
-            const updatePending = isCustomerUpdatePending();
-
-            // Always show the customer's current installed version in the top header badge
-            const topVerBadge = document.getElementById('alwaysVisibleAppVersion');
-            if (topVerBadge) {
-                if (isAdmin) {
-                    topVerBadge.innerText = `📱 Latest App: ${publishedVer}`;
-                } else {
-                    topVerBadge.innerText = updatePending
-                        ? `📱 App ${ackVer} ➔ ${publishedVer} Update`
-                        : `📱 App ${publishedVer}`;
-                }
-            }
-
-            const card = document.getElementById('customerAppUpdateCard');
-            if (!card) return;
-
-            // Hide Update Center block in Admin Portal OR once customer has updated!
-            if (isAdmin || !updatePending) {
-                card.style.display = 'none';
-                stopRepeatingAppUpdateReminder();
-                return;
-            }
-
-            card.style.display = 'block';
-
-            const verBadge = document.getElementById('custAppVerBadge');
-            const notesEl = document.getElementById('custAppUpdateNotes');
-            const qrImg = document.getElementById('custAppQrImg');
-            const rawTxt = document.getElementById('custAppRawLinkText');
-            const updLogo = document.getElementById('custUpdateLogoImg');
-
-            if (updLogo) updLogo.src = window.adminCompanyLogoUrl || window.DEFAULT_COMPANY_LOGO_URL;
-            if (verBadge) verBadge.innerText = publishedVer;
-            if (notesEl) notesEl.innerText = cfg.notes || "Download the newest ASK IoT Solutions mobile app.";
-
-            const targetUrl = (cfg.apkUrl && cfg.apkUrl.trim() !== "")
-                ? cfg.apkUrl.trim()
-                : window.location.href;
-
-            if (qrImg) {
-                qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=8&data=" + encodeURIComponent(targetUrl);
-            }
-            if (rawTxt) {
-                rawTxt.innerText = (cfg.apkUrl && cfg.apkUrl.trim() !== "") ? targetUrl : "Scan QR or tap Download to install the latest app.";
-            }
-
-            if (!window.appUpdateRepeatTimer) {
-                startRepeatingAppUpdateReminder(publishedVer);
-            }
-        }
-
-        async function downloadLatestAppApk() {
-            const cfg = window.appUpdateConfig || {};
-            const ver = String(cfg.version || "v2.0").trim();
-            const pushTrig = cfg.pushTriggerId ? String(cfg.pushTriggerId) : "0";
-
-            if (!cfg.apkUrl || !cfg.apkUrl.trim().startsWith("http")) {
-                await customAlert("⚠️ APK Download Link has not been set by Admin yet. Please scan the QR code or contact support.");
-                return;
-            }
-
-            // Mark update as completed: stops repeating notifications, updates top version pill, and hides Update Center block!
-            localStorage.setItem('waterIoT_ackAppVer', ver);
-            localStorage.setItem('waterIoT_notifiedAppVer', ver);
-            localStorage.setItem('waterIoT_ackPushTrig', pushTrig);
-            stopRepeatingAppUpdateReminder();
-            refreshCustomerAppUpdateUI();
-
-            const cleanUrl = cfg.apkUrl.trim();
-            const bridgeUrl = cleanUrl.includes('#') ? cleanUrl : (cleanUrl + "#wa.me");
-            if (window.AppInventor && window.AppInventor.setWebViewString) {
-                window.AppInventor.setWebViewString(bridgeUrl);
-            } else {
-                window.open(cleanUrl, '_blank');
-            }
-        }
-
-        // --- SYNTHESIZE CRISP WEB-AUDIO TONE (8 DISTINCT EVENT MELODIES) ---
+        // --- SYNTHESIZE CRISP WEB-AUDIO TONE (8 DISTINCT EVENT MELODIES; UNIQUE 5-NOTE UPDATE CHIME) ---
         function playCrispWebTone(eventType) {
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -5882,15 +5983,21 @@
                     "tank_full":  [{ f: 523.25, t: 0.0, d: 0.13 }, { f: 659.25, t: 0.14, d: 0.13 }, { f: 783.99, t: 0.28, d: 0.13 }, { f: 1046.50, t: 0.42, d: 0.36 }],
                     "solar_on":   [{ f: 587.33, t: 0.0, d: 0.12 }, { f: 739.99, t: 0.13, d: 0.12 }, { f: 880.00, t: 0.26, d: 0.12 }, { f: 1174.66, t: 0.39, d: 0.30 }],
                     "solar_off":  [{ f: 880.00, t: 0.0, d: 0.15 }, { f: 659.25, t: 0.16, d: 0.15 }, { f: 523.25, t: 0.32, d: 0.26 }],
-                    "app_update": [{ f: 659.25, t: 0.0, d: 0.12 }, { f: 783.99, t: 0.13, d: 0.12 }, { f: 987.77, t: 0.26, d: 0.14 }, { f: 1318.51, t: 0.41, d: 0.35 }]
+                    "app_update": [
+                        { f: 783.99, t: 0.00, d: 0.11, wave: "triangle" },
+                        { f: 987.77, t: 0.12, d: 0.11, wave: "triangle" },
+                        { f: 1174.66, t: 0.24, d: 0.11, wave: "triangle" },
+                        { f: 987.77, t: 0.36, d: 0.11, wave: "triangle" },
+                        { f: 1567.98, t: 0.48, d: 0.38, wave: "sine" }
+                    ]
                 }[eventType] || [{ f: 659.25, t: 0.0, d: 0.20 }];
 
                 notes.forEach(n => {
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
-                    osc.type = "sine";
+                    osc.type = n.wave || "sine";
                     osc.frequency.setValueAtTime(n.f, now + n.t);
-                    gain.gain.setValueAtTime(0.22, now + n.t);
+                    gain.gain.setValueAtTime(0.24, now + n.t);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
                     osc.connect(gain);
                     gain.connect(ctx.destination);
@@ -5898,26 +6005,85 @@
                     osc.stop(now + n.t + n.d);
                 });
 
-                setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1400);
+                setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1500);
             } catch (e) {}
         }
 
-        // --- SHOW COMPACT BRANDED MOBILE NOTIFICATION BANNER (WITH COMPANY LOGO) ---
-        function showSmartEventBanner(message, borderColor) {
+        // --- SEQUENTIAL 5-SECOND NON-OVERLAPPING BANNER QUEUE (CLICKABLE FOR APP UPDATES) ---
+        function showSmartEventBanner(message, borderColor, clickAction = null) {
+            if (!window.bannerQueue) window.bannerQueue = [];
+
+            const isUpdateMsg = Boolean(
+                clickAction === "scroll_to_update" ||
+                String(message).toLowerCase().includes("app update")
+            );
+
+            // Prevent duplicate back-to-back banners in the queue
+            const lastInQueue = window.bannerQueue[window.bannerQueue.length - 1];
+            if (lastInQueue && lastInQueue.message === message) return;
+
+            const item = {
+                message: message,
+                borderColor: borderColor || "#00d2ff",
+                clickAction: isUpdateMsg ? "scroll_to_update" : clickAction,
+                soundEvent: null
+            };
+
+            window.bannerQueue.push(item);
+            window.lastQueuedBannerItem = item;
+            window.lastQueuedBannerTime = Date.now();
+
+            if (!window.isBannerCurrentlyShowing) {
+                processNextBannerInQueue();
+            }
+        }
+
+        function processNextBannerInQueue() {
             const popup = document.getElementById('usageSmsPopup');
-            if (!popup) return;
+            if (!popup || !window.bannerQueue || window.bannerQueue.length === 0) {
+                window.isBannerCurrentlyShowing = false;
+                return;
+            }
+
+            window.isBannerCurrentlyShowing = true;
+            const currentItem = window.bannerQueue.shift();
             const logoUrl = window.adminCompanyLogoUrl || window.DEFAULT_COMPANY_LOGO_URL;
-            popup.style.borderColor = borderColor || "#00d2ff";
+
+            popup.style.borderColor = currentItem.borderColor;
+            if (currentItem.clickAction === "scroll_to_update") {
+                popup.style.cursor = "pointer";
+                popup.title = "Tap to scroll to App Update Center";
+                popup.onclick = () => {
+                    popup.classList.remove('show');
+                    scrollToCustomerAppUpdateCenter();
+                };
+            } else {
+                popup.style.cursor = "default";
+                popup.title = "";
+                popup.onclick = null;
+            }
+
             popup.innerHTML = `
-                <div style="display:inline-flex; align-items:center; justify-content:center; gap:8px;">
-                    <img src="${logoUrl}" onerror="this.style.display='none'" style="width:20px; height:20px; border-radius:5px; object-fit:contain; flex-shrink:0;">
-                    <span>${message}</span>
+                <div style="display:inline-flex; align-items:center; justify-content:center; gap:9px;">
+                    <img src="${logoUrl}" onerror="this.style.display='none'" style="width:22px; height:22px; border-radius:5px; object-fit:contain; flex-shrink:0;">
+                    <span>${currentItem.message}</span>
                 </div>
             `;
+
             popup.classList.add('show');
+
+            // Play the paired notification sound at the exact moment this banner slides down!
+            if (currentItem.soundEvent) {
+                executeImmediateNotificationSound(currentItem.soundEvent);
+            }
+
+            // Keep notification stable for a full 5.0 seconds (5000 ms), then transition cleanly to next queued banner
             setTimeout(() => {
                 popup.classList.remove('show');
-            }, 4600);
+                setTimeout(() => {
+                    processNextBannerInQueue();
+                }, 480);
+            }, 5000);
         }
 
         // --- SOLAR CHARGING ON / OFF TRANSITION HANDLER ---
@@ -5973,8 +6139,7 @@
             } catch (e) {}
         }
 
-        // --- STRICT EVENT-BASED SOUND TRIGGER ---
-        function triggerAppNotificationSound(eventType = "usage") {
+        function executeImmediateNotificationSound(eventType = "usage") {
             const evConfig = window.EVENT_SOUND_MAP[eventType] || window.EVENT_SOUND_MAP["usage"];
             const maxMs = evConfig.maxDurationMs || 2200;
 
@@ -5984,6 +6149,21 @@
                 : evConfig.url;
 
             playRawSoundUrlWithCutoff(chosenUrl, eventType, maxMs);
+        }
+
+        // --- STRICT EVENT-BASED SOUND TRIGGER (PAIRS WITH BANNER QUEUE SO SOUNDS NEVER OVERLAP) ---
+        function triggerAppNotificationSound(eventType = "usage") {
+            if (
+                window.lastQueuedBannerItem &&
+                (Date.now() - window.lastQueuedBannerTime < 250) &&
+                window.bannerQueue &&
+                window.bannerQueue.includes(window.lastQueuedBannerItem)
+            ) {
+                // Banner is waiting in queue: attach sound to the banner so it rings when the banner appears!
+                window.lastQueuedBannerItem.soundEvent = eventType;
+                return;
+            }
+            executeImmediateNotificationSound(eventType);
         }
 
         // --- INTERACTIVE ADMIN SOUND STUDIO MODAL (WITH "▶️ PLAY" BUTTON ON EVERY SOUND) ---
@@ -6000,7 +6180,7 @@
                     <div class="sound-studio-row">
                         <div style="flex:1; overflow:hidden;">
                             <div style="font-size:12.5px; font-weight:800; color:#fff;">${key}. ${toneObj.name}</div>
-                            <div style="font-size:10px; color:#94a3b8;">Short 1.5s Notification Tone</div>
+                            <div style="font-size:10px; color:#94a3b8;">Short Notification Chime</div>
                         </div>
                         <button type="button" class="sound-play-preview-btn" onclick="previewSoundInStudio('${key}')">▶️ Play</button>
                         <button type="button" class="sound-apply-btn" onclick="applySoundInStudio('${key}')">✓ Set</button>
@@ -6072,7 +6252,7 @@
         function previewCurrentEventAssignedSound() {
             const sel = document.getElementById('studioEventSelect');
             const evKey = sel ? sel.value : "welcome";
-            triggerAppNotificationSound(evKey);
+            executeImmediateNotificationSound(evKey);
         }
 
         function previewSoundInStudio(toneKey) {
@@ -6083,10 +6263,10 @@
 
             if (toneObj.url === "DEFAULT") {
                 const defCfg = window.EVENT_SOUND_MAP[evKey] || window.EVENT_SOUND_MAP["welcome"];
-                playRawSoundUrlWithCutoff(defCfg.url, evKey, defCfg.maxDurationMs || 2000);
+                playRawSoundUrlWithCutoff(defCfg.url, evKey, defCfg.maxDurationMs || 2100);
             } else {
-                const synthMap = { "2": "pump_on", "3": "tank_full", "4": "usage", "5": "welcome", "6": "pump_off" };
-                playRawSoundUrlWithCutoff(toneObj.url, synthMap[toneKey] || evKey, 2000);
+                const synthMap = { "2": "pump_on", "3": "tank_full", "4": "usage", "5": "welcome", "6": "pump_off", "7": "app_update" };
+                playRawSoundUrlWithCutoff(toneObj.url, synthMap[toneKey] || evKey, 2100);
             }
         }
 
@@ -6110,7 +6290,7 @@
                 await workerDb.ref('/AdminConfig/EventSounds').set(window.customEventSounds);
             } catch (e) {}
 
-            triggerAppNotificationSound(evKey);
+            executeImmediateNotificationSound(evKey);
             showSmartEventBanner(`✅ Saved "${toneObj.name}" for ${window.EVENT_SOUND_MAP[evKey].label}`, "#2ed573");
         }
 
@@ -6143,7 +6323,7 @@
                 await workerDb.ref('/AdminConfig/EventSounds').set(window.customEventSounds);
             } catch (e) {}
 
-            triggerAppNotificationSound(evKey);
+            executeImmediateNotificationSound(evKey);
             showSmartEventBanner(`✅ Custom Sound URL saved for ${window.EVENT_SOUND_MAP[evKey].label}`, "#2ed573");
         }
 
@@ -6155,7 +6335,7 @@
                 const workerDb = await getHardwareWorkerDb();
                 await workerDb.ref('/AdminConfig/EventSounds').remove();
             } catch (e) {}
-            triggerAppNotificationSound("welcome");
+            executeImmediateNotificationSound("welcome");
             showSmartEventBanner("🔄 All 8 Events Reset to Default Matching Sounds", "#00d2ff");
         }
 
@@ -6176,7 +6356,7 @@
             if (modal) modal.style.display = 'flex';
         }
 
-        // --- ALL-IN-ONE REAL-TIME LIVE DEMO UI STUDIO (TANK + PUMP BUTTON + NEXUS SOLAR NODE) ---
+        // --- EXPANDED 18-OPTION REAL-TIME LIVE DEMO UI STUDIO (TANK + PUMP BUTTON + NEXUS SOLAR NODE) ---
         function ensureTankStudioModalCreated() {
             if (document.getElementById('adminTankStudioModal')) return;
 
@@ -6188,19 +6368,19 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.12); padding-bottom:8px; margin-bottom:10px;">
                         <div>
                             <div style="font-size:15px; font-weight:900; color:#00d2ff;">🎨 Real-Time Live Demo UI Studio</div>
-                            <div style="font-size:10.5px; color:#7bed9f;">Watch the block above update live as you edit!</div>
+                            <div style="font-size:10.5px; color:#7bed9f;">18 Live Controls • Watch the block above update in real time!</div>
                         </div>
-                        <button type="button" class="eng-drawer-close-btn" onclick="closeAdminTankStudio()">✕ Close Demo</button>
+                        <button type="button" class="eng-drawer-close-btn" onclick="closeAdminTankStudio()">✕ Exit Demo</button>
                     </div>
 
                     <!-- 3-TAB SELECTOR: TANK | PUMP BUTTON | SOLAR NODE -->
                     <div style="display:flex; gap:6px; margin-bottom:10px;">
-                        <button type="button" id="tabBtnStudioTank" class="sound-play-preview-btn" style="flex:1; background:rgba(0,210,255,0.28); border-color:#00d2ff; color:#fff;" onclick="switchStudioDemoTab('tank')">🌊 Water Tank</button>
-                        <button type="button" id="tabBtnStudioPump" class="sound-play-preview-btn" style="flex:1;" onclick="switchStudioDemoTab('pump')">⚡ Pump Button</button>
-                        <button type="button" id="tabBtnStudioSolar" class="sound-play-preview-btn" style="flex:1;" onclick="switchStudioDemoTab('solar')">☀️ Solar Node</button>
+                        <button type="button" id="tabBtnStudioTank" class="sound-play-preview-btn" style="flex:1; background:rgba(0,210,255,0.28); border-color:#00d2ff; color:#fff;" onclick="switchStudioDemoTab('tank')">🌊 Water Tank (6)</button>
+                        <button type="button" id="tabBtnStudioPump" class="sound-play-preview-btn" style="flex:1;" onclick="switchStudioDemoTab('pump')">⚡ Pump Button (6)</button>
+                        <button type="button" id="tabBtnStudioSolar" class="sound-play-preview-btn" style="flex:1;" onclick="switchStudioDemoTab('solar')">☀️ Solar Node (6)</button>
                     </div>
 
-                    <!-- TAB 1: WATER TANK EDITOR -->
+                    <!-- TAB 1: WATER TANK EDITOR (6 OPTIONS) -->
                     <div id="studioPaneTank" style="display:block;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                             <span style="font-size:11px; font-weight:800; color:#feca57;">LIVE TANK DEMO CONTROLS:</span>
@@ -6208,47 +6388,69 @@
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#00d2ff; display:block; margin-bottom:3px;">Wave Animation:</label>
+                                <label style="font-size:10px; font-weight:800; color:#00d2ff; display:block; margin-bottom:3px;">1. Wave Animation:</label>
                                 <select id="tankStudioWaveSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewTankStudioChanges()">
                                     <option value="dual_sine">🌊 Dual Sine Wave</option>
                                     <option value="fast_hydro">⚡ Fast Hydro Surge</option>
-                                    <option value="gentle_ripple">🍃 Gentle Ripple</option>
+                                    <option value="tsunami_surge">🌪️ High Tsunami Crest</option>
+                                    <option value="gentle_ripple">🍃 Gentle Slow Ripple</option>
                                     <option value="flat_still">💧 Flat Still Liquid</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#feca57; display:block; margin-bottom:3px;">Tank Border Glow:</label>
+                                <label style="font-size:10px; font-weight:800; color:#feca57; display:block; margin-bottom:3px;">2. Tank Border Glow:</label>
                                 <select id="tankStudioGlowSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewTankStudioChanges()">
                                     <option value="none">✨ Clean No-Glow</option>
                                     <option value="soft_cyan">💎 Soft Cyan Halo</option>
                                     <option value="neon_emerald">🟢 Neon Emerald</option>
                                     <option value="solar_gold">☀️ Solar Gold Glow</option>
                                     <option value="royal_purple">🟣 Royal Amethyst</option>
+                                    <option value="crimson_alert">🔴 Crimson Laser</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#2ed573; display:block; margin-bottom:3px;">Water Color Theme:</label>
+                                <label style="font-size:10px; font-weight:800; color:#2ed573; display:block; margin-bottom:3px;">3. Water Color Theme:</label>
                                 <select id="tankStudioColorSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewTankStudioChanges()">
                                     <option value="ocean_cyan">🌊 Ocean Cyan</option>
                                     <option value="aqua_mint">🧪 Aqua Mint</option>
                                     <option value="royal_blue">🔷 Royal Sapphire</option>
                                     <option value="emerald_bio">🌿 Emerald Green</option>
                                     <option value="sunset_amber">🌅 Sunset Amber</option>
+                                    <option value="violet_nebula">🔮 Violet Nebula</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#cbd5e1; display:block; margin-bottom:3px;">Percentage Text:</label>
+                                <label style="font-size:10px; font-weight:800; color:#cbd5e1; display:block; margin-bottom:3px;">4. Percentage Text:</label>
                                 <select id="tankStudioPctSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewTankStudioChanges()">
                                     <option value="clean">🔤 Clean Pure White</option>
                                     <option value="outline">💠 Cyan Neon Glow</option>
                                     <option value="frosted_pill">💊 Frosted Glass Pill</option>
                                     <option value="cyber_hud">🎯 Cyber HUD Box</option>
+                                    <option value="gold_badge">👑 Gold Prestige Pill</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:10px; font-weight:800; color:#7bed9f; display:block; margin-bottom:3px;">5. Waterfall Stream:</label>
+                                <select id="tankStudioWaterfallSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewTankStudioChanges()">
+                                    <option value="crystal_flow">💦 Crystal Cascade</option>
+                                    <option value="neon_laser">⚡ Neon Laser Stream</option>
+                                    <option value="heavy_torrent">🌊 Wide Heavy Torrent</option>
+                                    <option value="hidden">🚫 Hide Waterfall</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:10px; font-weight:800; color:#a55eea; display:block; margin-bottom:3px;">6. Glass & Scale Ticks:</label>
+                                <select id="tankStudioGlassSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewTankStudioChanges()">
+                                    <option value="full_3d">✨ 3D Shine + Scale Ticks</option>
+                                    <option value="dark_smoked">🖤 Dark Smoked Cylinder</option>
+                                    <option value="minimal_ticks">📏 Scale Ticks Only</option>
+                                    <option value="crystal_clear">🔍 Pure Clear Tank</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    <!-- TAB 2: PUMP BUTTON EDITOR -->
+                    <!-- TAB 2: PUMP BUTTON EDITOR (6 OPTIONS) -->
                     <div id="studioPanePump" style="display:none;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                             <span style="font-size:11px; font-weight:800; color:#feca57;">LIVE PUMP BUTTON DEMO:</span>
@@ -6256,47 +6458,67 @@
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#00d2ff; display:block; margin-bottom:3px;">Button UI Theme:</label>
+                                <label style="font-size:10px; font-weight:800; color:#00d2ff; display:block; margin-bottom:3px;">1. Button UI Theme:</label>
                                 <select id="pumpStudioThemeSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewPumpStudioChanges()">
                                     <option value="neon_3d">🟢 Classic 3D Emerald/Red</option>
                                     <option value="cyber_cyan">💠 Cyber Cyan / Magenta</option>
                                     <option value="plasma_gold">☀️ Plasma Gold / Crimson</option>
                                     <option value="industrial_steel">⚙️ Industrial Brushed Steel</option>
                                     <option value="royal_purple">🟣 Royal Amethyst Neon</option>
+                                    <option value="crimson_matrix">🔴 Dark Matrix Core</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#feca57; display:block; margin-bottom:3px;">Button Animation:</label>
+                                <label style="font-size:10px; font-weight:800; color:#feca57; display:block; margin-bottom:3px;">2. Button Animation:</label>
                                 <select id="pumpStudioAnimSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewPumpStudioChanges()">
                                     <option value="pulse_ring">💓 Sonar Pulse Scale</option>
                                     <option value="rotating_halo">🌀 Rotating Cyber Halo</option>
+                                    <option value="radar_sweep">📡 Expanding Radar Ping</option>
                                     <option value="liquid_morph">💧 Liquid Morphing Blob</option>
                                     <option value="breathing_glow">✨ Breathing Neon Glow</option>
                                     <option value="none">⏹️ Static (No Animation)</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#2ed573; display:block; margin-bottom:3px;">Button Shape:</label>
+                                <label style="font-size:10px; font-weight:800; color:#2ed573; display:block; margin-bottom:3px;">3. Button Shape:</label>
                                 <select id="pumpStudioShapeSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewPumpStudioChanges()">
                                     <option value="circle">⚪ 3D Round Circle</option>
                                     <option value="squircle">🔲 Modern Squircle</option>
-                                    <option value="diamond_hex">octagon Octagon Core</option>
+                                    <option value="diamond_hex">🛑 Octagon Power Core</option>
+                                    <option value="shield_crest">🛡️ Reactor Shield Crest</option>
                                     <option value="pill">💊 Wide Capsule Pill</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#cbd5e1; display:block; margin-bottom:3px;">Pump Card Border:</label>
+                                <label style="font-size:10px; font-weight:800; color:#cbd5e1; display:block; margin-bottom:3px;">4. Pump Card Border:</label>
                                 <select id="pumpStudioCardGlowSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewPumpStudioChanges()">
                                     <option value="cyan_glass">💎 Cyan Glass Border</option>
                                     <option value="emerald_matrix">🟢 Emerald Matrix Glow</option>
                                     <option value="gold_solar">☀️ Solar Gold Glow</option>
+                                    <option value="purple_cyber">🟣 Cyber Purple Glow</option>
                                     <option value="minimal_clean">✨ Minimal Clean</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:10px; font-weight:800; color:#7bed9f; display:block; margin-bottom:3px;">5. Button Diameter:</label>
+                                <select id="pumpStudioSizeSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewPumpStudioChanges()">
+                                    <option value="compact_116">📐 Compact (116px - Default)</option>
+                                    <option value="standard_126">📏 Medium (126px)</option>
+                                    <option value="large_136">⭕ Large Reactor (136px)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:10px; font-weight:800; color:#a55eea; display:block; margin-bottom:3px;">6. Typography Style:</label>
+                                <select id="pumpStudioFontSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewPumpStudioChanges()">
+                                    <option value="modern_bold">🔤 Modern Bold Sans</option>
+                                    <option value="cyber_mono">💻 Cyber Terminal Mono</option>
+                                    <option value="heavy_impact">⚡ Heavy Impact Display</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    <!-- TAB 3: NEXUS SOLAR NODE EDITOR -->
+                    <!-- TAB 3: NEXUS SOLAR NODE EDITOR (6 OPTIONS) -->
                     <div id="studioPaneSolar" style="display:none;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                             <span style="font-size:11px; font-weight:800; color:#feca57;">LIVE SOLAR NODE DEMO:</span>
@@ -6304,38 +6526,59 @@
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#00d2ff; display:block; margin-bottom:3px;">Solar Node Theme:</label>
+                                <label style="font-size:10px; font-weight:800; color:#00d2ff; display:block; margin-bottom:3px;">1. Solar Node Theme:</label>
                                 <select id="solarStudioThemeSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewSolarStudioChanges()">
                                     <option value="cyber_cyan">💠 Nexus Cyber Cyan</option>
                                     <option value="solar_gold">☀️ Helios Solar Gold</option>
                                     <option value="emerald_bio">🌿 Bio Emerald Matrix</option>
                                     <option value="royal_amethyst">🟣 Quantum Amethyst</option>
+                                    <option value="crimson_core">🔴 Crimson Fusion Core</option>
                                     <option value="obsidian_stealth">🖤 Obsidian Stealth</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#feca57; display:block; margin-bottom:3px;">Ray & Flow Speed:</label>
+                                <label style="font-size:10px; font-weight:800; color:#feca57; display:block; margin-bottom:3px;">2. Ray & Flow Speed:</label>
                                 <select id="solarStudioSpeedSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewSolarStudioChanges()">
                                     <option value="normal">⚡ Normal Flow Speed</option>
                                     <option value="hyper">🚀 Hyper Overdrive</option>
+                                    <option value="turbo_pulse">🌩️ Ultra Turbo Stream</option>
                                     <option value="zen">🍃 Slow Zen Pulse</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#2ed573; display:block; margin-bottom:3px;">Sun Orb Icon Style:</label>
+                                <label style="font-size:10px; font-weight:800; color:#2ed573; display:block; margin-bottom:3px;">3. Sun Orb Icon Style:</label>
                                 <select id="solarStudioSunSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewSolarStudioChanges()">
                                     <option value="classic_sun">☀️ Classic Sun / Moon</option>
                                     <option value="plasma_core">🔥 Plasma Fire Core</option>
                                     <option value="quantum_star">✨ Quantum Starburst</option>
                                     <option value="cyber_bolt">⚡ High-Voltage Bolt</option>
+                                    <option value="golden_halo">🌟 Supernova Star</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:10px; font-weight:800; color:#cbd5e1; display:block; margin-bottom:3px;">3D Battery Capsule:</label>
+                                <label style="font-size:10px; font-weight:800; color:#cbd5e1; display:block; margin-bottom:3px;">4. 3D Battery Capsule:</label>
                                 <select id="solarStudioCapsuleSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewSolarStudioChanges()">
                                     <option value="segmented_3d">🔋 Segmented 3D Glass</option>
                                     <option value="neon_tube">🧪 Glowing Neon Tube</option>
+                                    <option value="cyber_grid">🎯 Cyber Dashed Reactor</option>
                                     <option value="minimal_flat">⏹️ Minimal Flat Bar</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:10px; font-weight:800; color:#7bed9f; display:block; margin-bottom:3px;">5. Solar Panel Grid:</label>
+                                <select id="solarStudioPanelSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewSolarStudioChanges()">
+                                    <option value="blue_silicon">🟦 Blue Poly-Silicon</option>
+                                    <option value="mono_black">⬛ Mono-Crystalline Black</option>
+                                    <option value="gold_matrix">🟨 Gold Photonic Grid</option>
+                                    <option value="emerald_cell">🟩 Bio-Solar Emerald</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:10px; font-weight:800; color:#a55eea; display:block; margin-bottom:3px;">6. Header Title Style:</label>
+                                <select id="solarStudioTitleSelect" class="support-input-field" style="padding:7px; font-size:11.5px; margin-bottom:6px;" onchange="previewSolarStudioChanges()">
+                                    <option value="nexus_glow">💠 Nexus Neon Glow</option>
+                                    <option value="gold_prestige">👑 Gold Prestige</option>
+                                    <option value="clean_minimal">✨ Clean Minimal White</option>
                                 </select>
                             </div>
                         </div>
@@ -6350,7 +6593,6 @@
             document.body.appendChild(overlay);
         }
 
-        // Focuses the exact block being edited right above the bottom-docked studio for real-time demo preview!
         function switchStudioDemoTab(tabName) {
             const panes = {
                 tank: document.getElementById('studioPaneTank'),
@@ -6392,7 +6634,6 @@
                 if (pumpCard) pumpCard.style.display = 'none';
                 if (solarCard) solarCard.style.display = 'none';
 
-                // Ensure demo water level is visible if no device connected
                 const fillEl = document.getElementById('waterLevelFill');
                 const txtEl = document.getElementById('waterLevelText');
                 if (fillEl && (!fillEl.style.height || fillEl.style.height === '0%')) {
@@ -6401,6 +6642,7 @@
                 if (txtEl && (txtEl.innerText === '--%' || txtEl.innerText === '0.0%')) {
                     txtEl.innerText = '68.0%';
                 }
+                applyDynamicTankStyle();
                 if (tankCard) tankCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else if (tabName === 'pump') {
                 if (tankCard) tankCard.style.display = 'none';
@@ -6478,18 +6720,24 @@
             if (document.getElementById('tankStudioGlowSelect')) document.getElementById('tankStudioGlowSelect').value = t.glowMode || "none";
             if (document.getElementById('tankStudioColorSelect')) document.getElementById('tankStudioColorSelect').value = t.waterTheme || "ocean_cyan";
             if (document.getElementById('tankStudioPctSelect')) document.getElementById('tankStudioPctSelect').value = t.pctStyle || "clean";
+            if (document.getElementById('tankStudioWaterfallSelect')) document.getElementById('tankStudioWaterfallSelect').value = t.waterfallStyle || "crystal_flow";
+            if (document.getElementById('tankStudioGlassSelect')) document.getElementById('tankStudioGlassSelect').value = t.glassFinish || "full_3d";
 
             const p = window.pumpStyleConfig || {};
             if (document.getElementById('pumpStudioThemeSelect')) document.getElementById('pumpStudioThemeSelect').value = p.btnTheme || "neon_3d";
             if (document.getElementById('pumpStudioAnimSelect')) document.getElementById('pumpStudioAnimSelect').value = p.animStyle || "pulse_ring";
             if (document.getElementById('pumpStudioShapeSelect')) document.getElementById('pumpStudioShapeSelect').value = p.btnShape || "circle";
             if (document.getElementById('pumpStudioCardGlowSelect')) document.getElementById('pumpStudioCardGlowSelect').value = p.cardGlow || "cyan_glass";
+            if (document.getElementById('pumpStudioSizeSelect')) document.getElementById('pumpStudioSizeSelect').value = p.btnSize || "compact_116";
+            if (document.getElementById('pumpStudioFontSelect')) document.getElementById('pumpStudioFontSelect').value = p.fontStyle || "modern_bold";
 
             const s = window.solarStyleConfig || {};
             if (document.getElementById('solarStudioThemeSelect')) document.getElementById('solarStudioThemeSelect').value = s.nodeTheme || "cyber_cyan";
             if (document.getElementById('solarStudioSpeedSelect')) document.getElementById('solarStudioSpeedSelect').value = s.animSpeed || "normal";
             if (document.getElementById('solarStudioSunSelect')) document.getElementById('solarStudioSunSelect').value = s.sunStyle || "classic_sun";
             if (document.getElementById('solarStudioCapsuleSelect')) document.getElementById('solarStudioCapsuleSelect').value = s.capsuleStyle || "segmented_3d";
+            if (document.getElementById('solarStudioPanelSelect')) document.getElementById('solarStudioPanelSelect').value = s.panelStyle || "blue_silicon";
+            if (document.getElementById('solarStudioTitleSelect')) document.getElementById('solarStudioTitleSelect').value = s.titleStyle || "nexus_glow";
         }
 
         function previewTankStudioChanges() {
@@ -6497,7 +6745,9 @@
                 waveMode: document.getElementById('tankStudioWaveSelect') ? document.getElementById('tankStudioWaveSelect').value : "dual_sine",
                 glowMode: document.getElementById('tankStudioGlowSelect') ? document.getElementById('tankStudioGlowSelect').value : "none",
                 waterTheme: document.getElementById('tankStudioColorSelect') ? document.getElementById('tankStudioColorSelect').value : "ocean_cyan",
-                pctStyle: document.getElementById('tankStudioPctSelect') ? document.getElementById('tankStudioPctSelect').value : "clean"
+                pctStyle: document.getElementById('tankStudioPctSelect') ? document.getElementById('tankStudioPctSelect').value : "clean",
+                waterfallStyle: document.getElementById('tankStudioWaterfallSelect') ? document.getElementById('tankStudioWaterfallSelect').value : "crystal_flow",
+                glassFinish: document.getElementById('tankStudioGlassSelect') ? document.getElementById('tankStudioGlassSelect').value : "full_3d"
             };
             applyDynamicTankStyle(draft);
         }
@@ -6507,7 +6757,9 @@
                 btnTheme: document.getElementById('pumpStudioThemeSelect') ? document.getElementById('pumpStudioThemeSelect').value : "neon_3d",
                 animStyle: document.getElementById('pumpStudioAnimSelect') ? document.getElementById('pumpStudioAnimSelect').value : "pulse_ring",
                 btnShape: document.getElementById('pumpStudioShapeSelect') ? document.getElementById('pumpStudioShapeSelect').value : "circle",
-                cardGlow: document.getElementById('pumpStudioCardGlowSelect') ? document.getElementById('pumpStudioCardGlowSelect').value : "cyan_glass"
+                cardGlow: document.getElementById('pumpStudioCardGlowSelect') ? document.getElementById('pumpStudioCardGlowSelect').value : "cyan_glass",
+                btnSize: document.getElementById('pumpStudioSizeSelect') ? document.getElementById('pumpStudioSizeSelect').value : "compact_116",
+                fontStyle: document.getElementById('pumpStudioFontSelect') ? document.getElementById('pumpStudioFontSelect').value : "modern_bold"
             };
             applyDynamicPumpStyle(draft);
         }
@@ -6517,7 +6769,9 @@
                 nodeTheme: document.getElementById('solarStudioThemeSelect') ? document.getElementById('solarStudioThemeSelect').value : "cyber_cyan",
                 animSpeed: document.getElementById('solarStudioSpeedSelect') ? document.getElementById('solarStudioSpeedSelect').value : "normal",
                 sunStyle: document.getElementById('solarStudioSunSelect') ? document.getElementById('solarStudioSunSelect').value : "classic_sun",
-                capsuleStyle: document.getElementById('solarStudioCapsuleSelect') ? document.getElementById('solarStudioCapsuleSelect').value : "segmented_3d"
+                capsuleStyle: document.getElementById('solarStudioCapsuleSelect') ? document.getElementById('solarStudioCapsuleSelect').value : "segmented_3d",
+                panelStyle: document.getElementById('solarStudioPanelSelect') ? document.getElementById('solarStudioPanelSelect').value : "blue_silicon",
+                titleStyle: document.getElementById('solarStudioTitleSelect') ? document.getElementById('solarStudioTitleSelect').value : "nexus_glow"
             };
             applyDynamicSolarStyle(draft);
         }
@@ -6545,9 +6799,9 @@
         }
 
         async function resetTankStudioDefaults() {
-            const defTank = { waveMode: "dual_sine", glowMode: "none", waterTheme: "ocean_cyan", pctStyle: "clean" };
-            const defPump = { btnTheme: "neon_3d", animStyle: "pulse_ring", btnShape: "circle", cardGlow: "cyan_glass" };
-            const defSolar = { nodeTheme: "cyber_cyan", animSpeed: "normal", sunStyle: "classic_sun", capsuleStyle: "segmented_3d" };
+            const defTank = { waveMode: "dual_sine", glowMode: "none", waterTheme: "ocean_cyan", pctStyle: "clean", waterfallStyle: "crystal_flow", glassFinish: "full_3d" };
+            const defPump = { btnTheme: "neon_3d", animStyle: "pulse_ring", btnShape: "circle", cardGlow: "cyan_glass", btnSize: "compact_116", fontStyle: "modern_bold" };
+            const defSolar = { nodeTheme: "cyber_cyan", animSpeed: "normal", sunStyle: "classic_sun", capsuleStyle: "segmented_3d", panelStyle: "blue_silicon", titleStyle: "nexus_glow" };
 
             applyDynamicTankStyle(defTank);
             applyDynamicPumpStyle(defPump);
@@ -6671,16 +6925,16 @@
             } catch (e) {}
 
             refreshCustomerAppUpdateUI();
-            triggerAppNotificationSound("app_update");
+            executeImmediateNotificationSound("app_update");
             await customAlert(
                 `✅ App Update (${window.appUpdateConfig.version}) Saved & Broadcasted!\n\n` +
-                `🔔 Customer portals will now show the App Update Center and repeat the notification alert until they download the new app.`
+                `🔔 Customer portals will now show the App Update Center on the main dashboard and repeat the notification alert every 1 minute until they download the new app.`
             );
         }
 
         // --- DEDICATED ADMIN BUTTON: PUSH APP UPDATE NOTIFICATION NOW ---
         async function pushImmediateAppUpdateAlert() {
-            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to broadcast a repeating App Update Notification to all customer portals:", true);
+            const pin = await customPrompt("🔒 ADMIN SECURITY\n\nEnter Master Admin PIN to broadcast a repeating 1-minute App Update Notification to all customer portals:", true);
             if (pin !== window.adminPin) {
                 await customAlert("❌ Access Denied: Incorrect Security PIN.");
                 return;
@@ -6707,8 +6961,8 @@
             } catch (e) {}
 
             refreshCustomerAppUpdateUI();
+            showSmartEventBanner(`📢 1-Min Repeating Update Alert (${window.appUpdateConfig.version}) Pushed!`, "#feca57");
             triggerAppNotificationSound("app_update");
-            showSmartEventBanner(`📢 Repeating Update Alert (${window.appUpdateConfig.version}) Pushed to All Customers!`, "#feca57");
         }
 
         // Helper: Get authenticated Secondary Worker DB (has ESP32 hardware privileges on /Devices/{macId})
@@ -6829,7 +7083,7 @@
                     }
                 });
 
-                // EVENT 8: NEW APP UPDATE AVAILABLE NOTIFICATION (REPEATS OFTEN UNTIL CUSTOMER DOWNLOADS UPDATE)
+                // EVENT 8: NEW APP UPDATE AVAILABLE NOTIFICATION (REPEATS EVERY 1 MINUTE UNTIL CUSTOMER DOWNLOADS UPDATE)
                 workerDb.ref('/AdminConfig/AppUpdate').on('value', (snap) => {
                     if (snap.exists() && snap.val() && typeof snap.val() === 'object') {
                         const incoming = snap.val();
@@ -7677,14 +7931,14 @@
                     gmailField.value = displayEmail;
                 }
 
-                // EVENT 1: WELCOME NOTIFICATION (QUEUED UNTIL MACHINE OFFLINE STATUS FINISHES)
+                // EVENT 1: WELCOME NOTIFICATION (QUEUED UNTIL MACHINE OFFLINE STATUS FINISHES; 5s NON-OVERLAPPING)
                 if (!window.hasPlayedWelcomeSession) {
                     window.hasPlayedWelcomeSession = true;
                     sessionStorage.setItem('waterIoT_welcomed', 'true');
                     enqueueOrRunWhenOnline("welcome_popup", () => {
                         showSmartEventBanner("👋 Welcome to ASK IoT Portal!", "#00d2ff");
                         triggerAppNotificationSound("welcome");
-                    }, 500);
+                    }, 300);
                 }
 
                 if(user.email === "adminanish@gmail.com" || user.email === "homeiot@gmail.com") {
@@ -8539,7 +8793,7 @@
                         enqueueOrRunWhenOnline("daily_usage_popup", () => {
                             showSmartEventBanner(popupMsg, usageColor);
                             triggerAppNotificationSound("usage");
-                        }, 900);
+                        }, 600);
                     }
                 }
             });
