@@ -1,3 +1,4 @@
+<!-- === START OF WEBSITE PART 1: SUB-PART r1 (1 OF 4) === -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -104,11 +105,11 @@
             justify-content: center; 
             min-height: 75vh; 
             height: auto;
-            max-width: 420px;
+            max-width: 440px;
             width: 100%;
         }
 
-        /* --- LOGIN WELCOME BANNER & ANIMATED 3-CLICK DEVICE VISUAL GUIDE --- */
+        /* --- LOGIN WELCOME BANNER & LUXURY VISUAL / VIDEO MASTERCLASS --- */
         .login-welcome-banner {
             width: 100%;
             background: linear-gradient(135deg, rgba(0, 210, 255, 0.18) 0%, rgba(46, 213, 115, 0.15) 100%);
@@ -136,34 +137,39 @@
         .visual-help-trigger-btn {
             width: 100%;
             margin-top: 14px;
-            padding: 11px 12px;
-            border-radius: 10px;
-            border: 1.5px dashed #feca57;
-            background: rgba(254, 202, 87, 0.12);
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1.5px solid rgba(254, 202, 87, 0.78);
+            background: linear-gradient(135deg, rgba(254, 202, 87, 0.20) 0%, rgba(255, 159, 67, 0.14) 100%);
             color: #feca57;
             font-size: 12.5px;
-            font-weight: 800;
+            font-weight: 900;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
             transition: all 0.3s ease;
+            box-shadow: 0 6px 22px rgba(254, 202, 87, 0.22);
+            text-align: center;
+            line-height: 1.35;
         }
         .visual-help-trigger-btn:hover {
-            background: rgba(254, 202, 87, 0.22);
-            box-shadow: 0 0 15px rgba(254, 202, 87, 0.3);
+            background: linear-gradient(135deg, rgba(254, 202, 87, 0.30) 0%, rgba(255, 159, 67, 0.24) 100%);
+            box-shadow: 0 0 24px rgba(254, 202, 87, 0.45);
+            transform: translateY(-1px);
         }
         .visual-guide-drawer {
             display: none;
             width: 100%;
             margin-top: 14px;
-            background: rgba(10, 16, 28, 0.95);
-            border: 1.5px solid rgba(0, 210, 255, 0.4);
-            border-radius: 14px;
-            padding: 14px;
+            background: linear-gradient(165deg, rgba(7, 13, 25, 0.98) 0%, rgba(4, 8, 16, 0.99) 100%);
+            border: 1.5px solid rgba(0, 210, 255, 0.48);
+            border-radius: 18px;
+            padding: 15px;
             box-sizing: border-box;
             text-align: left;
+            box-shadow: 0 22px 55px rgba(0, 0, 0, 0.92), inset 0 1px 2px rgba(255, 255, 255, 0.14);
         }
         .voice-guide-bar {
             display: flex;
@@ -173,34 +179,270 @@
         }
         .voice-lang-btn {
             flex: 1;
-            min-width: 85px;
-            padding: 7px 6px;
-            border-radius: 8px;
-            border: 1px solid rgba(46, 213, 115, 0.5);
-            background: rgba(46, 213, 115, 0.15);
+            min-width: 88px;
+            padding: 8px 6px;
+            border-radius: 10px;
+            border: 1px solid rgba(46, 213, 115, 0.55);
+            background: linear-gradient(135deg, rgba(46, 213, 115, 0.18), rgba(16, 172, 132, 0.12));
             color: #7bed9f;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 900;
             cursor: pointer;
             text-align: center;
+            transition: all 0.25s ease;
         }
-        .guide-step-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .voice-lang-btn.active-lang,
+        .voice-lang-btn:hover {
+            background: linear-gradient(135deg, #2ed573, #10ac84);
+            color: #000;
+            border-color: #7bed9f;
+            box-shadow: 0 0 14px rgba(46, 213, 115, 0.5);
+        }
+
+        /* --- BUILT-IN 3-LANGUAGE INTERACTIVE CINEMA VIDEO PLAYER & ANISH AVATAR --- */
+        .cinema-video-shell {
+            width: 100%;
+            background: linear-gradient(180deg, #060e1c 0%, #0b182e 100%);
+            border: 2px solid rgba(254, 202, 87, 0.65);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.88), 0 0 24px rgba(254, 202, 87, 0.18);
+            position: relative;
+        }
+        .cinema-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.75), rgba(15, 25, 45, 0.85));
+            border-bottom: 1px solid rgba(254, 202, 87, 0.25);
+            font-size: 11px;
+            font-weight: 900;
+            color: #feca57;
+            letter-spacing: 0.4px;
+        }
+        .cinema-stage-screen {
+            position: relative;
+            min-height: 225px;
+            padding: 12px 12px 54px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            background: radial-gradient(circle at 50% 35%, rgba(0, 210, 255, 0.16), transparent 72%);
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        /* Anish Digital Avatar Coach Badge */
+        .anish-avatar-coach {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            background: linear-gradient(90deg, rgba(14, 28, 52, 0.96), rgba(8, 16, 32, 0.94));
+            border: 1.5px solid rgba(0, 210, 255, 0.45);
             border-radius: 12px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+        }
+        .anish-avatar-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid #feca57;
+            background: radial-gradient(circle at 50% 30%, #1e3799, #0a1931);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+            box-shadow: 0 0 14px rgba(254, 202, 87, 0.5);
+            overflow: hidden;
+        }
+        .anish-avatar-svg {
+            width: 42px;
+            height: 42px;
+        }
+        .anish-avatar-speaking-wave {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: #2ed573;
+            box-shadow: 0 0 8px #2ed573;
+            animation: avatarSpeakPulse 0.85s ease-in-out infinite alternate;
+        }
+        @keyframes avatarSpeakPulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.28); opacity: 1; }
+        }
+        .anish-avatar-speech {
+            flex: 1;
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.38;
+        }
+        .cinema-scene-visual-box {
+            width: 100%;
+            min-height: 115px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            box-sizing: border-box;
+        }
+        .cinema-subtitles-bar {
+            position: absolute;
+            bottom: 7px;
+            left: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.86);
+            border: 1px solid rgba(254, 202, 87, 0.55);
+            border-radius: 9px;
+            padding: 6px 10px;
+            text-align: center;
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #fff2a3;
+            line-height: 1.35;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+        }
+        .cinema-controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 7px;
+            padding: 8px 10px;
+            background: rgba(0, 0, 0, 0.82);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .cinema-ctrl-btn {
+            background: rgba(0, 210, 255, 0.18);
+            border: 1px solid rgba(0, 210, 255, 0.5);
+            color: #00d2ff;
+            font-size: 11px;
+            font-weight: 900;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+        .cinema-ctrl-btn.play-highlight {
+            background: linear-gradient(90deg, #feca57, #ff9f43);
+            color: #000;
+            border: none;
+            box-shadow: 0 0 12px rgba(254, 202, 87, 0.45);
+        }
+        .cinema-progress-track {
+            flex: 1;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .cinema-progress-fill {
+            height: 100%;
+            width: 16.6%;
+            background: linear-gradient(90deg, #00d2ff, #2ed573, #feca57);
+            transition: width 0.35s ease;
+        }
+        .cinema-scene-dots {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            padding: 6px 8px;
+            background: rgba(0, 0, 0, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .cinema-scene-dot {
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 9.5px;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .cinema-scene-dot.active-scene {
+            background: rgba(0, 210, 255, 0.22);
+            color: #00d2ff;
+            border-color: #00d2ff;
+            box-shadow: 0 0 8px rgba(0, 210, 255, 0.35);
+        }
+
+        /* --- DYNAMIC FUTURE VIDEO LINK PLAYER BOX --- */
+        .dynamic-video-link-card {
+            background: linear-gradient(145deg, rgba(14, 24, 44, 0.96), rgba(8, 14, 26, 0.99));
+            border: 1.5px dashed rgba(0, 210, 255, 0.55);
+            border-radius: 14px;
             padding: 12px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .dynamic-video-iframe-wrap {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            border: 1.5px solid rgba(0, 210, 255, 0.4);
+            margin-top: 8px;
+            display: none;
+        }
+/* === END OF WEBSITE PART 1: SUB-PART r1 (PASTE r2 IMMEDIATELY BELOW THIS LINE) === */
+        /* === START OF WEBSITE PART 1: SUB-PART r2 (2 OF 4) (PASTE IMMEDIATELY BELOW r1) === */
+
+        /* --- ULTRA-PREMIUM STEP CARDS & CAPTIVE PORTAL MOCKUPS --- */
+        .guide-step-card {
+            background: linear-gradient(155deg, rgba(22, 32, 54, 0.72) 0%, rgba(12, 18, 32, 0.88) 100%);
+            border: 1px solid rgba(0, 210, 255, 0.25);
+            border-radius: 14px;
+            padding: 13px;
+            margin-bottom: 13px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+            position: relative;
+            overflow: hidden;
+        }
+        .guide-step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
         .guide-step-badge {
             display: inline-block;
-            background: #00d2ff;
-            color: #000;
-            font-size: 11px;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: #fff;
+            font-size: 10.5px;
             font-weight: 900;
-            padding: 2px 9px;
+            padding: 3px 10px;
             border-radius: 999px;
-            margin-bottom: 6px;
+            letter-spacing: 0.4px;
+            box-shadow: 0 2px 10px rgba(0, 210, 255, 0.3);
         }
+        .step-audio-mini-btn {
+            background: rgba(254, 202, 87, 0.15);
+            border: 1px solid rgba(254, 202, 87, 0.5);
+            color: #feca57;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 999px;
+            cursor: pointer;
+        }
+
+        /* White ASK IoT Physical Box Visual */
         .ask-device-scene {
             display: flex;
             justify-content: center;
@@ -423,6 +665,234 @@
         .click-step-pill.c1 { animation: pillHighlight1 4.5s infinite; }
         .click-step-pill.c2 { animation: pillHighlight2 4.5s infinite; }
         .click-step-pill.c3 { animation: pillHighlight3 4.5s infinite; }
+
+        /* --- REALISTIC CAPTIVE PORTAL PHONE SCREEN MOCKUP (BASED ON SCREENSHOTS) --- */
+        .portal-phone-mockup {
+            width: 100%;
+            max-width: 300px;
+            margin: 10px auto 4px auto;
+            background: #ffffff;
+            color: #222222;
+            border-radius: 16px;
+            border: 4px solid #334155;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75);
+            padding: 12px;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+            position: relative;
+        }
+        .portal-phone-notch {
+            width: 66px;
+            height: 6px;
+            background: #cbd5e1;
+            border-radius: 999px;
+            margin: 0 auto 8px auto;
+        }
+        .portal-blue-btn {
+            width: 100%;
+            background: #1da1f2;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 8px;
+            box-shadow: 0 3px 10px rgba(29, 161, 242, 0.35);
+            position: relative;
+            box-sizing: border-box;
+        }
+        .portal-mac-grey-box {
+            background: #eeeeee;
+            border: 1.5px dashed #cccccc;
+            border-radius: 8px;
+            padding: 9px 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.55;
+            margin-bottom: 10px;
+            position: relative;
+            animation: macBoxGlowPulse 2.4s ease-in-out infinite alternate;
+        }
+        @keyframes macBoxGlowPulse {
+            0% { box-shadow: 0 0 0px rgba(255, 71, 87, 0); border-color: #bbb; }
+            100% { box-shadow: 0 0 14px rgba(255, 71, 87, 0.45); border-color: #ff4757; }
+        }
+        .portal-mock-label {
+            font-size: 10.5px;
+            color: #333;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 2px;
+            text-align: left;
+        }
+        .portal-mock-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 5px;
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #111;
+            background: #f8fafc;
+            margin-bottom: 7px;
+            box-sizing: border-box;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .portal-mock-input.active-type {
+            border-color: #00a8ff;
+            background: #f0f9ff;
+            box-shadow: 0 0 8px rgba(0, 168, 255, 0.25);
+        }
+
+        /* --- LUXURY ANIMATED YELLOW MEASUREMENT TAPE & TANK CUTAWAY VISUAL --- */
+        .tape-measure-stage {
+            width: 100%;
+            background: linear-gradient(180deg, #071122 0%, #0d1e38 100%);
+            border: 1.5px solid rgba(254, 202, 87, 0.45);
+            border-radius: 14px;
+            padding: 12px 10px;
+            margin-top: 8px;
+            box-sizing: border-box;
+            position: relative;
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.8);
+        }
+        .tape-tank-diagram {
+            position: relative;
+            width: 235px;
+            height: 215px;
+            margin: 22px auto 8px auto;
+            border: 3px solid rgba(255, 255, 255, 0.78);
+            border-top: 5px solid #94a3b8;
+            border-radius: 8px 8px 18px 18px;
+            background: linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(12, 28, 52, 0.45) 50%, rgba(0,0,0,0.65) 100%);
+            overflow: visible;
+        }
+        .tape-sensor-box-top {
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 78px;
+            height: 20px;
+            background: linear-gradient(90deg, #1e293b, #334155, #1e293b);
+            border: 2px solid #00d2ff;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 10px;
+            box-sizing: border-box;
+            z-index: 6;
+            box-shadow: 0 -3px 12px rgba(0, 210, 255, 0.4);
+        }
+        .tape-sensor-eye {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #00d2ff 30%, #004e92 100%);
+            border: 1.5px solid #fff;
+        }
+        /* Yellow Measurement Tape 1: Empty Depth (Sensor to Tank Bottom) */
+        .yellow-tape-strip-empty {
+            position: absolute;
+            top: 0;
+            left: 22px;
+            width: 22px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                #feca57 0px,
+                #feca57 5px,
+                #111111 5px,
+                #111111 6.5px,
+                #feca57 6.5px,
+                #feca57 11px,
+                #b33939 11px,
+                #b33939 13px
+            );
+            border-left: 1.5px solid #111;
+            border-right: 1.5px solid #111;
+            box-shadow: 0 0 12px rgba(254, 202, 87, 0.55);
+            z-index: 5;
+            animation: tapeUnrollEmpty 4s ease-in-out infinite alternate;
+            transform-origin: top center;
+        }
+        @keyframes tapeUnrollEmpty {
+            0% { height: 35%; }
+            35%, 100% { height: 100%; }
+        }
+        .tape-tag-empty {
+            position: absolute;
+            left: 48px;
+            bottom: 10px;
+            background: rgba(254, 202, 87, 0.96);
+            color: #000;
+            font-size: 9.5px;
+            font-weight: 900;
+            padding: 4px 7px;
+            border-radius: 6px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.7);
+            z-index: 7;
+            white-space: nowrap;
+            border: 1.5px solid #fff;
+        }
+        /* Green Measurement Tape 2: Full Clearance (Sensor to Full Water Line) */
+        .yellow-tape-strip-full {
+            position: absolute;
+            top: 0;
+            right: 22px;
+            width: 20px;
+            height: 24%;
+            background: repeating-linear-gradient(
+                to bottom,
+                #7bed9f 0px,
+                #7bed9f 5px,
+                #111111 5px,
+                #111111 6.5px
+            );
+            border-left: 1.5px solid #111;
+            border-right: 1.5px solid #111;
+            box-shadow: 0 0 12px rgba(46, 213, 115, 0.65);
+            z-index: 5;
+        }
+        .tape-full-water-line {
+            position: absolute;
+            top: 24%;
+            left: 0;
+            right: 0;
+            border-top: 2.5px dashed #00d2ff;
+            z-index: 4;
+        }
+        .tape-tag-full {
+            position: absolute;
+            right: 46px;
+            top: 8px;
+            background: rgba(46, 213, 115, 0.96);
+            color: #000;
+            font-size: 9.5px;
+            font-weight: 900;
+            padding: 4px 7px;
+            border-radius: 6px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.7);
+            z-index: 7;
+            white-space: nowrap;
+            border: 1.5px solid #fff;
+        }
+        .tape-water-body-demo {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 76%;
+            background: linear-gradient(180deg, rgba(0, 210, 255, 0.40) 0%, rgba(0, 102, 204, 0.65) 100%);
+            border-radius: 0 0 14px 14px;
+            z-index: 2;
+        }
 
         @keyframes fingerTap3Times {
             0%, 10%   { transform: translate(10px, 10px) scale(1); }
@@ -1436,314 +1906,697 @@
         }
     </style>
 </head>
-<body>
-
-    <div id="customModalOverlay">
-        <div id="customModalBox">
-            <h3 id="customModalTitle"></h3>
-            <p id="customModalText"></p>
-            <input type="text" id="customModalInput" class="input-box" style="margin-bottom: 20px;">
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="customModalCancel" class="btn-login" style="background: rgba(255,71,87,0.8); color: white; padding: 10px; flex: 1;">Cancel</button>
-                <button id="customModalConfirm" class="btn-login" style="background: #2ed573; color: black; padding: 10px; flex: 1;">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- --- SERVICE BILL MODAL --- -->
-    <div id="billModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,15,25,0.9); z-index:100000; align-items:center; justify-content:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
-        <div style="background:rgba(20,25,35,0.95); border:2px solid #00d2ff; border-radius:12px; padding:25px; width:90%; max-width:400px; box-shadow:0 15px 40px rgba(0,210,255,0.3); text-align:left; max-height: 90vh; overflow-y: auto;">
-            <h3 style="color:#feca57; margin-top:0; text-align:center;">📄 Generate Service Bill</h3>
-            
-            <label style="color:#ccc; font-size:12px;">Company Address:</label>
-            <input type="text" id="billCompanyAddress" class="input-box" placeholder="Type Company Address Here" style="padding:8px; margin-top:4px; font-size:14px;">
-
-            <div style="display:flex; gap:10px;">
-                <div style="flex:1;">
-                    <label style="color:#ccc; font-size:12px;">Company Phone:</label>
-                    <input type="text" id="billCompanyPhone" class="input-box" placeholder="+91..." style="padding:8px; margin-top:4px; font-size:14px;">
-                </div>
-                <div style="flex:1;">
-                    <label style="color:#ccc; font-size:12px;">Company Email:</label>
-                    <input type="text" id="billCompanyEmail" class="input-box" placeholder="info@..." style="padding:8px; margin-top:4px; font-size:14px;">
-                </div>
-            </div>
-
-            <label style="color:#ccc; font-size:12px;">Customer Address:</label>
-            <input type="text" id="billCustAddress" class="input-box" placeholder="Type Customer Address Here" style="padding:8px; margin-top:4px; font-size:14px;">
-
-            <label style="color:#ccc; font-size:12px;">Usage Type:</label>
-            <select id="billUsageType" class="input-box" style="padding:8px; margin-top:4px; font-size:14px;" onchange="updateBillNameLabel('billUsageType', 'billNameLabel')">
-                <option value="Household">Household</option>
-                <option value="Commercial">Commercial</option>
-            </select>
-
-            <label id="billNameLabel" style="color:#ccc; font-size:12px;">Customer Name:</label>
-            <input type="text" id="billNameInput" class="input-box" placeholder="Name" style="padding:8px; margin-top:4px; font-size:14px;">
-
-            <label style="color:#ccc; font-size:12px;">Machine Type:</label>
-            <select id="billMachineType" class="input-box" style="padding:8px; margin-top:4px; font-size:14px;" onchange="if(this.value==='Custom') document.getElementById('billCustomType').style.display='block'; else document.getElementById('billCustomType').style.display='none';">
-                <option value="Alpha (α)">Alpha (α) - Direct Link</option>
-                <option value="Beta (β)">Beta (β) - Repeater Setup</option>
-                <option value="Custom">Custom...</option>
-            </select>
-            <input type="text" id="billCustomType" class="input-box" placeholder="Type custom machine name" style="display:none; padding:8px; margin-top:4px; font-size:14px;">
-
-            <label style="color:#ccc; font-size:12px;">Warranty Period:</label>
-            <input type="text" id="billWarranty" class="input-box" placeholder="e.g., 1 Year" style="padding:8px; margin-top:4px; font-size:14px;">
-
-            <label style="color:#ccc; font-size:12px;">App Download Link:</label>
-            <input type="text" id="billAppLink" class="input-box" placeholder="https://..." style="padding:8px; margin-top:4px; font-size:14px;">
-
-            <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
-                <button class="btn-login" style="background:rgba(255,71,87,0.8); color:white; padding:10px; flex:1;" onclick="document.getElementById('billModalOverlay').style.display='none'">Cancel</button>
-                <button id="printBillBtn" class="btn-login" style="background:#2ed573; color:black; padding:10px; flex:1;" onclick="executeBillGeneration()">Print PDF</button>
-            </div>
-        </div>
-    </div>
+<!-- === END OF WEBSITE PART 1: SUB-PART r2 (PASTE r3 IMMEDIATELY BELOW THIS LINE) === -->
+    <!-- === START OF WEBSITE PART 1: SUB-PART r3 (3 OF 4) (PASTE IMMEDIATELY BELOW r2) === -->
+<script>
+    const globalLogTimestamps = {};
     
-    <!-- --- QUOTATION GENERATOR MODAL --- -->
-    <div id="quoteModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,15,25,0.9); z-index:100000; align-items:center; justify-content:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
-        <div style="background:rgba(20,25,35,0.95); border:2px solid #00d2ff; border-radius:12px; padding:25px; width:90%; max-width:450px; box-shadow:0 15px 40px rgba(0,210,255,0.3); text-align:left; max-height: 90vh; overflow-y: auto;">
-            <h3 style="color:#feca57; margin-top:0; text-align:center;">💰 Generate Price Invoice</h3>
-            
-            <label style="color:#ccc; font-size:12px;">Company Address:</label>
-            <input type="text" id="quoteCompanyAddress" class="input-box" placeholder="Type Company Address Here" style="padding:8px; margin-top:4px; font-size:14px;">
-            
-            <div style="display:flex; gap:10px;">
-                <div style="flex:1;">
-                    <label style="color:#ccc; font-size:12px;">Company Phone:</label>
-                    <input type="text" id="quoteCompanyPhone" class="input-box" placeholder="+91..." style="padding:8px; margin-top:4px; font-size:14px;">
-                </div>
-                <div style="flex:1;">
-                    <label style="color:#ccc; font-size:12px;">Company Email:</label>
-                    <input type="text" id="quoteCompanyEmail" class="input-box" placeholder="info@..." style="padding:8px; margin-top:4px; font-size:14px;">
-                </div>
-            </div>
+    // --- ADVANCED STATE VARIABLES ---
+    window.activeHotspotName = "--";
+    window.dbLastConnect = "--";
+    window.dbLastDisconnect = "--";
+    window.knownNetworkSlots = []; 
+    window.lastKnownHeartbeat = -1; 
+    window.liveHeartbeatReceived = false; 
+    window.isAutoLinking = false;
+    window.attemptedUidSync = {};
+    window.lastDryRunLog = "";
 
-            <label style="color:#ccc; font-size:12px;">Customer Address:</label>
-            <input type="text" id="quoteCustAddress" class="input-box" placeholder="Type Customer Address Here" style="padding:8px; margin-top:4px; font-size:14px;">
+    // --- DYNAMIC ADMIN SUPPORT CONTACT & OFFICIAL GITHUB RAW LOGO ---
+    window.DEFAULT_COMPANY_LOGO_URL = "https://github.com/homeiot333-bit/water-level-iot/blob/main/ASK%20IoT%20Ogo.png?raw=true";
+    window.adminSupportPhone = "+916290169557";
+    window.adminSupportEmail = "";
+    window.adminCompanyLogoUrl = window.DEFAULT_COMPANY_LOGO_URL;
+    window.selectedSupportType = "problem";
+    window.selectedSupportStars = 5;
 
-            <label style="color:#ccc; font-size:12px;">Usage Type:</label>
-            <select id="quoteUsageType" class="input-box" style="padding:8px; margin-top:4px; font-size:14px;" onchange="updateBillNameLabel('quoteUsageType', 'quoteNameLabel')">
-                <option value="Household">Household</option>
-                <option value="Commercial">Commercial</option>
-            </select>
+    // --- SEQUENTIAL 5-SECOND NON-OVERLAPPING BANNER QUEUE & 1-MINUTE UPDATE REMINDER ---
+    window.onlineNotificationQueue = [];
+    window.bannerQueue = [];
+    window.isBannerCurrentlyShowing = false;
+    window.lastQueuedBannerItem = null;
+    window.lastQueuedBannerTime = 0;
+    window.appUpdateRepeatTimer = null;
+    window.lastHandledPushTrigger = 0;
 
-            <label id="quoteNameLabel" style="color:#ccc; font-size:12px;">Customer Name:</label>
-            <input type="text" id="quoteNameInput" class="input-box" placeholder="Name" style="padding:8px; margin-top:4px; margin-bottom:15px; font-size:14px;">
+    // --- DYNAMIC APP UPDATE CONFIG (EDITABLE FROM ADMIN PORTAL) ---
+    window.appUpdateConfig = {
+        version: "v2.0",
+        apkUrl: "",
+        notes: "Latest ASK IoT Smart Water & Solar App with live alerts.",
+        enabled: true,
+        updatedAt: 0,
+        pushTriggerId: 0
+    };
 
-            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
-            <h4 style="color:#00d2ff; margin-top:0; margin-bottom:10px; font-size:13px;">💵 Hardware Pricing (INR ₹)</h4>
+    // --- EXPANDED TANK STUDIO CONFIG (6 REAL-TIME EDITABLE OPTIONS) ---
+    window.tankStyleConfig = {
+        waveMode: "dual_sine",          // dual_sine | fast_hydro | gentle_ripple | tsunami_surge | flat_still
+        glowMode: "none",               // none | soft_cyan | neon_emerald | solar_gold | royal_purple | crimson_alert
+        waterTheme: "ocean_cyan",       // ocean_cyan | aqua_mint | royal_blue | emerald_bio | sunset_amber | violet_nebula
+        pctStyle: "clean",              // clean | outline | frosted_pill | cyber_hud | gold_badge
+        waterfallStyle: "crystal_flow", // crystal_flow | neon_laser | heavy_torrent | hidden
+        glassFinish: "full_3d"          // full_3d | crystal_clear | dark_smoked | minimal_ticks
+    };
 
-            <div style="display:flex; gap:10px; margin-bottom:8px;">
-                <div style="flex:2;"><label style="color:#ccc; font-size:11px;">1. Sensor Box (Tank)</label></div>
-                <div style="flex:1;"><input type="number" id="quoteMod1" class="input-box" placeholder="₹" style="padding:6px; margin:0; font-size:13px;"></div>
-            </div>
-            <div style="display:flex; gap:10px; margin-bottom:8px;">
-                <div style="flex:2;"><label style="color:#ccc; font-size:11px;">2. Rooftop Unit</label></div>
-                <div style="flex:1;"><input type="number" id="quoteMod2" class="input-box" placeholder="₹" style="padding:6px; margin:0; font-size:13px;"></div>
-            </div>
-            <div style="display:flex; gap:10px; margin-bottom:8px;">
-                <div style="flex:2;"><label style="color:#ccc; font-size:11px;">3. Middleman (Optional)</label></div>
-                <div style="flex:1;"><input type="number" id="quoteMod3" class="input-box" placeholder="₹ 0" style="padding:6px; margin:0; font-size:13px;"></div>
-            </div>
-            <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
-                <div style="flex:2;">
-                    <label style="color:#ccc; font-size:11px; display:block; margin-bottom:4px;">4. Main Hub Unit (Alpha/Beta/Other):</label>
-                    <input type="text" id="quoteMod4Type" class="input-box" placeholder="e.g., Alpha Type" style="padding:6px; margin:0; font-size:12px;">
-                </div>
-                <div style="flex:1;">
-                    <label style="color:transparent; font-size:11px; display:block; margin-bottom:4px;">.</label>
-                    <input type="number" id="quoteMod4" class="input-box" placeholder="₹" style="padding:6px; margin:0; font-size:13px;">
-                </div>
-            </div>
+    // --- EXPANDED PUMP BUTTON STUDIO CONFIG (6 REAL-TIME EDITABLE OPTIONS) ---
+    window.pumpStyleConfig = {
+        btnTheme: "neon_3d",       // neon_3d | cyber_cyan | plasma_gold | industrial_steel | royal_purple | crimson_matrix
+        animStyle: "pulse_ring",   // pulse_ring | rotating_halo | liquid_morph | breathing_glow | radar_sweep | none
+        btnShape: "circle",        // circle | squircle | diamond_hex | pill | shield_crest
+        cardGlow: "cyan_glass",    // cyan_glass | emerald_matrix | gold_solar | purple_cyber | minimal_clean
+        btnSize: "compact_116",    // compact_116 | standard_126 | large_136
+        fontStyle: "modern_bold"   // modern_bold | cyber_mono | heavy_impact
+    };
 
-            <hr style="border: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
-            <label style="color:#ccc; font-size:12px;">Payment UPI ID / Link (For QR Code):</label>
-            <input type="text" id="quoteUpiLink" class="input-box" placeholder="upi://pay?pa=yourupi@bank..." style="padding:8px; margin-top:4px; font-size:14px;">
+    // --- EXPANDED NEXUS SOLAR NODE STUDIO CONFIG (6 REAL-TIME EDITABLE OPTIONS) ---
+    window.solarStyleConfig = {
+        nodeTheme: "cyber_cyan",       // cyber_cyan | solar_gold | emerald_bio | royal_amethyst | obsidian_stealth | crimson_core
+        animSpeed: "normal",           // normal | hyper | zen | turbo_pulse
+        sunStyle: "classic_sun",       // classic_sun | plasma_core | quantum_star | cyber_bolt | golden_halo
+        capsuleStyle: "segmented_3d",  // segmented_3d | neon_tube | minimal_flat | cyber_grid
+        panelStyle: "blue_silicon",    // blue_silicon | mono_black | gold_matrix | emerald_cell
+        titleStyle: "nexus_glow"       // nexus_glow | gold_prestige | clean_minimal
+    };
 
-            <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
-                <button class="btn-login" style="background:rgba(255,71,87,0.8); color:white; padding:10px; flex:1;" onclick="document.getElementById('quoteModalOverlay').style.display='none'">Cancel</button>
-                <button id="printQuoteBtn" class="btn-login" style="background:#feca57; color:black; padding:10px; flex:1;" onclick="executeQuoteGeneration()">Print Invoice</button>
-            </div>
-        </div>
-    </div>
+    // --- LIVE DEMO PREVIEW STATE FOR ADMIN STUDIO ---
+    window.liveDemoRestoreState = null;
 
-    <div id="inboxFloatingMenu" style="display:none; position:fixed; background:rgba(20, 25, 35, 0.98); border:1px solid #00d2ff; border-radius:8px; padding:5px; z-index:10000; box-shadow: 0 10px 30px rgba(0,0,0,0.9); min-width: 160px;">
-        <div style="color:#7bed9f; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('connect')">🟢 Connect Device</div>
-        <div style="color:#feca57; font-size:13px; font-weight:bold; cursor:pointer; padding:10px; border-bottom:1px solid rgba(255,255,255,0.1);" onclick="handleInboxAction('remove')">🧹 Remove Alert</div>
-        <div style="color:#ff4757; font-size:13px; font-weight:bold; cursor:pointer; padding:10px;" onclick="handleInboxAction('delete')">🗑️ Delete Device</div>
-    </div>
+    // --- GLOBAL OVERRIDE SENSOR STATES ---
+    window.sensor1Enabled = true;
+    window.sensor2Enabled = true;
 
-    <div id="usageSmsPopup" class="usage-popup">💧 Today's Water Usage: --%</div>
+    let currentDeviceId = null;
+    let currentPumpState = false;
+    
+    let lastHeartbeat = 0;
+    let lastHeartbeatTime = 0; 
+    let prevOnlineState = null;
 
-    <div id="sideInboxPanel">
-        <div class="close-inbox-btn" onclick="toggleInboxPanel()">✕</div>
-        <h3 style="color: #feca57; margin-top:0; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom:10px; text-align: left;">Global Alerts Inbox</h3>
-        
-        <input type="text" id="inboxSearchInput" class="input-box" placeholder="🔍 Search Name or Device ID..." onkeyup="renderAdminInbox()" style="margin-bottom:15px; background:rgba(255,255,255,0.1); color:white; border:1px solid rgba(255,255,255,0.3);">
+    let espLogHistory = [];
+    let lastWaterPercent = -1;
+    let localDailyUsage = 0;
+    let hasShownPopup = false;
+    
+    let localPumpCommandTimeout = null; 
+    let lastSeenControlTrigger = null;
+    let lastCommandedState = false; 
 
-        <div style="display:flex; gap:10px; margin-bottom:15px; font-size:13px; color:#fff; justify-content: center;">
-            <label><input type="radio" name="inboxFilter" value="All" checked onchange="renderAdminInbox()"> All</label>
-            <label><input type="radio" name="inboxFilter" value="Household" onchange="renderAdminInbox()"> Household</label>
-            <label><input type="radio" name="inboxFilter" value="Commercial" onchange="renderAdminInbox()"> Commercial</label>
-        </div>
+    let isOtaMode = false;
 
-        <div id="adminInbox" class="inbox-container" style="border:none; background:transparent; max-height:none; flex:1; margin-top:0; padding:0;">
-            <div style="text-align:left; color:#ccc; font-size:13px;">Scanning database...</div>
-        </div>
-    </div>
+    window.manualRadioTech = null;
+    window.manualRadioChan = null;
+    window.manualRadioRate = null;
+    window.autoRadioTech = null;
+    window.autoRadioChan = null;
+    window.autoRadioRate = null;
+    window.deviceDeployDate = null; 
+    window.deviceTopology = null; 
+    window.latestRawDistance = null; 
 
-    <div id="criticalErrorBanner" class="error-banner"></div>
+    // --- PERSISTENT RUNTIME VARIABLES ---
+    window.pumpTimerInterval = null;
+    window.maxRunSecs = 0;
+    window.lastSavedRuntime = 0;
+    window.lastSavedRunDate = "Waiting for data...";
+    window.isFirstStateLoad = true;
+    window.lastKnownSolarChargeState = null;
 
-    <div id="offlineOverlay">
-        ⚠️<br><br>Machine is currently Offline
-    </div>
+    // --- 8-MODEL MANUFACTURER BATTERY CURVE & AUTO-CONFIGURATION ENGINE (ADMIN-ONLY) ---
+    const LIFEPO4_1S_CURVE = [
+        [2.50, 0], [2.80, 2], [3.00, 6], [3.10, 12],
+        [3.15, 19], [3.20, 29], [3.22, 40], [3.25, 53],
+        [3.27, 65], [3.29, 76], [3.31, 86], [3.33, 94],
+        [3.35, 98], [3.38, 100]
+    ];
+    const LI_ION_1S_CURVE = [
+        [3.00, 0], [3.25, 4], [3.42, 12], [3.55, 24],
+        [3.65, 40], [3.73, 55], [3.82, 70], [3.92, 82],
+        [4.02, 91], [4.12, 97], [4.18, 100]
+    ];
+    const SLA_12V_CURVE = [
+        [10.50, 0], [11.31, 10], [11.58, 20], [11.90, 40],
+        [12.20, 60], [12.50, 80], [12.70, 95], [12.85, 100]
+    ];
+    const LIFEPO4_4S_CURVE = [
+        [10.00, 0], [11.20, 5], [12.00, 14], [12.60, 25],
+        [12.80, 40], [12.95, 60], [13.10, 78], [13.25, 90],
+        [13.40, 97], [13.52, 100]
+    ];
 
-    <!-- --- LOGIN SCREEN WITH WELCOME BANNER & ANIMATED 3-CLICK VISUAL DEVICE GUIDE --- -->
-    <div id="loginScreen" class="card" style="max-width: 420px; padding-top: 24px;">
-        <div class="login-welcome-banner">
-            <span class="login-welcome-title">👋 Welcome to ASK IoT Solutions!</span>
-            <span class="login-welcome-sub">Smart Water Level & Solar BMS Control Portal</span>
-        </div>
+    window.BATTERY_MODEL_PRESETS = {
+        1: { name: "32140 LiFePO4 • 3.2V 15Ah",    mah: 15000, ah: 15.0, nominalV: 3.20, chem: 1, minSolarV: 4.25, fullV: 3.58, rangeText: "32140 LiFePO4: 2.50V – 3.65V", curve: LIFEPO4_1S_CURVE },
+        2: { name: "32700 LiFePO4 • 3.2V 6Ah",     mah: 6000,  ah: 6.0,  nominalV: 3.20, chem: 1, minSolarV: 4.25, fullV: 3.58, rangeText: "32700 LiFePO4: 2.50V – 3.65V", curve: LIFEPO4_1S_CURVE },
+        3: { name: "32700 2P LiFePO4 • 3.2V 12Ah", mah: 12000, ah: 12.0, nominalV: 3.20, chem: 1, minSolarV: 4.25, fullV: 3.58, rangeText: "32700 2P LiFePO4: 2.50V – 3.65V", curve: LIFEPO4_1S_CURVE },
+        4: { name: "18650 Li-Ion • 3.7V 2.6Ah",    mah: 2600,  ah: 2.6,  nominalV: 3.70, chem: 2, minSolarV: 4.60, fullV: 4.18, rangeText: "18650 Li-Ion: 3.00V – 4.20V", curve: LI_ION_1S_CURVE },
+        5: { name: "18650 2P Li-Ion • 3.7V 5.2Ah", mah: 5200,  ah: 5.2,  nominalV: 3.70, chem: 2, minSolarV: 4.60, fullV: 4.18, rangeText: "18650 2P Li-Ion: 3.00V – 4.20V", curve: LI_ION_1S_CURVE },
+        6: { name: "21700 Li-Ion • 3.7V 5Ah",      mah: 5000,  ah: 5.0,  nominalV: 3.70, chem: 2, minSolarV: 4.60, fullV: 4.18, rangeText: "21700 Li-Ion: 3.00V – 4.20V", curve: LI_ION_1S_CURVE },
+        7: { name: "12V 7Ah Solar Lead-Acid",      mah: 7000,  ah: 7.0,  nominalV: 12.00, chem: 3, minSolarV: 13.50, fullV: 13.80, rangeText: "12V Solar SLA: 10.5V – 14.4V", curve: SLA_12V_CURVE },
+        8: { name: "12.8V 4S LiFePO4 • 12Ah",      mah: 12000, ah: 12.0, nominalV: 12.80, chem: 4, minSolarV: 13.60, fullV: 14.20, rangeText: "12.8V 4S LiFePO4: 10.0V – 14.6V", curve: LIFEPO4_4S_CURVE }
+    };
 
-        <img src="https://github.com/homeiot333-bit/water-level-iot/blob/main/ASK%20IoT%20Ogo.png?raw=true" onerror="this.src='https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png'" alt="ASK IoT Logo" style="height: 65px; margin-bottom: 10px; object-fit: contain;">
-        <h2 style="text-align: center; margin-top: 0;">🔒 Security Gateway</h2>
-        
-        <div id="connIndicator" style="text-align:center; font-size:12px; color:#aaa;">
-            Checking server connection...
-        </div>
-        
-        <input type="email" id="emailInput" class="input-box" placeholder="Email" />
-        <input type="password" id="passwordInput" class="input-box" placeholder="Password" />
-        
-        <div style="width: 100%; display: flex; align-items: center; justify-content: flex-start; margin-top: -5px; margin-bottom: 15px;">
-            <input type="checkbox" id="showPassCheckbox" onclick="togglePasswordVisibility()" style="margin-right: 8px; cursor: pointer;">
-            <label for="showPassCheckbox" style="font-size: 13px; color: #ccc; cursor: pointer; user-select: none;">Show password</label>
-        </div>
-        
-        <button class="btn-login" onclick="loginUser()">LOGIN</button>
-        
-        <div id="loginError" style="color: #ff4757; font-weight: bold; margin-top: 10px; display: none;"></div>
+    let BATTERY_CAPACITY_MAH = 15000;
+    let BATTERY_CAPACITY_AH = 15.0;
+    let BATTERY_NOMINAL_V = 3.20;
+    window.currentBatteryModelId = 1;
+    window.currentBatteryTypeName = "32140 LiFePO4 • 3.2V 15Ah";
+    window.currentBatteryRangeText = "32140 LiFePO4: 2.50V – 3.65V";
 
-        <!-- EASY VISUAL HELP BUTTON FOR NON-TECHNICAL / ILLITERATE USERS -->
-        <button type="button" class="visual-help-trigger-btn" onclick="toggleLoginVisualGuide()">
-            <span>❓</span>
-            <span>Don't Know Login, Password or MAC ID? Tap for Picture Guide</span>
-        </button>
+    function applyWebBatteryModelPreset(modelId) {
+        const id = parseInt(modelId);
+        const preset = window.BATTERY_MODEL_PRESETS[id] || window.BATTERY_MODEL_PRESETS[1];
+        window.currentBatteryModelId = window.BATTERY_MODEL_PRESETS[id] ? id : 1;
+        BATTERY_CAPACITY_MAH = preset.mah;
+        BATTERY_CAPACITY_AH = preset.ah;
+        BATTERY_NOMINAL_V = preset.nominalV;
+        window.currentBatteryTypeName = preset.name;
+        window.currentBatteryRangeText = preset.rangeText;
 
-        <!-- ANIMATED 3-CLICK DEVICE PICTURE GUIDE -->
-        <div id="loginVisualGuideBox" class="visual-guide-drawer">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span style="font-size:13px; font-weight:900; color:#feca57;">📖 3 Easy Steps (Picture Guide)</span>
-                <span style="font-size:11px; color:#94a3b8; cursor:pointer;" onclick="toggleLoginVisualGuide()">✕ Close</span>
-            </div>
+        if (document.getElementById('adminTxtBattModel')) {
+            document.getElementById('adminTxtBattModel').innerText = preset.name;
+        }
+        if (document.getElementById('editBattModelInput')) {
+            document.getElementById('editBattModelInput').value = String(window.currentBatteryModelId);
+        }
+    }
 
-            <div style="font-size:11px; color:#cbd5e1; margin-bottom:6px;">🔊 <strong>Tap to Listen with Voice:</strong></div>
-            <div class="voice-guide-bar">
-                <button type="button" class="voice-lang-btn" onclick="speakLoginGuide('bn')">🔊 বাংলায় শুনুন</button>
-                <button type="button" class="voice-lang-btn" onclick="speakLoginGuide('hi')">🔊 हिंदी में सुनें</button>
-                <button type="button" class="voice-lang-btn" onclick="speakLoginGuide('en')">🔊 English Voice</button>
-            </div>
+    // --- 3-LANGUAGE INTERACTIVE CINEMA VIDEO PLAYER & AVATAR MASTERCLASS ---
+    window.cinemaCurrentLang = 'bn'; // 'bn' | 'hi' | 'en'
+    window.cinemaCurrentSceneIdx = 0;
 
-            <!-- STEP 1: PRESS RED BUTTON 3 TIMES ON WHITE ASK IoT BOX -->
-            <div class="guide-step-card">
-                <span class="guide-step-badge">STEP 1 • ধাপ ১</span>
-                <div style="font-size:12.5px; color:#fff; font-weight:700; line-height:1.4;">
-                    Press the <strong style="color:#ff6b81;">BIG RED BUTTON</strong> on your white machine <strong style="color:#feca57;">3 TIMES fast</strong> (Click-Click-Click).
-                </div>
-
-                <div class="ask-device-scene">
+    window.CINEMA_SCENE_SCRIPTS = [
+        {
+            title: "Step 1: 3 Fast Clicks",
+            bnText: "ধাপ ১: আপনার মেশিনের বড় লাল বোতামটি পরপর ৩ বার দ্রুত টিপুন। সংযোগ লাইট লাল জ্বলবে।",
+            hiText: "स्टेप 1: अपनी मशीन के बड़े लाल बटन को लगातार 3 बार जल्दी दबाएं। लाल लाइट जलेगी।",
+            enText: "Step 1: Press the big red button on your machine 3 times fast. The setup red LED turns ON.",
+            visualHtml: `
+                <div style="font-size:11px; font-weight:800; color:#feca57; margin-bottom:4px;">🎬 Scene 1 of 5: Physical Box 3-Click Setup</div>
+                <div class="ask-device-scene" style="padding:4px 0;">
                     <div>
-                        <div class="ask-white-box">
+                        <div class="ask-white-box" style="transform:scale(0.85); transform-origin:center;">
                             <div class="ask-side-antenna">
                                 <div class="ask-antenna-rod"></div>
                                 <div class="ask-antenna-knuckle"></div>
                             </div>
-
                             <div class="ask-faceplate">
                                 <div class="ask-face-logo">
                                     <img src="https://github.com/homeiot333-bit/water-level-iot/blob/main/ASK%20IoT%20Ogo.png?raw=true" onerror="this.src='https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png'" alt="ASK">
                                 </div>
                                 <div class="ask-face-title">SMART WATER</div>
                                 <div class="ask-face-sub">— LEVEL SYSTEM —</div>
-
                                 <div class="ask-face-cols">
                                     <div class="ask-col-left">
-                                        <div style="font-size:6.5px; font-weight:900; color:#0f172a;">WATER LEVEL</div>
+                                        <div style="font-size:6px; font-weight:900;">WATER LEVEL</div>
                                         <div class="ask-led-row"><span class="ask-led-bezel ask-led-green"></span><span>FULL</span></div>
                                         <div class="ask-led-row"><span class="ask-led-bezel ask-led-blue"></span><span>HIGH</span></div>
                                         <div class="ask-led-row"><span class="ask-led-bezel ask-led-yellow"></span><span>MEDIUM</span></div>
                                         <div class="ask-led-row"><span class="ask-led-bezel ask-led-red"></span><span>LOW</span></div>
                                     </div>
-
                                     <div class="ask-col-right">
                                         <div class="ask-red-push-btn-wrap">
                                             <div class="ask-click-ripple"></div>
                                             <div class="ask-red-push-cap"></div>
                                             <div class="ask-finger-pointer">👆</div>
                                         </div>
-                                        <div style="font-size:6.5px; font-weight:900; text-align:center; margin-top:3px; line-height:1.1;">PUMP<br>ON / OFF</div>
-
-                                        <div style="font-size:6px; font-weight:900; margin-top:5px;">PUMP STATUS</div>
+                                        <div style="font-size:6px; font-weight:900; margin-top:2px;">PUMP ON/OFF</div>
+                                        <div style="font-size:5.5px; font-weight:900; margin-top:3px;">SETUP LED</div>
                                         <div class="ask-status-led-dot"></div>
-
-                                        <div style="font-size:6px; font-weight:900;">CONNECTION</div>
-                                        <div class="ask-conn-led-dot"></div>
                                     </div>
                                 </div>
-
                                 <div class="ask-bottom-wave">••• SMART. SAVE. SUSTAIN.</div>
                             </div>
                         </div>
                         <div class="ask-bottom-cord"></div>
                     </div>
                 </div>
-
-                <div class="click-counter-stage">
+                <div class="click-counter-stage" style="margin-top:2px;">
                     <span class="click-step-pill c1">1st Click</span>
                     <span class="click-step-pill c2">2nd Click</span>
-                    <span class="click-step-pill c3">3rd Click ➔ Light ON!</span>
+                    <span class="click-step-pill c3">3rd Click ➔ LED ON!</span>
+                </div>
+            `
+        },
+        {
+            title: "Step 2: Connect Phone Wi-Fi",
+            bnText: "ধাপ ২: আপনার ফোনের ওয়াইফাই সেটিংসে গিয়ে 'Water_Level_Setup' সিলেক্ট করুন। পাসওয়ার্ড লাগবে না।",
+            hiText: "स्टेप 2: अपने फोन की वाई-फाई सेटिंग में जाएं और 'Water_Level_Setup' से कनेक्ट करें।",
+            enText: "Step 2: Open your phone's Wi-Fi settings and connect to 'Water_Level_Setup'. No password needed.",
+            visualHtml: `
+                <div style="font-size:11px; font-weight:800; color:#feca57; margin-bottom:4px;">🎬 Scene 2 of 5: Phone Wi-Fi Setup</div>
+                <div class="portal-phone-mockup" style="transform:scale(0.85); transform-origin:center; margin:0 auto;">
+                    <div class="portal-phone-notch"></div>
+                    <div style="font-size:10px; font-weight:900; color:#1e293b; margin-bottom:6px; text-align:center;">Wi-Fi Networks</div>
+                    <div style="background:#0f172a; border-radius:10px; padding:10px; color:#fff; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 12px rgba(0,210,255,0.25);">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:18px;">📶</span>
+                            <div>
+                                <div style="font-size:12px; font-weight:900; color:#00d2ff;">Water_Level_Setup</div>
+                                <div style="font-size:9.5px; color:#7bed9f;">Tap to Connect ➔</div>
+                            </div>
+                        </div>
+                        <span style="font-size:16px;">👆</span>
+                    </div>
+                </div>
+            `
+        },
+        {
+            title: "Step 3: Find MAC ID & Login Credentials",
+            bn_Text: "ধাপ ৩: ফোন স্ক্রিনে পপআপ খুলবে। সেখানে আপনার MAC ID, Login Email ও Password লেখা থাকবে।",
+            hiText: "स्टेप 3: फोन पर पेज खुलेगा। सबसे ऊपर आपका MAC ID, Login Email और Password लिखा होगा।",
+            enText: "Step 3: A setup page opens automatically showing your MAC ID, Login Email, and Password at the top.",
+            visualHtml: `
+                <div style="font-size:11px; font-weight:800; color:#feca57; margin-bottom:4px;">🎬 Scene 3 of 5: MAC ID & Credentials</div>
+                <div class="portal-phone-mockup" style="transform:scale(0.83); transform-origin:center; margin:0 auto;">
+                    <div class="portal-phone-notch"></div>
+                    <div class="portal-mac-grey-box">
+                        <div style="color:#0077b6;">1️⃣ MAC ID: <span style="font-family:monospace;">a4e1b2c3d4f5</span></div>
+                        <div style="color:#e63946;">2️⃣ Login: <span style="font-family:monospace;">d4f5@water.com</span></div>
+                        <div style="color:#e63946;">3️⃣ Pass: <span style="font-family:monospace;">wtd4f5</span></div>
+                    </div>
+                    <div style="font-size:9.5px; font-weight:800; color:#2ed573; text-align:center;">✍️ Write these 3 things down on paper!</div>
+                </div>
+            `
+        },
+        {
+            title: "Step 4: Add Hotspot & House Name",
+            bnText: "ধাপ ৪: আপনার বাড়ির হোম ওয়াইফাই (Hotspot) নাম ও পাসওয়ার্ড এবং বাড়ির নাম লিখে নিচে Save বাটনে টিপুন।",
+            hiText: "स्टेप 4: अपने घर का वाई-फाई नाम (Hotspot), पासवर्ड और घर का नाम भरकर Save बटन दबाएं।",
+            enText: "Step 4: Enter your home Wi-Fi name, password, and your house name, then tap Save.",
+            visualHtml: `
+                <div style="font-size:11px; font-weight:800; color:#feca57; margin-bottom:4px;">🎬 Scene 4 of 5: Hotspot & House Name Setup</div>
+                <div class="portal-phone-mockup" style="transform:scale(0.80); transform-origin:center; margin:0 auto;">
+                    <div class="portal-phone-notch"></div>
+                    <span class="portal-mock-label">Customer / Location Name:</span>
+                    <div class="portal-mock-input active-type"><span>Roy Villa (House #4)</span><span>🏠</span></div>
+                    <span class="portal-mock-label">WiFi Network 1 Name (Hotspot):</span>
+                    <div class="portal-mock-input active-type"><span>Home_WiFi_5G</span><span>📶</span></div>
+                    <span class="portal-mock-label">WiFi Network 1 Password:</span>
+                    <div class="portal-mock-input"><span>••••••••</span><span>🔒</span></div>
+                    <div class="portal-blue-btn">💾 Save & Reboot Machine</div>
+                </div>
+            `
+        },
+        {
+            title: "Step 5: Tank Setup with Measurement Tape",
+            bnText: "ধাপ ৫: ফিটা দিয়ে সেন্সর থেকে ট্যাঙ্কের তলা পর্যন্ত উচ্চতা (Empty Depth) এবং জল ভরার খালি জায়গা (Full Clearance) মেপে বসান।",
+            hiText: "स्टेप 5: फीते से सेंसर से टैंक की तली तक की कुल ऊंचाई (Empty Depth) और खाली जगह (Full Clearance) मापकर दर्ज करें।",
+            enText: "Step 5: Use a tape measure to record Tank Empty Depth (Sensor to Bottom) and Full Clearance, then enter them.",
+            visualHtml: `
+                <div style="font-size:11px; font-weight:800; color:#feca57; margin-bottom:4px;">🎬 Scene 5 of 5: Tank Setup & Measurement Tape</div>
+                <div class="tape-measure-stage">
+                    <div style="display:flex; justify-content:space-between; font-size:9.5px; font-weight:800; color:#fff; padding:0 4px;">
+                        <span style="color:#feca57;">📏 Empty Depth = 150 cm</span>
+                        <span style="color:#7bed9f;">📐 Full Clearance = 15 cm</span>
+                    </div>
+                    <div class="tape-tank-diagram">
+                        <div class="tape-sensor-box-top">
+                            <div class="tape-sensor-eye"></div>
+                            <div class="tape-sensor-eye"></div>
+                        </div>
+                        <div class="yellow-tape-strip-empty"><div class="tape-tag-empty">150 cm (Tape)</div></div>
+                        <div class="tape-full-water-line"></div>
+                        <div class="yellow-tape-strip-full"><div class="tape-tag-full">15 cm</div></div>
+                        <div class="tape-water-body-demo"></div>
+                    </div>
+                </div>
+            `
+        }
+    ];
+
+    function toggleLoginVisualGuide() {
+        const box = document.getElementById('loginVisualGuideBox');
+        if (!box) return;
+        const isHidden = (box.style.display === 'none' || box.style.display === '');
+        box.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+            setTimeout(() => {
+                box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                renderCinemaScene(0);
+            }, 100);
+        } else {
+            stopCinemaPlayback();
+            try { window.speechSynthesis.cancel(); } catch (e) {}
+        }
+    }
+
+    function renderCinemaScene(sceneIdx) {
+        window.cinemaCurrentSceneIdx = Math.max(0, Math.min(window.CINEMA_SCENE_SCRIPTS.length - 1, sceneIdx));
+        const scene = window.CINEMA_SCENE_SCRIPTS[window.cinemaCurrentSceneIdx];
+        if (!scene) return;
+
+        const titleEl = document.getElementById('cinemaSceneTitle');
+        const visualEl = document.getElementById('cinemaVisualStage');
+        const speechEl = document.getElementById('anishAvatarSpeechText');
+        const subEl = document.getElementById('cinemaSubtitlesText');
+        const fillEl = document.getElementById('cinemaProgressFill');
+
+        if (titleEl) titleEl.innerText = `${scene.title} (${window.cinemaCurrentSceneIdx + 1}/5)`;
+        if (visualEl) visualEl.innerHTML = scene.visualHtml;
+
+        let spokenText = scene.bnText;
+        if (window.cinemaCurrentLang === 'hi') spokenText = scene.hiText;
+        else if (window.cinemaCurrentLang === 'en') spokenText = scene.enText;
+
+        if (speechEl) speechEl.innerText = spokenText;
+        if (subEl) subEl.innerText = spokenText;
+        if (fillEl) fillEl.style.width = `${((window.cinemaCurrentSceneIdx + 1) / 5) * 100}%`;
+
+        // Update scene dots
+        for (let i = 0; i < 5; i++) {
+            const dot = document.getElementById('cinemaDot_' + i);
+            if (dot) {
+                dot.className = (i === window.cinemaCurrentSceneIdx) ? 'cinema-scene-dot active-scene' : 'cinema-scene-dot';
+            }
+        }
+
+        speakCinemaScript(spokenText, window.cinemaCurrentLang);
+    }
+
+    function switchCinemaLanguage(langCode) {
+        window.cinemaCurrentLang = langCode;
+        ['bn', 'hi', 'en'].forEach(l => {
+            const btn = document.getElementById('cinemaLangBtn_' + l);
+            if (btn) btn.className = (l === langCode) ? 'voice-lang-btn active-lang' : 'voice-lang-btn';
+        });
+        renderCinemaScene(window.cinemaCurrentSceneIdx);
+    }
+
+    function speakCinemaScript(text, langCode) {
+        try {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = (langCode === 'bn') ? 'bn-IN' : ((langCode === 'hi') ? 'hi-IN' : 'en-IN');
+                utter.rate = 0.92;
+                window.speechSynthesis.speak(utter);
+            }
+        } catch (e) {}
+    }
+
+    let cinemaAutoPlayTimer = null;
+    function toggleCinemaPlayPause() {
+        const btn = document.getElementById('cinemaPlayPauseBtn');
+        if (cinemaAutoPlayTimer) {
+            stopCinemaPlayback();
+            if (btn) { btn.innerText = "▶️ Auto Play"; btn.className = "cinema-ctrl-btn"; }
+        } else {
+            if (btn) { btn.innerText = "⏸️ Pause"; btn.className = "cinema-ctrl-btn play-highlight"; }
+            cinemaAutoPlayTimer = setInterval(() => {
+                let nextIdx = window.cinemaCurrentSceneIdx + 1;
+                if (nextIdx >= window.CINEMA_SCENE_SCRIPTS.length) nextIdx = 0;
+                renderCinemaScene(nextIdx);
+            }, 7500);
+        }
+    }
+
+    function stopCinemaPlayback() {
+        if (cinemaAutoPlayTimer) {
+            clearInterval(cinemaAutoPlayTimer);
+            cinemaAutoPlayTimer = null;
+        }
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+
+    function nextCinemaScene() {
+        let nextIdx = window.cinemaCurrentSceneIdx + 1;
+        if (nextIdx >= window.CINEMA_SCENE_SCRIPTS.length) nextIdx = 0;
+        renderCinemaScene(nextIdx);
+    }
+
+    function prevCinemaScene() {
+        let prevIdx = window.cinemaCurrentSceneIdx - 1;
+        if (prevIdx < 0) prevIdx = window.CINEMA_SCENE_SCRIPTS.length - 1;
+        renderCinemaScene(prevIdx);
+    }
+
+    function jumpToCinemaScene(idx) {
+        stopCinemaPlayback();
+        const btn = document.getElementById('cinemaPlayPauseBtn');
+        if (btn) { btn.innerText = "▶️ Auto Play"; btn.className = "cinema-ctrl-btn"; }
+        renderCinemaScene(idx);
+    }
+
+    function toggleDynamicVideoLinkCard() {
+        const wrap = document.getElementById('dynamicVideoIframeWrap');
+        if (!wrap) return;
+        const isHidden = (wrap.style.display === 'none' || wrap.style.display === '');
+        wrap.style.display = isHidden ? 'block' : 'none';
+    }
+
+    function updateDynamicVideoEmbedUrl() {
+        const input = document.getElementById('dynamicVideoUrlInput');
+        const iframe = document.getElementById('dynamicVideoIframe');
+        if (!input || !iframe) return;
+        let url = input.value.trim();
+        if (!url) return;
+
+        // Convert YouTube watch URLs to embed format automatically
+        if (url.includes('youtube.com/watch?v=')) {
+            const vId = url.split('watch?v=')[1].split('&')[0];
+            url = 'https://www.youtube.com/embed/' + vId;
+        } else if (url.includes('youtu.be/')) {
+            const vId = url.split('youtu.be/')[1].split('?')[0];
+            url = 'https://www.youtube.com/embed/' + vId;
+        }
+
+        iframe.src = url;
+        document.getElementById('dynamicVideoIframeWrap').style.display = 'block';
+    }
+</script>
+<!-- === END OF WEBSITE PART 1: SUB-PART r3 (PASTE r4 IMMEDIATELY BELOW THIS LINE) === -->
+    <!-- === START OF WEBSITE PART 1: SUB-PART r4 (4 OF 4) (PASTE IMMEDIATELY BELOW r3) === -->
+    <div id="loginVisualGuideBox" class="visual-guide-drawer">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:13.5px; font-weight:900; color:#feca57;">🎬 Animated Visual Masterclass & Setup Guide</span>
+            <span style="font-size:11px; color:#94a3b8; cursor:pointer; font-weight:800;" onclick="toggleLoginVisualGuide()">✕ Close</span>
+        </div>
+
+        <!-- 3-LANGUAGE SELECTOR BAR -->
+        <div class="voice-guide-bar">
+            <button type="button" id="cinemaLangBtn_bn" class="voice-lang-btn active-lang" onclick="switchCinemaLanguage('bn')">🇧🇩 বাংলা (Bengali)</button>
+            <button type="button" id="cinemaLangBtn_hi" class="voice-lang-btn" onclick="switchCinemaLanguage('hi')">🇮🇳 हिंदी (Hindi)</button>
+            <button type="button" id="cinemaLangBtn_en" class="voice-lang-btn" onclick="switchCinemaLanguage('en')">🇬🇧 English</button>
+        </div>
+
+        <!-- BUILT-IN 3-LANGUAGE INTERACTIVE CINEMA VIDEO PLAYER & ANISH AVATAR -->
+        <div class="cinema-video-shell">
+            <div class="cinema-top-bar">
+                <span id="cinemaSceneTitle">Step 1: 3 Fast Clicks (1/5)</span>
+                <span style="color:#7bed9f; font-size:10px;">● LIVE AVATAR COACH</span>
+            </div>
+
+            <div class="cinema-stage-screen">
+                <!-- Anish Digital Avatar Coach -->
+                <div class="anish-avatar-coach">
+                    <div class="anish-avatar-circle">
+                        <svg class="anish-avatar-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="32" cy="22" r="12" fill="#00d2ff"/>
+                            <path d="M14 54C14 44.0589 22.0589 36 32 36C41.9411 36 50 44.0589 50 54V58H14V54Z" fill="#2ed573"/>
+                            <circle cx="27" cy="20" r="2" fill="#0b182e"/>
+                            <circle cx="37" cy="20" r="2" fill="#0b182e"/>
+                            <path d="M29 26C30 27.5 34 27.5 35 26" stroke="#0b182e" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <div class="anish-avatar-speaking-wave"></div>
+                    </div>
+                    <div class="anish-avatar-speech" id="anishAvatarSpeechText">
+                        ধাপ ১: আপনার মেশিনের বড় লাল বোতামটি পরপর ৩ বার দ্রুত টিপুন। সংযোগ লাইট লাল জ্বলবে।
+                    </div>
+                </div>
+
+                <!-- Scene Visual Container -->
+                <div id="cinemaVisualStage" class="cinema-scene-visual-box">
+                    <!-- Populated dynamically by renderCinemaScene(0) -->
+                </div>
+
+                <!-- Subtitles Bar -->
+                <div id="cinemaSubtitlesText" class="cinema-subtitles-bar">
+                    ধাপ ১: আপনার মেশিনের বড় লাল বোতামটি পরপর ৩ বার দ্রুত টিপুন। সংযোগ লাইট লাল জ্বলবে।
                 </div>
             </div>
 
-            <!-- STEP 2: CONNECT PHONE WIFI TO "Water_Level_Setup" -->
-            <div class="guide-step-card">
-                <span class="guide-step-badge" style="background:#feca57;">STEP 2 • ধাপ ২</span>
-                <div style="font-size:12.5px; color:#fff; font-weight:700; line-height:1.4;">
-                    Open your phone's <strong>Wi-Fi Settings</strong> and tap on <strong style="color:#00d2ff;">"Water_Level_Setup"</strong>.
+            <!-- Scene Navigation Dots -->
+            <div class="cinema-scene-dots">
+                <span id="cinemaDot_0" class="cinema-scene-dot active-scene" onclick="jumpToCinemaScene(0)">1. 3-Clicks</span>
+                <span id="cinemaDot_1" class="cinema-scene-dot" onclick="jumpToCinemaScene(1)">2. Wi-Fi</span>
+                <span id="cinemaDot_2" class="cinema-scene-dot" onclick="jumpToCinemaScene(2)">3. MAC ID</span>
+                <span id="cinemaDot_3" class="cinema-scene-dot" onclick="jumpToCinemaScene(3)">4. Hotspot</span>
+                <span id="cinemaDot_4" class="cinema-scene-dot" onclick="jumpToCinemaScene(4)">5. Tank Tape</span>
+            </div>
+
+            <!-- Cinema Controls Bar -->
+            <div class="cinema-controls-bar">
+                <button type="button" class="cinema-ctrl-btn" onclick="prevCinemaScene()">⏮️ Prev</button>
+                <button type="button" id="cinemaPlayPauseBtn" class="cinema-ctrl-btn play-highlight" onclick="toggleCinemaPlayPause()">▶️ Auto Play</button>
+                <div class="cinema-progress-track" onclick="jumpToCinemaScene(Math.floor((event.offsetX / event.currentTarget.clientWidth) * 5))">
+                    <div id="cinemaProgressFill" class="cinema-progress-fill"></div>
                 </div>
-                <div style="background:#0f172a; border:1px solid rgba(0,210,255,0.4); border-radius:10px; padding:10px 12px; margin-top:8px; display:flex; align-items:center; justify-content:space-between;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="font-size:18px;">📶</span>
-                        <div>
-                            <div style="font-size:13px; font-weight:900; color:#00d2ff;">Water_Level_Setup</div>
-                            <div style="font-size:10px; color:#7bed9f;">Tap here to connect (No password needed)</div>
+                <button type="button" class="cinema-ctrl-btn" onclick="nextCinemaScene()">Next ⏭️</button>
+            </div>
+        </div>
+
+        <!-- DYNAMIC FUTURE VIDEO LINK CARD -->
+        <div class="dynamic-video-link-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11.5px; font-weight:900; color:#00d2ff;">🔗 Custom Video Link (Optional)</span>
+                <button type="button" class="sound-play-preview-btn" style="padding:4px 9px; font-size:10px;" onclick="toggleDynamicVideoLinkCard()">📺 Toggle Player</button>
+            </div>
+            <div style="display:flex; gap:6px; margin-top:8px;">
+                <input type="text" id="dynamicVideoUrlInput" class="support-input-field" placeholder="Paste YouTube / MP4 video link here..." style="margin-bottom:0; font-size:11.5px; padding:7px;">
+                <button type="button" class="sound-apply-btn" style="padding:7px 12px;" onclick="updateDynamicVideoEmbedUrl()">Load</button>
+            </div>
+            <div id="dynamicVideoIframeWrap" class="dynamic-video-iframe-wrap">
+                <iframe id="dynamicVideoIframe" width="100%" height="100%" src="" frameborder="0" allowfullscreen></iframe>
+            </div>
+        </div>
+
+        <!-- STEP 1: PHYSICAL BOX 3-CLICK SETUP -->
+        <div class="guide-step-card">
+            <div class="guide-step-header">
+                <span class="guide-step-badge">STEP 1 • ধাপ ১ (3 Clicks)</span>
+                <button type="button" class="step-audio-mini-btn" onclick="renderCinemaScene(0)">▶️ Play Video</button>
+            </div>
+            <div style="font-size:12px; color:#fff; font-weight:700; line-height:1.4;">
+                Press the <strong style="color:#ff6b81;">BIG RED BUTTON</strong> on your white machine <strong style="color:#feca57;">3 TIMES fast</strong>. The connection LED turns solid red.
+            </div>
+            <div class="ask-device-scene">
+                <div>
+                    <div class="ask-white-box">
+                        <div class="ask-side-antenna">
+                            <div class="ask-antenna-rod"></div>
+                            <div class="ask-antenna-knuckle"></div>
+                        </div>
+                        <div class="ask-faceplate">
+                            <div class="ask-face-logo">
+                                <img src="https://github.com/homeiot333-bit/water-level-iot/blob/main/ASK%20IoT%20Ogo.png?raw=true" onerror="this.src='https://i.ibb.co/xt8L91qy/ASK-Io-T-Ogo.png'" alt="ASK">
+                            </div>
+                            <div class="ask-face-title">SMART WATER</div>
+                            <div class="ask-face-sub">— LEVEL SYSTEM —</div>
+                            <div class="ask-face-cols">
+                                <div class="ask-col-left">
+                                    <div style="font-size:6.5px; font-weight:900; color:#0f172a;">WATER LEVEL</div>
+                                    <div class="ask-led-row"><span class="ask-led-bezel ask-led-green"></span><span>FULL</span></div>
+                                    <div class="ask-led-row"><span class="ask-led-bezel ask-led-blue"></span><span>HIGH</span></div>
+                                    <div class="ask-led-row"><span class="ask-led-bezel ask-led-yellow"></span><span>MEDIUM</span></div>
+                                    <div class="ask-led-row"><span class="ask-led-bezel ask-led-red"></span><span>LOW</span></div>
+                                </div>
+                                <div class="ask-col-right">
+                                    <div class="ask-red-push-btn-wrap">
+                                        <div class="ask-click-ripple"></div>
+                                        <div class="ask-red-push-cap"></div>
+                                        <div class="ask-finger-pointer">👆</div>
+                                    </div>
+                                    <div style="font-size:6.5px; font-weight:900; text-align:center; margin-top:3px; line-height:1.1;">PUMP<br>ON / OFF</div>
+                                    <div style="font-size:6px; font-weight:900; margin-top:5px;">PUMP STATUS</div>
+                                    <div class="ask-status-led-dot"></div>
+                                    <div style="font-size:6px; font-weight:900;">CONNECTION</div>
+                                    <div class="ask-conn-led-dot"></div>
+                                </div>
+                            </div>
+                            <div class="ask-bottom-wave">••• SMART. SAVE. SUSTAIN.</div>
                         </div>
                     </div>
-                    <span style="font-size:20px;">👆</span>
+                    <div class="ask-bottom-cord"></div>
                 </div>
             </div>
+            <div class="click-counter-stage">
+                <span class="click-step-pill c1">1st Click</span>
+                <span class="click-step-pill c2">2nd Click</span>
+                <span class="click-step-pill c3">3rd Click ➔ LED ON!</span>
+            </div>
+        </div>
 
-            <!-- STEP 3: SEE YOUR MAC ID, LOGIN EMAIL & PASSWORD ON SCREEN -->
-            <div class="guide-step-card" style="margin-bottom:0;">
-                <span class="guide-step-badge" style="background:#2ed573;">STEP 3 • ধাপ ৩</span>
-                <div style="font-size:12.5px; color:#fff; font-weight:700; line-height:1.4;">
-                    A page will open automatically on your phone. Your <strong>MAC ID</strong>, <strong>Login Email</strong>, and <strong>Password</strong> are written inside the top box:
+        <!-- STEP 2: CONNECT PHONE WI-FI TO "Water_Level_Setup" -->
+        <div class="guide-step-card">
+            <div class="guide-step-header">
+                <span class="guide-step-badge" style="background:#feca57; color:#000;">STEP 2 • ধাপ ২ (Wi-Fi)</span>
+                <button type="button" class="step-audio-mini-btn" onclick="renderCinemaScene(1)">▶️ Play Video</button>
+            </div>
+            <div style="font-size:12px; color:#fff; font-weight:700; line-height:1.4;">
+                Open your phone's <strong>Wi-Fi Settings</strong> and tap on <strong style="color:#00d2ff;">"Water_Level_Setup"</strong> (No password needed).
+            </div>
+            <div style="background:#0f172a; border:1px solid rgba(0,210,255,0.4); border-radius:10px; padding:10px 12px; margin-top:8px; display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:18px;">📶</span>
+                    <div>
+                        <div style="font-size:13px; font-weight:900; color:#00d2ff;">Water_Level_Setup</div>
+                        <div style="font-size:10px; color:#7bed9f;">Tap here to connect instantly</div>
+                    </div>
                 </div>
-                <div style="background:#eee; color:#222; border:2px dashed #94a3b8; border-radius:10px; padding:10px; margin-top:8px; text-align:center; font-size:12.5px; font-weight:800; line-height:1.6;">
-                    <div>1️⃣ MAC ID: <span style="color:#0077b6; font-family:monospace;">a4e1b2c3d4f5</span></div>
-                    <div>2️⃣ Login: <span style="color:#e63946; font-family:monospace;">d4f5@water.com</span></div>
-                    <div>3️⃣ Pass: <span style="color:#e63946; font-family:monospace;">wtd4f5</span></div>
+                <span style="font-size:20px;">👆</span>
+            </div>
+        </div>
+
+        <!-- STEP 3: FIND MAC ID & LOGIN CREDENTIALS -->
+        <div class="guide-step-card">
+            <div class="guide-step-header">
+                <span class="guide-step-badge" style="background:#2ed573; color:#000;">STEP 3 • ধাপ ৩ (Credentials)</span>
+                <button type="button" class="step-audio-mini-btn" onclick="renderCinemaScene(2)">▶️ Play Video</button>
+            </div>
+            <div style="font-size:12px; color:#fff; font-weight:700; line-height:1.4;">
+                A page will open automatically showing your <strong>MAC ID</strong>, <strong>Login Email</strong>, and <strong>Password</strong> at the top:
+            </div>
+            <div class="portal-phone-mockup" style="margin-top:10px;">
+                <div class="portal-phone-notch"></div>
+                <div class="portal-mac-grey-box">
+                    <div style="color:#0077b6;">1️⃣ MAC ID: <span style="font-family:monospace;">a4e1b2c3d4f5</span></div>
+                    <div style="color:#e63946;">2️⃣ Login: <span style="font-family:monospace;">d4f5@water.com</span></div>
+                    <div style="color:#e63946;">3️⃣ Pass: <span style="font-family:monospace;">wtd4f5</span></div>
                 </div>
-                <div style="font-size:11px; color:#7bed9f; text-align:center; margin-top:6px; font-weight:700;">
-                    ✍️ Write these 3 things down, then type your Login & Password above!
+                <div style="font-size:10px; font-weight:800; color:#16a34a; text-align:center;">✍️ Write these 3 items down on paper!</div>
+            </div>
+        </div>
+
+        <!-- STEP 4: ADD HOTSPOT & HOUSE NAME -->
+        <div class="guide-step-card">
+            <div class="guide-step-header">
+                <span class="guide-step-badge" style="background:#a55eea; color:#fff;">STEP 4 • ধাপ ৪ (Hotspot & Name)</span>
+                <button type="button" class="step-audio-mini-btn" onclick="renderCinemaScene(3)">▶️ Play Video</button>
+            </div>
+            <div style="font-size:12px; color:#fff; font-weight:700; line-height:1.4;">
+                Scroll down the captive portal page, enter your <strong>House Name</strong>, your home <strong>Wi-Fi Name & Password</strong>, and tap <strong>Save</strong>.
+            </div>
+            <div class="portal-phone-mockup" style="margin-top:10px;">
+                <div class="portal-phone-notch"></div>
+                <span class="portal-mock-label">Customer / Location Name:</span>
+                <div class="portal-mock-input active-type"><span>Roy Villa (House #4)</span><span>🏠</span></div>
+                <span class="portal-mock-label">WiFi Network 1 Name (Hotspot):</span>
+                <div class="portal-mock-input active-type"><span>Home_WiFi_5G</span><span>📶</span></div>
+                <span class="portal-mock-label">WiFi Network 1 Password:</span>
+                <div class="portal-mock-input"><span>••••••••</span><span>🔒</span></div>
+                <div class="portal-blue-btn">💾 Save & Reboot Machine</div>
+            </div>
+        </div>
+
+        <!-- STEP 5: TANK SETUP WITH MEASUREMENT TAPE -->
+        <div class="guide-step-card" style="margin-bottom:0;">
+            <div class="guide-step-header">
+                <span class="guide-step-badge" style="background:#ff9f43; color:#000;">STEP 5 • ধাপ ৫ (Tank Tape Setup)</span>
+                <button type="button" class="step-audio-mini-btn" onclick="renderCinemaScene(4)">▶️ Play Video</button>
+            </div>
+            <div style="font-size:12px; color:#fff; font-weight:700; line-height:1.4;">
+                Use a tape measure to measure <strong>Tank Empty Depth</strong> (from sensor to tank bottom) and <strong>Full Clearance</strong> (sensor to maximum water line), then enter them.
+            </div>
+            <div class="tape-measure-stage">
+                <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:900; color:#fff; padding:0 4px;">
+                    <span style="color:#feca57;">📏 Empty Depth = 150 cm</span>
+                    <span style="color:#7bed9f;">📐 Full Clearance = 15 cm</span>
+                </div>
+                <div class="tape-tank-diagram">
+                    <div class="tape-sensor-box-top">
+                        <div class="tape-sensor-eye"></div>
+                        <div class="tape-sensor-eye"></div>
+                    </div>
+                    <div class="yellow-tape-strip-empty"><div class="tape-tag-empty">150 cm (Tape)</div></div>
+                    <div class="tape-full-water-line"></div>
+                    <div class="yellow-tape-strip-full"><div class="tape-tag-full">15 cm</div></div>
+                    <div class="tape-water-body-demo"></div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- === END OF RESTORED WEBSITE PART 1 (PASTE PART 2 IMMEDIATELY BELOW THIS LINE) === -->
+</div>
+<!-- === END OF WEBSITE PART 1: SUB-PART r4 (4 OF 4) === -->
     <!-- === START OF RESTORED WEBSITE PART 2 (PASTE IMMEDIATELY BELOW PART 1) === -->
     <div id="dashboardScreen">
         
